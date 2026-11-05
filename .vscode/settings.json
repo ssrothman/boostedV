@@ -1,0 +1,35 @@
+{
+  "latex-workshop.latex.outDir": ".",
+  "latex-workshop.latex.auxDir": ".latex-build",
+  "latex-workshop.view.pdf.viewer": "tab",
+  "latex-workshop.view.pdf.internal.synctex.keybinding": "double-click",
+  "latex-workshop.showRules": false,
+  "latex-workshop.message.warning.show": false,
+  "latex-workshop.latex.tools": [
+    {
+      "name": "latexmk",
+      "command": "latexmk",
+      "args": [
+        "-pdf",
+        "-synctex=1",
+        "-interaction=nonstopmode",
+        "-file-line-error",
+        "-auxdir=%AUXDIR%",
+        "-outdir=%OUTDIR%",
+        "%DOC%"
+      ]
+    }
+  ],
+  "latex-workshop.latex.recipes": [
+    {
+      "name": "latexmk",
+      "tools": [
+        "latexmk"
+      ]
+    }
+  ],
+  "ltex.enabled": false,
+  "files.exclude": {
+    "**/*.synctex.gz": true
+  }
+}

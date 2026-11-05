@@ -1,0 +1,5 @@
+# Latex build artifacts
+.latex-build/
+
+# LaTeX Workshop only looks for SyncTeX data beside the viewed PDF
+*.synctex.gz

@@ -1,0 +1,138 @@
+\documentclass[11pt]{article}
+
+% Packages
+\usepackage{geometry}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{fancyhdr}
+\usepackage[backend=biber,style=numeric-comp,sorting=none,date=year,url=false,isbn=false]{biblatex}
+\addbibresource{background.bib}
+% For arXiv-only entries, the DOI, URL and pre-published note repeat the eprint.
+\AtEveryBibitem{\ifentrytype{online}{\iffieldundef{eprint}{}{%
+  \clearfield{doi}\clearfield{url}\clearfield{urlyear}\clearfield{pubstate}}}{}}
+
+% Page setup
+\geometry{a4paper, margin=1in, headheight=13.6pt}
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{Plan Document}
+\lhead{}
+\cfoot{\thepage}
+
+\title{Correlators of boosted resonances}
+\author{Simon Rothman}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Motivation}
+
+Measuring EECs of vector bosons is highly appealing.
+Potential applications include:
+\begin{itemize}
+    \item Search for boosted narrow resonances decaying hadronically (as a bump hunt in the EEC spectrum). (Are we sensitive to Higgs??).
+    \item Calibration/proof-of-principle for EEC top mass measurement
+    \item Measurement of transverse/longitudinal polarization fraction of high-pT Z and W
+    \item Measurement of the full production spin-density matrix for high-pT Z and W bosons
+\end{itemize}
+
+\section{Background}
+
+The two-point energy correlator (EEC) of a boosted, hadronically decaying boson looks very different from that of a QCD jet, whose collinear spectrum is smooth and approximately scale invariant~\cite{gaoPrecisionStudiesBoosted2026}.
+A boson of boost \(\gamma = E_V/m_V\) instead produces a decay peak at \(z' \simeq 1/\gamma^2\), with \(z' = (1-\cos\theta')/2\), which at central rapidity corresponds to \(\Delta R \simeq 2m_V/p_T\)~\cite{gaoPrecisionStudiesBoosted2026}.
+The width of the peak is set mainly by QCD radiation from the quarks rather than by \(\Gamma_V/m_V\), and well below the peak the spectrum follows that of a quark jet~\cite{ricciEnergyCorrelatorsHadronically2022}.
+
+\subsection{Polarization and production}
+
+In the narrow-width approximation, the correlator factorizes into a production density matrix and a decay matrix~\cite{ricciEnergyCorrelatorsHadronically2022,gaoPrecisionStudiesBoosted2026}.
+The opening-angle spectrum depends on production only through the longitudinal fraction \(\rho_{00}\)~\cite{gaoPrecisionStudiesBoosted2026}.
+Using NNLO production for \(pp \to V+X\) and decay correlators at NNLO with NNLL collinear and N\(^4\)LL back-to-back resummation, Gao et al.\ find that the peak height at \(\gamma = 4\) differs by about 70\% between purely longitudinal and purely transverse bosons.
+For \(p_T > 100\)~GeV at \(y_V = 0\), the polarized spectrum is suppressed by up to about 10\% across the peak relative to an unpolarized treatment, because high-\(p_T\) production is dominantly transverse~\cite{gaoPrecisionStudiesBoosted2026}.
+The off-diagonal entries require measuring the detector orientation relative to the production plane~\cite{gaoPrecisionStudiesBoosted2026}: \(|\Delta h| = 2\) interference appears in the azimuthal angle, while \(|\Delta h| = 1\) interference requires the azimuth and the angular separation jointly~\cite{ricciEnergyCorrelatorsHadronically2022}.
+One-point energy and charge correlators together determine all eight real parameters of the density matrix~\cite{gaoPrecisionStudiesBoosted2026}.
+Two experimental cautions come from Ref.~\cite{ricciEnergyCorrelatorsHadronically2022}: boosts along the LHC beam axis modify the azimuthal distributions, an effect expected to be mild but not yet assessed, and in a lepton-collider study \(D_2\) selections preferentially reject transverse bosons, homogenizing the longitudinal and transverse one-point spectra.
+
+Two neighboring results extend the toolkit.
+The one-point correlator of a vector current is fixed by a single parameter \(a_{\mathcal{E}}\), bounded by unitarity to \(-1/2 \leq a_{\mathcal{E}} \leq 1\); its N\(^3\)LO value at \(q^2 = m_Z^2\) is \(-0.42\), in good agreement with values extracted indirectly from LEP data~\cite{riembauFlowExtremalOnepoint2026}.
+Flavor flux correlators generalize the program to flavor quantum numbers, with hadronization corrections to the \(b\) and \(c\) cases suppressed by \(\Lambda_{\mathrm{QCD}}/m_Q\)~\cite{leeFlavorFluxCorrelators2026}.
+
+\subsection{Searches}
+
+The same peak motivates resonance searches.
+For a narrow resonance coupled linearly to a QCD operator, the peak position encodes the mass and the spectral shape encodes the spin and polarization, within a space of shapes bounded by unitarity and energy positivity~\cite{ricciBumpHuntingJets2026}.
+A projection for a light hadrophilic \(Z'\) in \(pp \to Z'\gamma\), with statistical uncertainties only, finds that the inclusive EEC reaches sensitivity comparable to a recast of a CMS soft-drop mass search~\cite{ricciBumpHuntingJets2026}.
+A separate recast of the CMS dijet correlator measurement also gives competitive limits, although its signal is at particle level and detector effects may degrade the reach~\cite{ricciBumpHuntingJets2026}.
+In a Monte Carlo study of jets with \(p_T > 1\)~TeV recoiling against \(Z \to \ell\ell\), hadronic \(W/Z\) decays appear as a local excess of about 7\% even though they make up only about 1\% of the jets, with no reconstruction or tagging; that selection is better suited to the HL-LHC than to existing datasets~\cite{gaoPrecisionStudiesBoosted2026}.
+The peak position also calibrates the angular scale, making \(m_V\) a standard candle inside jets, including the polarized \(W\) inside boosted top jets~\cite{gaoPrecisionStudiesBoosted2026}.
+
+
+\section{Questions and Goals}
+
+In the short term, we want to understand how we can use these ideas to do a CMS measurement. 
+A few important lines of questioning:
+
+\paragraph{``Untagged'' resonance search}
+\begin{itemize}
+    \item What sensitivity might be expect in an ``untagged''-style search for a narrow resonance in Run 3 data? 
+    \item Which dataset(s) would we want to use? 
+    \begin{itemize}
+        \item Z+jet (tagged by Z$\to \ell\ell$)? Potential advantage: polarization of the other Z from leptonic decay?
+        \item Photon+jet (tagged by photon)? Potential advantage: larger cross-section. Photon cannot be longitudinally polarized, I assume this has some implications for the polarization of the Z? 
+        \item Dijet (with exactly two jets and momentum balance)? Potential advantage: large cross-section, but also large QCD bacground.
+        \item QCD multijet (without momentum balance)? Potential advantage: largest cross-section, but also largest QCD background.
+        \item Something else?
+    \end{itemize}
+    \item What do various SM processes look like?
+    \begin{itemize}
+        \item Can we separate W and Z at all?
+        \item Can we see the Higgs? If not, can we set limits? Would they be competitive?
+        \item What does the top look like? Do we learn anything interesting? 
+    \end{itemize}
+    \item Do we get any extra sensitivity from observables beyond two-point correlator? E.g,. E3C, E1C, etc. Including non-standard formulations thereof? The paper mentions E$^2$E$^2$ for example. Or with non-standard angles as in the one-point from the paper\ldots
+    \item Would we get boosted sensitivity from some additional cuts? 
+    \item Is heavy flavor interesting? Can we see heavy mesons? 
+    \item Is the background really as clean as we hope it is? 
+    \item How bad is the jet energy uncertainty? Is that the dominant systematic? What other systematics could be important? 
+    \item Would our limits actually be competitive? 
+\end{itemize}
+
+\paragraph{Polarization measurements}
+
+\begin{itemize}
+    \item How good of a job do we need to do at tagging? Can we do it untagged? Is there any way to do good tagging that doesn't sculpt the distributions to shit? 
+    \item Is there a useful shape difference between longitudinal and transverse bosons? Or is it dominantly the peak height? 
+    \item Are the one-point correlators actually practical? What does the background do to them? 
+    \item Would the three-point correlator be useful/interesting? Or some related things, maybe non-standard ones\ldots
+    \item Is there an interesting bell inequality story here? Can we see interference effects? 
+    \item Again, which dataset(s) would we want to use? 
+    \item Charge correlators? Are they useful? How badly does hadronization etc.~ruin the picture? 
+    \item How large are the spin analyzer coefficients?
+    \item What is the other literature? Are we competitive? 
+\end{itemize}
+
+\section{Tasks and Timeline}
+Break down the work into manageable tasks with deadlines.
+
+\begin{enumerate}
+    \item Task 1
+    \item Task 2
+    \item Task 3
+\end{enumerate}
+
+\section{Resources}
+List required resources, dependencies, or tools.
+
+\section{Risks and Mitigations}
+Identify potential risks and how they will be addressed.
+
+\section{Success Criteria}
+Define what constitutes successful completion.
+
+\printbibliography % chktex 1
+
+\end{document}

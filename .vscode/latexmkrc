@@ -1,0 +1,19 @@
+# Latexmk configuration for clean builds
+
+# Output directories
+$pdf_dir = '.latex-pdf';
+$bld_dir = '.latex-build';
+
+# Keep intermediate files in build directory
+$pdf_mode = 1;
+$pdf_previewer = 'xdg-open';
+
+# Clean up options
+$clean_ext = 'aux bbl blg idx ind lof lot out toc acnacr alg glg gls ist fls logfdb_latexmk';
+$clean_ext .= ' pdf pdfa';  # Add synctex and pdf to clean
+
+# Use pdflatex
+$pdf_engine = 'pdflatex';
+
+# Run multiple times if needed
+$upd_map = 1;
