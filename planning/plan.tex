@@ -8,6 +8,8 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{fancyhdr}
+\usepackage{booktabs}
+\usepackage{tabularx}
 \usepackage[backend=biber,style=numeric-comp,sorting=none,date=year,url=false,isbn=false]{biblatex}
 \addbibresource{background.bib}
 % For arXiv-only entries, the DOI, URL and pre-published note repeat the eprint.
@@ -36,7 +38,7 @@ Measuring EECs of vector bosons is highly appealing.
 Potential applications include:
 \begin{itemize}
     \item Search for boosted narrow resonances decaying hadronically (as a bump hunt in the EEC spectrum). (Are we sensitive to Higgs??).
-    \item Calibration/proof-of-principle for EEC top mass measurement
+    \item Calibration/proof-of-principle for EEC top mass measurement. The actual top mass measurement is a separate work, this is just a first demonstration of the technique. 
     \item Measurement of transverse/longitudinal polarization fraction of high-pT Z and W
     \item Measurement of the full production spin-density matrix for high-pT Z and W bosons
 \end{itemize}
@@ -78,12 +80,13 @@ A few important lines of questioning:
 
 \paragraph{``Untagged'' resonance search}
 \begin{itemize}
-    \item What sensitivity might be expect in an ``untagged''-style search for a narrow resonance in Run 3 data? 
+    \item What sensitivity might we expect in an ``untagged''-style search for a narrow resonance in Run 3 data? 
     \item Which dataset(s) would we want to use? 
     \begin{itemize}
         \item Z+jet (tagged by Z$\to \ell\ell$)? Potential advantage: polarization of the other Z from leptonic decay?
+        \item W+jet (tagged by W$\to \ell\nu$)? Potential advantage: polarization of the other W from leptonic decay?
         \item Photon+jet (tagged by photon)? Potential advantage: larger cross-section. Photon cannot be longitudinally polarized, I assume this has some implications for the polarization of the Z? 
-        \item Dijet (with exactly two jets and momentum balance)? Potential advantage: large cross-section, but also large QCD bacground.
+        \item Dijet (with exactly two jets and momentum balance)? Potential advantage: large cross-section, but also large QCD background.
         \item QCD multijet (without momentum balance)? Potential advantage: largest cross-section, but also largest QCD background.
         \item Something else?
     \end{itemize}
@@ -93,18 +96,21 @@ A few important lines of questioning:
         \item Can we see the Higgs? If not, can we set limits? Would they be competitive?
         \item What does the top look like? Do we learn anything interesting? 
     \end{itemize}
-    \item Do we get any extra sensitivity from observables beyond two-point correlator? E.g,. E3C, E1C, etc. Including non-standard formulations thereof? The paper mentions E$^2$E$^2$ for example. Or with non-standard angles as in the one-point from the paper\ldots
-    \item Would we get boosted sensitivity from some additional cuts? 
+    \item Do we get any extra sensitivity from observables beyond two-point correlator? E.g., E3C, E1C, etc. Including non-standard formulations thereof? The paper mentions E$^2$E$^2$ for example. Or with non-standard angles as in the one-point from the paper\ldots
+    \item Would we get a boost in sensitivity from some additional cuts? 
     \item Is heavy flavor interesting? Can we see heavy mesons? 
     \item Is the background really as clean as we hope it is? 
     \item How bad is the jet energy uncertainty? Is that the dominant systematic? What other systematics could be important? 
     \item Would our limits actually be competitive? 
+    \item What jet radius to use? I assume AK8
+    \item Use tracks or PF candidates?
+    \item Useful to discriminate signals by spin/polarization? Or just an unpolarized bump hunt? Separate limits for vector vs scalar? What would an axial-vector signal look like? Or a pseudoscalar? 
 \end{itemize}
 
-\paragraph{Polarization measurements}
+\paragraph{Polarization measurements and spin density matrix}
 
 \begin{itemize}
-    \item How good of a job do we need to do at tagging? Can we do it untagged? Is there any way to do good tagging that doesn't sculpt the distributions to shit? 
+    \item How good of a job do we need to do at tagging? Can we do it untagged? Is there any way to do good tagging that doesn't badly sculpt the distributions? 
     \item Is there a useful shape difference between longitudinal and transverse bosons? Or is it dominantly the peak height? 
     \item Are the one-point correlators actually practical? What does the background do to them? 
     \item Would the three-point correlator be useful/interesting? Or some related things, maybe non-standard ones\ldots
@@ -113,16 +119,83 @@ A few important lines of questioning:
     \item Charge correlators? Are they useful? How badly does hadronization etc.~ruin the picture? 
     \item How large are the spin analyzer coefficients?
     \item What is the other literature? Are we competitive? 
+    \item What jet radius to use? I assume AK8
+    \item Use tracks or PF candidates?
+    \item What is the best approach for getting the full matrix? Minimal set of most useful correlators? Compare one-point to two-point to three-point? 
+    \item Link to EFT?
 \end{itemize}
 
-\section{Tasks and Timeline}
-Break down the work into manageable tasks with deadlines.
+\section{Tasks}
+
+We will refine the procedure as we learn, so each step below ends with a check-in to review the results and revise the later steps.
+Quantitative metrics for comparing channels, selections, and observables will be defined at these check-ins, once the procedure is better understood.
 
 \begin{enumerate}
-    \item Task 1
-    \item Task 2
-    \item Task 3
+    \item \textbf{Literature.} Read more literature to get a sense of what has already been done, and fix the mass and \(p_T\) ranges of interest.
+    \begin{itemize}
+        \item What are the current limits on narrow resonances in the mass range of interest? Start from the references in Ref.~\cite{ricciBumpHuntingJets2026}.
+        \item What are the current uncertainties on the W and Z longitudinal fractions, as a function of \(p_T\)? Start from the references in Ref.~\cite{gaoPrecisionStudiesBoosted2026}.
+        \item What are the current uncertainties on the full spin density matrix, as a function of \(p_T\)?
+        \item \emph{Check-in.}
+    \end{itemize}
+    \item \textbf{Reproduce and explore.} Set up particle-level correlator code, starting with only the Z(\(\ell\ell\)) channel, and scale out from there.
+    \begin{itemize}
+        \item Required samples: Z(\(\ell\ell\))+jet, WZ, and ZZ, where the diboson samples have Z\(\to\ell\ell\) and a hadronic W or Z. All of these are needed, because the published result is built from their sum.
+        \item Two-point correlator: reproduce the Z(\(\ell\ell\))+jet result in Fig.~8 of Ref.~\cite{gaoPrecisionStudiesBoosted2026}.
+        \item One-point correlator: explore it ourselves in the same samples. We are not targeting an exact reproduction of published one-point results, which use different samples~\cite{ricciEnergyCorrelatorsHadronically2022}.
+        \item \emph{Check-in.}
+    \end{itemize}
+    \item \textbf{Samples and data formats.}
+    \begin{itemize}
+        \item Survey which of the samples in Table~\ref{tab:samples} are already available centrally, and use them when possible.
+        \item We will probably need to skim a custom NANO format from MiniAOD to get at the jet constituents. Check whether everything we need is in MiniAOD, or if we need full AOD.
+        \item \emph{Check-in.}
+    \end{itemize}
+    \item \textbf{Polarization feasibility.} Using longitudinal and transverse samples, determine how sensitive the correlators are to the longitudinal fraction.
+    \begin{itemize}
+        \item Check empirically how the choice of jet radius affects longitudinal and transverse bosons.
+        \item \emph{Check-in:} decide whether the SM polarization measurement remains a goal.
+    \end{itemize}
+    \item \textbf{Search exploration.} Add the remaining samples a few at a time, and experiment with different channels, jet radii, selections, cuts, and observables to see what is most promising, using a jet-mass analysis as a baseline.
+    \begin{itemize}
+        \item \emph{Check-in.}
+    \end{itemize}
+    \item \textbf{Detector-level studies.} Add detector simulation, systematic uncertainties, a background estimation method, and a statistical model that accounts for correlations between bins.
+    \begin{itemize}
+        \item \emph{Check-in.}
+    \end{itemize}
+    \item \textbf{Proposal.} Based on these studies, set up a minimal proposal for a measurement and/or search, including a sensitivity estimate. Rediscovering the W and Z is the natural first milestone.
 \end{enumerate}
+
+\paragraph{Samples}
+Table~\ref{tab:samples} lists the samples we expect to need.
+Take care in sample generation to keep track of the polarization state of every boson we simulate.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Planned simulated samples.\label{tab:samples}}
+    \begin{tabularx}{\textwidth}{@{}l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+        \toprule
+        Sample & Decays and variants & Notes \\
+        \midrule
+        Z\('\) resonances & Small number of mass points to start & \\
+        Scalar resonances & Small number of mass points to start & \\
+        Higgs & Various decay channels & Can we see decay to light quarks? \\
+        \midrule
+        Z+jet & Z\(\to\ell\ell\) and Z\(\to q\bar{q}\), separately & Z\(\to\ell\ell\) required for step 2 \\
+        W+jet & W\(\to\ell\nu\) and W\(\to q\bar{q}'\), separately & \\
+        V\(\gamma\) & Leptonic and hadronic V decays, separately & \\
+        Photon+jet & & \\
+        \midrule
+        Diboson & All permutations of leptonic and hadronic decays & WZ and ZZ with Z\(\to\ell\ell\) and a hadronic W or Z required for step 2 \\
+        Multiboson & All permutations of leptonic and hadronic decays & \\
+        \midrule
+        QCD multijet & & \\
+        Single-top & All channels & \\
+        ttbar & & \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
 
 \section{Resources}
 List required resources, dependencies, or tools.
