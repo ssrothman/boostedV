@@ -138,7 +138,7 @@ Quantitative metrics for comparing channels, selections, and observables will be
         \item What are the current uncertainties on the full spin density matrix, as a function of \(p_T\)?
         \item \emph{Check-in.}
     \end{itemize}
-    \item \textbf{Reproduce and explore.} Set up particle-level correlator code, starting with only the Z(\(\ell\ell\)) channel, and scale out from there.
+    \item \textbf{Reproduce and explore.} Set up hadron-level correlator code, starting with only the Z(\(\ell\ell\)) channel, and scale out from there.
     \begin{itemize}
         \item Required samples: Z(\(\ell\ell\))+jet, WZ, and ZZ, where the diboson samples have Z\(\to\ell\ell\) and a hadronic W or Z. All of these are needed, because the published result is built from their sum.
         \item Two-point correlator: reproduce the Z(\(\ell\ell\))+jet result in Fig.~8 of Ref.~\cite{gaoPrecisionStudiesBoosted2026}.
@@ -153,6 +153,7 @@ Quantitative metrics for comparing channels, selections, and observables will be
     \end{itemize}
     \item \textbf{Polarization feasibility.} Using longitudinal and transverse samples, determine how sensitive the correlators are to the longitudinal fraction.
     \begin{itemize}
+        \item Explore and experiment with how to track boson polarization in the generation, which is not yet clear.
         \item Check empirically how the choice of jet radius affects longitudinal and transverse bosons.
         \item \emph{Check-in:} decide whether the SM polarization measurement remains a goal.
     \end{itemize}
@@ -160,7 +161,7 @@ Quantitative metrics for comparing channels, selections, and observables will be
     \begin{itemize}
         \item \emph{Check-in.}
     \end{itemize}
-    \item \textbf{Detector-level studies.} Add detector simulation, systematic uncertainties, a background estimation method, and a statistical model that accounts for correlations between bins.
+    \item \textbf{Detector-level studies.} Move to the central CMS detector simulation, compare parton, hadron, and detector level for everything, and add systematic uncertainties, a background estimation method, and a statistical model that accounts for correlations between bins.
     \begin{itemize}
         \item \emph{Check-in.}
     \end{itemize}
@@ -198,13 +199,41 @@ Take care in sample generation to keep track of the polarization state of every 
 \end{table}
 
 \section{Resources}
-List required resources, dependencies, or tools.
 
-\section{Risks and Mitigations}
-Identify potential risks and how they will be addressed.
+This is a first draft, and the choices marked as open will be settled at the check-ins above.
 
-\section{Success Criteria}
-Define what constitutes successful completion.
+\paragraph{Data and simulation}
+\begin{itemize}
+    \item CMS Run 3 data, at MiniAOD level, or AOD if the check in step 3 shows that we need it.
+    \item Centrally produced CMS simulation, wherever the samples in Table~\ref{tab:samples} are available.
+    \item Privately generated samples for anything else, likely including the resonance signals and the polarized bosons. These start at LO and at hadron level, with no detector simulation. We can graduate to aMC@NLO, POWHEG, or similar once we have a handle on things.
+    \item Comparisons of parton, hadron, and detector level for everything, eventually using the central CMS detector simulation.
+\end{itemize}
+
+\paragraph{Software}
+\begin{itemize}
+    \item Generation: MadGraph5\_aMC@NLO at LO and Pythia~8, the generators used in the published studies~\cite{gaoPrecisionStudiesBoosted2026,ricciBumpHuntingJets2026}. How to track boson polarization is open, and we will need to explore and experiment.
+    \item Jet clustering and correlators: FastJet and our own correlator code.
+    \item CMS software: CMSSW for the custom NANO skim from MiniAOD or AOD.
+    \item Analysis: a Python columnar stack (uproot, awkward-array, hist).
+    \item Open: statistical inference, which will take some iteration.
+\end{itemize}
+
+\paragraph{Computing}
+\begin{itemize}
+    \item Batch computing and storage for sample generation and for the custom NANO skims. The site will likely be FNAL LPC, but we will evaluate the options available. The required capacity will be estimated once the sample survey in step 3 shows how much we need to generate.
+    \item Enough events in the high-\(p_T\) tails, which will likely require generating the V+jet and QCD samples in \(p_T\) slices.
+    \item CMS grid credentials and access to central datasets.
+\end{itemize}
+
+\paragraph{Theory inputs}
+\begin{itemize}
+    \item Polarized two-point predictions: for now, compare against the plots in Ref.~\cite{gaoPrecisionStudiesBoosted2026}.
+    \item The unitarity-bounded classification of resonance signal shapes from Ref.~\cite{ricciBumpHuntingJets2026}.
+\end{itemize}
+
+\paragraph{People}
+Simon Rothman, for now.
 
 \printbibliography % chktex 1
 
