@@ -47,6 +47,24 @@ Present results organized by:
 
 Generate citations in requested format (BibTeX, APA, markdown table).
 
+## Reading Papers from arXiv
+
+For systematic paper reading, use this workflow:
+
+1. **Spawn a subagent per paper** for independent processing
+2. **First fetch title and abstract** to verify relevance
+3. **Fetch full text** and store on disk:
+   - Use `https://arxiv.org/html/{id}` for machine-readable HTML (when available)
+   - Use `https://arxiv.org/pdf/{id}.pdf` for PDF (requires OCR for text extraction)
+   - Use S3 bulk data for LaTeX source (requires unzipping)
+4. **Extract reference list** and store separately
+5. **Perform reading tasks**:
+   - Read and summarize
+   - Extract needed citations
+   - Analyze methodology/results
+
+See [databases.md](databases.md#the-arxiv-api) for arXiv API details and rate limits.
+
 ## Quick Reference
 
 | Database | Best For | Search Prefix |

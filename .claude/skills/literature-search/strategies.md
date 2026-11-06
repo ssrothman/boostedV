@@ -219,3 +219,56 @@ For each paper, note:
 - **Google Scholar Alerts** — Email for new papers matching query
 - **arXiv alerts** — Subscribe to categories
 - **Semantic Scholar Alerts** — Follow authors or topics
+
+---
+
+## Programmatic Access with arXiv API
+
+For large-scale or automated literature reviews, use the arXiv API:
+
+### Official API (Atom 1.0)
+
+```
+http://export.arxiv.org/api/query
+```
+
+**Rate limits:**
+- 1 request every 3 seconds
+- Single connection at a time
+
+**Example query:**
+```bash
+curl "http://export.arxiv.org/api/query?search_query=all:machine+learning&start=0&max_results=50"
+```
+
+### OAI-PMH Interface
+
+For bulk metadata harvesting with date-based updates:
+```
+https://oaipmh.arxiv.org/oai
+```
+
+### RSS/ATOM Feeds
+
+For tracking new papers by category:
+```
+https://rss.arxiv.org/rss/{category}
+```
+
+### Getting Full Text
+
+The arXiv API returns metadata only. For full text:
+
+1. **HTML (machine-readable)**: `https://arxiv.org/html/{id}`
+2. **PDF**: `https://arxiv.org/pdf/{id}.pdf` (requires OCR for text)
+3. **LaTeX source**: Via S3 bulk data (`s3://arxiv/`) - requires unzipping
+
+### Recommended Workflow for Paper Reading
+
+1. **Spawn a subagent per paper** for independent processing
+2. **Verify relevance**: Fetch title and abstract via API
+3. **Fetch full text**: Use HTML endpoint when available
+4. **Extract references**: Store reference list separately
+5. **Perform tasks**: Summarize, extract citations, analyze
+
+See [databases.md](databases.md#the-arxiv-api) for complete API details.
