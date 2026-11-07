@@ -3,3 +3,4 @@
 
 # LaTeX Workshop only looks for SyncTeX data beside the viewed PDF
 *.synctex.gz
+literature/.cache/
