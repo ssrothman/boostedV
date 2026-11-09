@@ -61,7 +61,13 @@ The table has 71 rows from 32 papers. Limits above 1 TeV are kept and flagged `O
   - At LEP, hadronic W decays fold ρ_++ and ρ_−−. Off-diagonal elements were measured with leptonic decays only (OPAL hep-ex/0312047; L3 hep-ex/0301027, where the quark charge is not reconstructed).
   - Theory (2610.38688, App. D): the hadronic energy flow probes ρ_00, ρ_+− (via cos 2Φ and sin 2Φ) and ρ_+0 − ρ_0− (via cos Φ and sin Φ).
   - So a jet-substructure measurement can in principle reach ρ_00 and some interference terms, but not ρ_++ and ρ_−− separately. This is a source statement for leptonic vs hadronic decays at LEP and a theory statement for jets. It has not been demonstrated for jets.
-- **No complete map from A_i to helicity-basis ρ_λλ′.** The maps that exist are partial:
+- **Complete map from A_i to helicity-basis fractions f_λ.** The exact conversion is given in 1203.2165 Eq. 4-5:
+  - f_0 = (1/2)A_0
+  - f_L = (1/4)(2 − A_0 ∓ A_4), f_R = (1/4)(2 − A_0 ± A_4)
+  - f_L − f_R = ∓A_4/2
+  - Upper sign for W⁺, lower sign for W⁻.
+  - This maps CS-frame A_i to helicity-frame fractions directly.
+- **Partial maps stated elsewhere:**
   - A_i ↔ unnormalised H_mm′ (1606.00689 App. A);
   - α/γ ↔ tensor-basis A, C (2409.16731);
   - helicity ρ ↔ energy-correlator structure functions (2610.38688).

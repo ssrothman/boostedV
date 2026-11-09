@@ -786,3 +786,41 @@
 - All verification fixes applied and documented
 - checkin.md draft complete with corrected Q2 Section 2
 - Ready for user review and decisions per checkin.md Section 6
+
+## 2026-11-06T19:21 | Phase 6 | DONE | CS-to-helicity mapping documented
+
+- Created notes/CS_to_helicity_mapping.md with:
+  - Exact mapping formulas from 1203.2165 Eqs. 4-5
+  - Derivation from helicity cross sections (Mirkes & Ohnemus hep-ph/9406381)
+  - Inverse mapping formulas
+  - Summary table of literature coverage
+- Updated checkin.md Section 5: Changed "No complete map" to "Complete map" with explicit formulas
+- Updated spin_density_matrix.md:
+  - Added 1203.2165 as `THEORY` entry in Sec 3.1
+  - Updated Sec 3.2 entry with reference to new note and inverse mapping
+- Mapping is now properly documented and discoverable:
+  - f_0 = A_0/2
+  - f_L = (2−A_0∓A_4)/4, f_R = (2−A_0±A_4)/4
+  - f_L − f_R = ∓A_4/2
+  - Upper sign for W⁺, lower for W⁻
+
+## 2026-11-06T19:45 | Phase 6 | DONE | Off-diagonal elements mapping documented
+
+- Enhanced notes/CS_to_helicity_mapping.md with:
+  - Full angular distribution with all A_0-A_7 terms
+  - Helicity cross section definitions (σ^{U+L}, σ^L, σ^T, σ^P, σ^A, σ^I)
+  - Parity decomposition (even: A_0,A_2,A_4; odd: A_1,A_3,A_5,A_6,A_7)
+  - EEC mapping (2610.38688 App. D): energy flow → ρ_00; cos2Φ,sin2Φ → ρ_+-; cosΦ,sinΦ → ρ_+0−ρ_0-
+  - Summary table of A_i to ρ element mappings
+  - Inverse mapping from ρ to A_i
+  - Z boson mapping considerations
+  - Updated literature coverage table
+  - Open issues section updated
+
+- Key findings:
+  - f_0 = A_0/2 (exact)
+  - f_L − f_R = ∓A_4/2 (exact)
+  - Off-diagonal elements (ρ_+-, ρ_+0, ρ_0-) are proportional to A_1,A_3,A_5,A_6,A_7 but constants are not explicitly stated in literature
+  - Energy-flow EEC observables (2610.38688) map directly to ρ combinations:
+    - Parity-even: ρ_00, ρ_+- combinations
+    - Parity-odd: ρ_+0 − ρ_0-
