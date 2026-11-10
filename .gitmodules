@@ -1,0 +1,3 @@
+[submodule "simulation/EECs"]
+	path = simulation/EECs
+	url = git@github.com:ssrothman/newEECs.git
