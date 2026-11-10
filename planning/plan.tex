@@ -11,6 +11,8 @@
 \usepackage{fancyhdr}
 \usepackage{booktabs}
 \usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{rotating}
 \usepackage{tocloft}
 \setcounter{tocdepth}{2}
 \usepackage[backend=biber,style=numeric-comp,sorting=none,date=year,url=false,isbn=false]{biblatex}
@@ -117,67 +119,67 @@ The characteristic angular scale for the resonance peak is $\Delta R \simeq 2m_V
 \paragraph{CMS measurements:}
 Table~\ref{tab:cms-polarization} summarizes CMS measurements of W/Z polarization and spin density matrix elements.
 
+Table~\ref{tab:polarization-processes} summarizes the physics processes and experimental measurements that have been studied across different collider experiments.
 
 
-$\mathbf{e^+ e^- \to W^+ W^-}$: 
+\begin{sidewaystable}[htbp]
+    \centering
+    \caption{Physics processes and experimental measurements for W/Z polarization studies.\label{tab:polarization-processes}}
+    \begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.16\textwidth}>{\raggedright\arraybackslash}p{0.10\textwidth}>{\raggedright\arraybackslash}p{0.08\textwidth}>{\raggedright\arraybackslash}p{0.15\textwidth}>{\raggedright\arraybackslash}p{0.12\textwidth}>{\raggedright\arraybackslash}p{0.21\textwidth}@{}}
+        \toprule
+        Process & Experiment & Year & Citation & $\sqrt{s}$ & Quantities \\
+        \midrule
+        $e^+e^- \to W^+W^-$ & OPAL & 1999 & \cite{OPAL:1998ixj} & 183 GeV & $W$ polarization\\
+        & L3 & 2000 & \cite{L3:1999cbg} & 183--189 GeV & $W$ polarization \\
+        & OPAL & 2000 & \cite{OPAL:2000wbs} & 189 GeV & $W$, $WW$ polarization \\
+        & L3 & 2003 & \cite{L3:2002ygr} & 183--209 GeV & $W$ polarization \\
+        & OPAL & 2004 & \cite{OPAL:2003uzt} & 183--209 GeV & $W$ polarization \\
+        & L3 (???) & ??? & \texttt{L3 Note 2793} & ??? & Full spin-density matrix (never published??) \\
+        \midrule
+        $p\bar{p} \to Z/\gamma \to \ell\ell$ & CDF & 2011 & \cite{CDF:2011ksg} & 1.96 TeV & $A_0, A_2, A_3, A_4$ \\
+        \midrule
+        $pp \to Z/\gamma \to \ell\ell$ & CMS & 2015 & \cite{CMS:2015cyj} & 8 TeV & $A_{0-4}$ \\
+        & ATLAS & 2016 & \cite{ATLAS:2016rnf} & 8 TeV & $A_{0-7}$ \\
+        & LHCb & 2022 & \cite{LHCb:2022tbc} & 13 TeV & $A_{0-4}$ in forward region \\
+        & CMS & 2026 & \cite{CMS:2026amb} & 13 TeV & $A_{0-7}$ \\
+        \midrule
+        $pp \to W \to \ell\nu$ & CMS & 2011 & \cite{CMS:2011kaj} & 7--8 TeV &  $W$ polarization \\
+        & ATLAS & 2012 & \cite{ATLAS:2012au} & 7 TeV & $W$ polarization \\
+        & CMS & 2020 & \cite{CMS:2020cph} & 13 TeV & $W$ polarization \\
+        & ATLAS & 2025 & \cite{ATLAS:2025mlt} & 13 TeV & $A_{0-7}$ (but only sensitive to $A_0, A_2, A_3, A_4$)\\
+        \midrule
+        $t \to (W \to \ell\nu) b$ & ATLAS & 2023 & \cite{ATLAS:2022rms} & 13 TeV & $W$ polarization in top decays \\
+        & CMS+ATLAS & 2020 & \cite{CMS:2020ezf} & 8 TeV & Combined $W$ polarization \\
+        & CMS & 2015 & \cite{CMS:2014uod} & 8 TeV & $W$ helicity in single-top \\
+        & CDF+D0 & 2012 & \cite{CDF:2012dup} & 1.96 TeV & Combined $W$ polarization \\
+        \midrule
+        $pp \to WZ \to \ell\nu\ell\ell$ & ATLAS & 2019 & \cite{ATLAS:2019bsc} & 13 TeV & $W^{\pm}Z$ cross sections, $f_0$, $f_L-f_R$ \\
+        & CMS & 2022 & \cite{CMS:2021icx} & 13 TeV & $WZ$ cross sections, $f_0^W$, $f_{LR}^W$ \\
+        & ATLAS & 2023 & \cite{ATLAS:2022oge} & 13 TeV & Joint polarization states ($f_{00}$, $f_{0T}$, $f_{T0}$, $f_{TT}$) \\
+        & ATLAS & 2024 & \cite{ATLAS:2024qbd} & 13 TeV & $f_{00}$ vs $p_T^Z$ \\
+        & ATLAS & 2026 & \cite{ATLAS:2026kzu} & 13--13.6 TeV & EW $W^{\pm}Z$jj, $f_{X0}$, $f_{0X}$, $f_{00}$ \\
+        \midrule
+        $pp \to ZZ \to 4\ell$ & ATLAS & 2023 & \cite{ATLAS:2023zrv} & 13 TeV & Longitudinal-longitudinal fraction \\
+        & ATLAS & 2026 & \cite{ATLAS:2026fhf} & 13+13.6 TeV & $f_{LL}$, $\mu_{LL}$ \\
+        & ATLAS & 2026 & \cite{ATLAS:2026hye} & 13 TeV & $C$ coefficients in $H \to ZZ^*$ \\
+        \midrule
+        $pp \to WW \to 2\ell2\nu$ & ATLAS & 2025 & \cite{ATLAS:2025wuw} & 13 TeV & Polarized $W^{\pm}W^{\pm}$ production \\
+        & CMS & 2021 & \cite{CMS:2020etf} & 13 TeV & $W_L W_L$ cross sections \\
+        & ATLAS & 2025 & \cite{ATLAS:2025edf} & 13 TeV & $W^{\pm}Z$ cross sections \\
+        \bottomrule
+    \end{tabular}
+\end{sidewaystable}
+
+Notes:
 \begin{itemize}
-    \item L3: hep-ex\_0301027
-    \item OPAL: hep-ex\_0312047
-    \item LEP summary (?): hep-ex\_0305025
-\end{itemize}
-
-$\mathbf{p\bar{p} \to Z/\gamma \to \ell \ell}$:
-\begin{itemize}
-    \item CDF: 1103.5699
-    \item 
-\end{itemize}
-
-$\mathbf{pp \to Z/\gamma \to \ell \ell}$:
-\begin{itemize}
-    \item CMS: 1504.03512
-    \item ATLAS: 1606.00689
-    \item CMS: 2604.25678
-    \item LHCb: 2203.01602
-\end{itemize}
-
-$\mathbf{pp \to W/\gamma \to \ell \nu}$:
-\begin{itemize}
-    \item CMS: 1104.3829
-    \item ATLAS: 1203.2165
-    \item CMS: 2008.04174
-    \item ATLAS: 2509.13759
-\end{itemize}
-
-
-$\mathbf{t \to (W \to \ell \nu) b}$:
-\begin{itemize}
-    \item ATLAS: 2209.14903
-    \item CMS+ATLAS combination: 2005.03799
-    \item CMS: 1410.1154
-    \item CDF + D0 combination: 1202.5272
-\end{itemize}
-
-$\mathbf{pp \to WZ\to\ell\nu \ell\ell}$:
-\begin{itemize}
-    \item ATLAS: 1902.05759
-    \item CMS: 2110.11231
-    \item ATLAS: 2211.09435
-    \item ATLAS: 2402.16365
-    \item ATLAS: 2607.20246
-\end{itemize}
-
-$\mathbf{pp \to ZZ\to4\ell}$:
-\begin{itemize}
-    \item ATLAS: 2310.04350
-    \item ATLAS: 2607.12879
-    \item ATLAS: 2603.26463
-\end{itemize}
-
-$\mathbf{pp \to WW\to2\ell2\nu}$:
-\begin{itemize}
-    \item ATLAS: 2503.11317
-    \item CMS: 2009.09429
-    \item ATLAS: 2507.03500
+    \item At LEP: $W\to q\bar{q}$ constrains only $f_{+} + f_{-}$, while $W\to \ell\nu$ constrains all three $f_0$, $f_{+}$, $f_{-}$~\cite{L3:2002ygr}.
+    \item $W\to \ell\nu$ is sensitive to $f_0$ and $f_+ - f_-$.
+    \item At hadron collider: construct variable which is close to the actual angles of interest:
+    \begin{equation}
+        L_p = \frac{\vec{p}_T^\ell \cdot \vec{p}_T^W}{\left|\vec{p}_T^W\right|^2} \approx \frac{1}{2}(1 + \cos\theta^*),
+    \end{equation}
+    and fit to MC templates in this variable. 
+    \item In some fraction of events the ambiguity in the sign of the neutrino momentum cancels, allowing measurement of the forward-backward asymmetry (i.e., $A_4$)~\cite{ATLAS:2025mlt}. 
 \end{itemize}
 
 \begin{table}[htbp]
@@ -679,7 +681,11 @@ At leading order in QCD, the only diagram is $q\bar{q}\to Z$, and only $A_4$ is 
 At NLO $A_{0-3}$ also become nonzero. 
 The Lam-Tung relation predicts that the difference $A_0 - A_2=0 + \mathcal{O}(\alpha_s^2)$, thanks to the spin-1 nature of the gluon in $qg\to Zq$ and $q\bar{q}\to Z g$ diagrams.
 The coefficients $A_{5-7}$ are nonzero only at NNLO in QCD (i.e., at $\mathcal{O}(\alpha_s^2)$) because they arise only from gluon loops. 
-The coefficients $A_3$ and $A_4$ are related to the vector and axial-vector couplings of the Z boson to fermions, and are related to the Weinberg angle $\theta_W$.
+The coefficients $A_3$ and $A_4$ are related to the vector and axial-vector couplings of the Z boson to fermions, and are related to the Weinberg angle $\theta_W$ (or, equivalently, they are related to $Z$/$\gamma$ interference).
+
+
+$A_0,A_1,A_2$ are related to the polarization of the boson, while $A_3,A_4$ are sensitive to the $V-A$ structure of the decay. 
+$A_4$ is the electroweak parity violation term, and is the only one that does not vanish in the limit $p_T^Z \to 0$. 
 
 The physical angular coefficients are then given by the expectation values:
 \begin{align}
