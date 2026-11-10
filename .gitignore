@@ -4,3 +4,7 @@
 # LaTeX Workshop only looks for SyncTeX data beside the viewed PDF
 *.synctex.gz
 literature/.cache/
+
+# Local DAS query cache from planning/make_samples_table.py
+planning/das_cache.json
+*.pyc
