@@ -9,3 +9,6 @@ literature/.cache/
 planning/das_cache.json
 planning/plan.pdf
 *.pyc
+
+# Local MiniAOD copies used for development
+testdata/

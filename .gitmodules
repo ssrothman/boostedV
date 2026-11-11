@@ -1,3 +1,12 @@
 [submodule "simulation/EECs"]
 	path = simulation/EECs
 	url = git@github.com:ssrothman/newEECs.git
+[submodule "simulation/EECDataFormats"]
+	path = simulation/EECDataFormats
+	url = git@github.com:ssrothman/EECDataFormats.git
+[submodule "simulation/JetSetup"]
+	path = simulation/JetSetup
+	url = git@github.com:ssrothman/JetSetup.git
+[submodule "simulation/EventSelection"]
+	path = simulation/EventSelection
+	url = git@github.com:ssrothman/EventSelection.git
