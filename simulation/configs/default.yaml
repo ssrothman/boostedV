@@ -1,0 +1,201 @@
+# boostedV EEC analysis configuration: every physics setting of eecNano_cfg.py lives here.
+# Validated against analysis.schema.yaml by analysisConfig.py: unknown or missing keys are errors.
+# Per-job settings (input/output files, maxEvents, isMC, writeConstituents) are cmsRun arguments instead.
+# Values marked "placeholder" are invented for development and are not CMS recommendations.
+
+inputs:                      # MiniAOD collection labels
+  muons: slimmedMuons
+  electrons: slimmedElectrons
+  photons: slimmedPhotons
+  met: slimmedMETsPuppi
+  vertices: offlineSlimmedPrimaryVertices
+  genEventInfo: generator    # MC only; event weights for the aggregators
+  hltProcess: HLT
+  metFilterProcess: PAT      # process holding the Flag_* MET-filter paths
+
+selection:
+  vertex: {ndofMin: 4.0, absZMax: 24.0, rhoMax: 2.0}   # first PV must pass
+  metFilters:                # all must pass (Run-3 list)
+    - Flag_goodVertices
+    - Flag_globalSuperTightHalo2016Filter
+    - Flag_EcalDeadCellTriggerPrimitiveFilter
+    - Flag_BadPFMuonFilter
+    - Flag_BadPFMuonDzFilter
+    - Flag_hfNoisyHitsFilter
+    - Flag_eeBadScFilter
+    - Flag_ecalBadCalibFilter
+
+  objects:                   # PAT string cuts; source is one of muons, electrons, photons
+    tightMuons:
+      source: muons
+      cut: "pt > 15 && abs(eta) < 2.4 && passed('CutBasedIdTight') && passed('PFIsoTight')"
+    vetoMuons:
+      source: muons
+      cut: "pt > 10 && abs(eta) < 2.4 && passed('CutBasedIdLoose') && passed('PFIsoLoose')"
+    tightElectrons:
+      source: electrons
+      cut: "pt > 15 && abs(superCluster().eta()) < 2.5 && (abs(superCluster().eta()) < 1.4442 || abs(superCluster().eta()) > 1.566) && electronID('cutBasedElectronID-RunIIIWinter22-V1-tight') > 0.5"
+    vetoElectrons:
+      source: electrons
+      cut: "pt > 10 && abs(superCluster().eta()) < 2.5 && (abs(superCluster().eta()) < 1.4442 || abs(superCluster().eta()) > 1.566) && electronID('cutBasedElectronID-RunIIIWinter22-V1-veto') > 0.5"
+    tightPhotons:
+      source: photons
+      cut: "pt > 220 && abs(superCluster().eta()) < 1.4442 && photonID('cutBasedPhotonID-RunIIIWinter22-122X-V1-tight') > 0.5"
+
+  # Channel types:
+  #   dilepton      OS pair from `objects` closest to targetMass within [massMin, massMax]
+  #   leptonMET     exactly one `objects` lepton above ptMin, no other lepton in `vetoes`, MET and mT cuts
+  #   singleObject  nMin <= N(objects) <= nMax and all `vetoes` empty
+  channels:
+    Zmumu:
+      type: dilepton
+      triggers: ['HLT_IsoMu24_v*']
+      allowMissingTriggers: false
+      objects: tightMuons
+      leadPtMin: 26.0
+      subleadPtMin: 15.0
+      massMin: 71.0
+      massMax: 111.0
+      oppositeCharge: true
+      targetMass: 91.1876
+    Zee:
+      type: dilepton
+      triggers: ['HLT_Ele32_WPTight_Gsf_v*']
+      allowMissingTriggers: false
+      objects: tightElectrons
+      leadPtMin: 35.0
+      subleadPtMin: 15.0
+      massMin: 71.0
+      massMax: 111.0
+      oppositeCharge: true
+      targetMass: 91.1876
+    Wmunu:
+      type: leptonMET
+      triggers: ['HLT_IsoMu24_v*']
+      allowMissingTriggers: false
+      objects: tightMuons
+      vetoes: [vetoMuons, vetoElectrons]
+      ptMin: 30.0
+      metMin: 40.0
+      mtMin: 50.0
+    Wenu:
+      type: leptonMET
+      triggers: ['HLT_Ele32_WPTight_Gsf_v*']
+      allowMissingTriggers: false
+      objects: tightElectrons
+      vetoes: [vetoMuons, vetoElectrons]
+      ptMin: 35.0
+      metMin: 40.0
+      mtMin: 50.0
+    Hadronic:                # no leptons, no tight photon; jet requirements are in `jets`
+      type: singleObject
+      triggers: ['HLT_AK8PFJet500_v*', 'HLT_PFHT1050_v*']
+      allowMissingTriggers: false
+      objects: tightPhotons
+      vetoes: [vetoMuons, vetoElectrons]
+      nMin: 0
+      nMax: 0
+    GammaJets:
+      type: singleObject
+      triggers: ['HLT_Photon200_v*']
+      allowMissingTriggers: false
+      objects: tightPhotons
+      vetoes: [vetoMuons, vetoElectrons]
+      nMin: 1
+      nMax: 1
+
+jets:
+  cleaning:                  # jets within cleaningDR of these channels' selected objects are removed
+    channels: [Zmumu, Zee, Wmunu, Wenu, GammaJets]
+  collections:
+    Reco:
+      level: reco            # reco | gen
+      mode: pat              # pat (MiniAOD jets) | recluster (fastjet on candidates)
+      mcOnly: false
+      src: slimmedJetsAK8
+      R: 0.8
+      translator:
+        ptMin: 180.0         # must exceed 170: slimmedJetsAK8 has no constituents below that
+        applyPuppiWeights: true
+        puppiValueMap: ''    # '' = pat::PackedCandidate::puppiWeight()
+        jetIdVersion: RUN3PUPPIruns2022FGruns2023CD
+      jetCuts: {ptMin: 200.0, absEtaMax: 2.4, idMask: 1, minConstituents: 1}   # idMask bit 0 tight, bit 1 tightLepVeto
+      constituentCuts: {ptMin: 0.0, chargedOnly: false, keepAbsPdgIds: [], dropAbsPdgIds: [], minPuppiWeight: 0.0}
+      cleaningDR: 0.8
+      table: {name: RecoJet, precision: -1}
+      jerc:                  # MC only: nominal JER smearing and the JES/JER variations
+        correctionFile: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2022_Summer22EE/fatJet_jerc.json.gz
+        jesKey: Summer22EE_22Sep2023_V2_MC_Total_AK8PFPuppi
+        jerScaleFactorKey: Summer22EE_22Sep2023_JRV1_MC_ScaleFactor_AK8PFPuppi
+        jerResolutionKey: Summer22EE_22Sep2023_JRV1_MC_PtResolution_AK8PFPuppi
+        rho: fixedGridRhoFastjetAll
+        genJets: slimmedGenJetsAK8
+        jerSeedSalt: 0
+      variations:            # MC only. Types: jes, jer {direction}; constScale {categories, scale};
+                             # constDrop {categories, dropProbability, seedSalt}; cuts {jetCuts, constituentCuts}
+        JESUp: {type: jes, direction: up}
+        JESDown: {type: jes, direction: down}
+        JERUp: {type: jer, direction: up}
+        JERDown: {type: jer, direction: down}
+        # placeholder sizes; the drop's seedSalt differs from jerSeedSalt so their random numbers are independent
+        TrkDrop: {type: constDrop, categories: [chargedHadron], dropProbability: 0.02, seedSalt: 1}
+        ChargedScaleUp: {type: constScale, categories: [chargedHadron], scale: 1.01}
+        ChargedScaleDown: {type: constScale, categories: [chargedHadron], scale: 0.99}
+        NeutralScaleUp: {type: constScale, categories: [neutralHadron], scale: 1.05}
+        NeutralScaleDown: {type: constScale, categories: [neutralHadron], scale: 0.95}
+        PhotonScaleUp: {type: constScale, categories: [photon], scale: 1.02}
+        PhotonScaleDown: {type: constScale, categories: [photon], scale: 0.98}
+    Gen:
+      level: gen
+      mode: pat
+      mcOnly: true
+      src: slimmedGenJetsAK8
+      R: 0.8
+      translator: {ptMin: 180.0}
+      jetCuts: {ptMin: 200.0, absEtaMax: 2.4, idMask: 0, minConstituents: 1}
+      constituentCuts: {ptMin: 0.0, chargedOnly: false, keepAbsPdgIds: [], dropAbsPdgIds: [], minPuppiWeight: 0.0}
+      cleaningDR: 0.8
+      table: {name: GenJet, precision: -1}
+
+# Computed for every jet collection and variation; NANO tables are named <Collection><Variation><observable>.
+observables:
+  E2C:
+    kind: penc
+    N: 2
+    n: 1.0
+    weight: Pt               # Energy | Pt
+    angle: DeltaR            # DeltaR | Angle3D
+    norm: sumPt              # sumE | sumPt | jetE | jetPt | unity
+    output: SparseMerged     # Dense | SparseMerged | SparseUnmerged | Unbinned
+    axes: [{type: log, nbins: 50, lo: 0.001, hi: 1.0}]
+    table: {weightPrecision: -1}
+  E3C:
+    kind: penc
+    N: 3
+    n: 1.0
+    weight: Pt
+    angle: DeltaR
+    norm: sumPt
+    output: SparseMerged
+    axes: [{type: log, nbins: 50, lo: 0.001, hi: 1.0}]
+    table: {weightPrecision: -1}
+  E1C:
+    kind: e1c
+    n: 1.0
+    weight: Pt
+    frame: jetHelicity       # lab | jetHelicity | jetCS
+    norm: sumPt
+    output: SparseMerged
+    axes:
+      - {type: regular, nbins: 20, lo: 0.0, hi: 3.141592653589793}
+      - {type: regular, nbins: 20, lo: -3.141592653589793, hi: 3.141592653589793}
+    table: {weightPrecision: -1}
+
+aggregation:                 # histograms with covariance, written to histFile
+  channels: [Zmumu, Zee]     # one set per channel, filled from events passing that channel
+  observables: [E2C, E3C, E1C]
+  maxBins: 5000              # memory guard for the covariance
+
+output:
+  keepHLTBits: true
+  mcEventTables: true        # genWeights (Runs-tree sums), Pileup, Generator

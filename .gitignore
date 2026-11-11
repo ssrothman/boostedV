@@ -12,3 +12,6 @@ planning/plan.pdf
 
 # Local MiniAOD copies used for development
 testdata/
+
+# Python bytecode
+__pycache__/

@@ -1,0 +1,303 @@
+# JSON Schema (draft-07) for the analysis configuration (e.g. default.yaml). Every object is closed
+# (additionalProperties: false) and lists all of its keys as required. Cross-references between sections are
+# checked in analysisConfig.py.
+$schema: http://json-schema.org/draft-07/schema#
+type: object
+additionalProperties: false
+required: [inputs, selection, jets, observables, aggregation, output]
+
+definitions:
+  str: {type: string, minLength: 1}
+  strList: {type: array, items: {$ref: '#/definitions/str'}}
+  intList: {type: array, items: {type: integer}}
+  num: {type: number}
+  uint: {type: integer, minimum: 0}
+
+  axis:
+    oneOf:
+      - type: object
+        additionalProperties: false
+        required: [type, nbins, lo, hi]
+        properties:
+          type: {enum: [regular, log]}
+          nbins: {type: integer, minimum: 1}
+          lo: {$ref: '#/definitions/num'}
+          hi: {$ref: '#/definitions/num'}
+      - type: object
+        additionalProperties: false
+        required: [type, edges]
+        properties:
+          type: {const: variable}
+          edges: {type: array, items: {type: number}, minItems: 2}
+
+  channel:
+    oneOf:
+      - type: object
+        additionalProperties: false
+        required: [type, triggers, allowMissingTriggers, objects, leadPtMin, subleadPtMin, massMin, massMax,
+                   oppositeCharge, targetMass]
+        properties:
+          type: {const: dilepton}
+          triggers: {$ref: '#/definitions/strList', minItems: 1}
+          allowMissingTriggers: {type: boolean}
+          objects: {$ref: '#/definitions/str'}
+          leadPtMin: {$ref: '#/definitions/num'}
+          subleadPtMin: {$ref: '#/definitions/num'}
+          massMin: {$ref: '#/definitions/num'}
+          massMax: {$ref: '#/definitions/num'}
+          oppositeCharge: {type: boolean}
+          targetMass: {$ref: '#/definitions/num'}
+      - type: object
+        additionalProperties: false
+        required: [type, triggers, allowMissingTriggers, objects, vetoes, ptMin, metMin, mtMin]
+        properties:
+          type: {const: leptonMET}
+          triggers: {$ref: '#/definitions/strList', minItems: 1}
+          allowMissingTriggers: {type: boolean}
+          objects: {$ref: '#/definitions/str'}
+          vetoes: {$ref: '#/definitions/strList'}
+          ptMin: {$ref: '#/definitions/num'}
+          metMin: {$ref: '#/definitions/num'}
+          mtMin: {$ref: '#/definitions/num'}
+      - type: object
+        additionalProperties: false
+        required: [type, triggers, allowMissingTriggers, objects, vetoes, nMin, nMax]
+        properties:
+          type: {const: singleObject}
+          triggers: {$ref: '#/definitions/strList', minItems: 1}
+          allowMissingTriggers: {type: boolean}
+          objects: {$ref: '#/definitions/str'}
+          vetoes: {$ref: '#/definitions/strList'}
+          nMin: {$ref: '#/definitions/uint'}
+          nMax: {$ref: '#/definitions/uint'}
+
+  jetCuts:
+    type: object
+    additionalProperties: false
+    required: [ptMin, absEtaMax, idMask, minConstituents]
+    properties:
+      ptMin: {$ref: '#/definitions/num'}
+      absEtaMax: {$ref: '#/definitions/num'}
+      idMask: {$ref: '#/definitions/uint'}
+      minConstituents: {$ref: '#/definitions/uint'}
+
+  constituentCuts:
+    type: object
+    additionalProperties: false
+    required: [ptMin, chargedOnly, keepAbsPdgIds, dropAbsPdgIds, minPuppiWeight]
+    properties:
+      ptMin: {$ref: '#/definitions/num'}
+      chargedOnly: {type: boolean}
+      keepAbsPdgIds: {$ref: '#/definitions/intList'}
+      dropAbsPdgIds: {$ref: '#/definitions/intList'}
+      minPuppiWeight: {$ref: '#/definitions/num'}
+
+  category: {enum: [chargedHadron, neutralHadron, photon, electron, muon, all]}
+
+  variation:
+    oneOf:
+      - type: object
+        additionalProperties: false
+        required: [type, direction]
+        properties:
+          type: {enum: [jes, jer]}
+          direction: {enum: [up, down]}
+      - type: object
+        additionalProperties: false
+        required: [type, categories, scale]
+        properties:
+          type: {const: constScale}
+          categories: {type: array, items: {$ref: '#/definitions/category'}, minItems: 1}
+          scale: {type: number, minimum: 0}
+      - type: object
+        additionalProperties: false
+        required: [type, categories, dropProbability, seedSalt]
+        properties:
+          type: {const: constDrop}
+          categories: {type: array, items: {$ref: '#/definitions/category'}, minItems: 1}
+          dropProbability: {type: number, minimum: 0, maximum: 1}
+          seedSalt: {$ref: '#/definitions/uint'}
+      - type: object
+        additionalProperties: false
+        required: [type]
+        minProperties: 2
+        properties:
+          type: {const: cuts}
+          jetCuts: {type: object}
+          constituentCuts: {type: object}
+
+  translator:
+    oneOf:
+      - type: object          # reco, pat
+        additionalProperties: false
+        required: [ptMin, applyPuppiWeights, puppiValueMap, jetIdVersion]
+        properties:
+          ptMin: {$ref: '#/definitions/num'}
+          applyPuppiWeights: {type: boolean}
+          puppiValueMap: {type: string}
+          jetIdVersion: {type: string}
+      - type: object          # gen, pat
+        additionalProperties: false
+        required: [ptMin]
+        properties:
+          ptMin: {$ref: '#/definitions/num'}
+      - type: object          # recluster
+        additionalProperties: false
+        required: [ptMin, algorithm, applyPuppiWeights, puppiValueMap, dropAbsPdgIds]
+        properties:
+          ptMin: {$ref: '#/definitions/num'}
+          algorithm: {enum: [antikt, kt, cambridge]}
+          applyPuppiWeights: {type: boolean}
+          puppiValueMap: {type: string}
+          dropAbsPdgIds: {$ref: '#/definitions/intList'}
+
+  collection:
+    type: object
+    additionalProperties: false
+    required: [level, mode, mcOnly, src, R, translator, jetCuts, constituentCuts, cleaningDR, table]
+    properties:
+      level: {enum: [reco, gen]}
+      mode: {enum: [pat, recluster]}
+      mcOnly: {type: boolean}
+      src: {$ref: '#/definitions/str'}
+      R: {type: number, exclusiveMinimum: 0}
+      translator: {$ref: '#/definitions/translator'}
+      jetCuts: {$ref: '#/definitions/jetCuts'}
+      constituentCuts: {$ref: '#/definitions/constituentCuts'}
+      cleaningDR: {$ref: '#/definitions/num'}
+      table:
+        type: object
+        additionalProperties: false
+        required: [name, precision]
+        properties:
+          name: {$ref: '#/definitions/str'}
+          precision: {type: integer}
+      jerc:
+        type: object
+        additionalProperties: false
+        required: [correctionFile, jesKey, jerScaleFactorKey, jerResolutionKey, rho, genJets, jerSeedSalt]
+        properties:
+          correctionFile: {$ref: '#/definitions/str'}
+          jesKey: {$ref: '#/definitions/str'}
+          jerScaleFactorKey: {$ref: '#/definitions/str'}
+          jerResolutionKey: {$ref: '#/definitions/str'}
+          rho: {$ref: '#/definitions/str'}
+          genJets: {$ref: '#/definitions/str'}
+          jerSeedSalt: {$ref: '#/definitions/uint'}
+      variations:
+        type: object
+        additionalProperties: {$ref: '#/definitions/variation'}
+
+  observable:
+    oneOf:
+      - type: object
+        additionalProperties: false
+        required: [kind, N, n, weight, angle, norm, output, table]
+        properties:
+          kind: {const: penc}
+          N: {type: integer, minimum: 2, maximum: 6}
+          n: {$ref: '#/definitions/num'}
+          weight: {enum: [Energy, Pt]}
+          angle: {enum: [DeltaR, Angle3D]}
+          norm: {enum: [sumE, sumPt, jetE, jetPt, unity]}
+          output: {enum: [Dense, SparseMerged, SparseUnmerged, Unbinned]}
+          axes: {type: array, items: {$ref: '#/definitions/axis'}, minItems: 1, maxItems: 1}
+          table: {$ref: '#/definitions/obsTable'}
+      - type: object
+        additionalProperties: false
+        required: [kind, n, weight, frame, norm, output, table]
+        properties:
+          kind: {const: e1c}
+          n: {$ref: '#/definitions/num'}
+          weight: {enum: [Energy, Pt]}
+          frame: {enum: [lab, jetHelicity, jetCS]}
+          norm: {enum: [sumE, sumPt, jetE, jetPt, unity]}
+          output: {enum: [Dense, SparseMerged, SparseUnmerged, Unbinned]}
+          axes: {type: array, items: {$ref: '#/definitions/axis'}, minItems: 2, maxItems: 2}
+          table: {$ref: '#/definitions/obsTable'}
+
+  obsTable:
+    type: object
+    additionalProperties: false
+    required: [weightPrecision]
+    properties:
+      weightPrecision: {type: integer}
+      coordPrecision: {type: integer}
+      coordNames: {$ref: '#/definitions/strList'}
+
+properties:
+  inputs:
+    type: object
+    additionalProperties: false
+    required: [muons, electrons, photons, met, vertices, genEventInfo, hltProcess, metFilterProcess]
+    properties:
+      muons: {$ref: '#/definitions/str'}
+      electrons: {$ref: '#/definitions/str'}
+      photons: {$ref: '#/definitions/str'}
+      met: {$ref: '#/definitions/str'}
+      vertices: {$ref: '#/definitions/str'}
+      genEventInfo: {$ref: '#/definitions/str'}
+      hltProcess: {$ref: '#/definitions/str'}
+      metFilterProcess: {$ref: '#/definitions/str'}
+  selection:
+    type: object
+    additionalProperties: false
+    required: [vertex, metFilters, objects, channels]
+    properties:
+      vertex:
+        type: object
+        additionalProperties: false
+        required: [ndofMin, absZMax, rhoMax]
+        properties:
+          ndofMin: {$ref: '#/definitions/num'}
+          absZMax: {$ref: '#/definitions/num'}
+          rhoMax: {$ref: '#/definitions/num'}
+      metFilters: {$ref: '#/definitions/strList', minItems: 1}
+      objects:
+        type: object
+        minProperties: 1
+        additionalProperties:
+          type: object
+          additionalProperties: false
+          required: [source, cut]
+          properties:
+            source: {enum: [muons, electrons, photons]}
+            cut: {$ref: '#/definitions/str'}
+      channels:
+        type: object
+        minProperties: 1
+        additionalProperties: {$ref: '#/definitions/channel'}
+  jets:
+    type: object
+    additionalProperties: false
+    required: [cleaning, collections]
+    properties:
+      cleaning:
+        type: object
+        additionalProperties: false
+        required: [channels]
+        properties:
+          channels: {$ref: '#/definitions/strList'}
+      collections:
+        type: object
+        minProperties: 1
+        additionalProperties: {$ref: '#/definitions/collection'}
+  observables:
+    type: object
+    minProperties: 1
+    additionalProperties: {$ref: '#/definitions/observable'}
+  aggregation:
+    type: object
+    additionalProperties: false
+    required: [channels, observables, maxBins]
+    properties:
+      channels: {$ref: '#/definitions/strList'}
+      observables: {$ref: '#/definitions/strList'}
+      maxBins: {type: integer, minimum: 1}
+  output:
+    type: object
+    additionalProperties: false
+    required: [keepHLTBits, mcEventTables]
+    properties:
+      keepHLTBits: {type: boolean}
+      mcEventTables: {type: boolean}

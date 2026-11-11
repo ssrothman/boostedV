@@ -1,27 +1,42 @@
 # Workflow configs
 
-`eecNano_cfg.py`: MiniAOD → minimal custom NANO plus aggregated EEC histograms with covariance.
+| File | Role |
+|---|---|
+| `default.yaml` | the analysis configuration: every physics setting and collection label |
+| `analysis.schema.yaml` | JSON Schema (draft-07, in YAML) for the configuration: closed objects, all keys required |
+| `analysisConfig.py` | `load(path)` validates against the schema plus cross-reference checks and returns a dict |
+| `eecNano_cfg.py` | MiniAOD → minimal custom NANO + aggregated EEC histograms, built entirely from the YAML |
+| `checkEndToEnd.py` | validation of the workflow output |
+| `test_analysisConfig.py` | loader and process-building tests |
 
 ```
 cmsenv   # in /uscms_data/d3/srothman/eecdev/CMSSW_15_0_22/src
-cmsRun eecNano_cfg.py inputFiles=file:in.root outputFile=nano.root histFile=hists.root isMC=1 maxEvents=-1 \
-       [writeConstituents=1] [aggregateChannels=Zmumu,Zee]
+cmsRun eecNano_cfg.py config=default.yaml inputFiles=file:in.root outputFile=nano.root histFile=hists.root \
+       isMC=1 maxEvents=-1 [writeConstituents=1]
 ```
-VarParsing appends `_numEvent<N>` to `outputFile` when `maxEvents` is set.
+- Only the per-job settings are command-line arguments; everything else is in the YAML.
+- A relative `config` is looked up in the current directory, then next to `eecNano_cfg.py`. Batch jobs must ship the YAML, `analysisConfig.py` and `analysis.schema.yaml` with the cfg.
+- VarParsing appends `_numEvent<N>` to `outputFile` when `maxEvents` is set.
 
-- **Selections** (`SRothman/EventSelection`): every channel as a flag in `Selection_*`, and selected bosons/objects. Only events passing at least one channel are written.
-- **Jets** (`SRothman/JetSetup`):
-  - Reco: AK8 PUPPI from `slimmedJetsAK8` (translator ptMin 180, above the MiniAOD 170 GeV daughter cut), with JER nominal in MC and cuts pt > 200, |η| < 2.4, tight ID, cleaned against the selected leptons/photons.
-  - MC variations: JES and JER up/down, plus the placeholder constituent variations `CONSTITUENT_VARIATIONS` from `eecJets_cff.py` (sizes invented).
-- **Selection overrides:** the `addAllChannels(...)` call takes `objectCuts`, `metFilters`, `triggers` and `channelCuts`.
-  - Gen: `slimmedGenJetsAK8` with the same kinematic cuts.
-- **EECs** (`SRothman/EECs`), per jet collection: E2C and E3C (Pt weights, ΔR, sumPt norm, 50 log bins over 1e-3–1) and E1C in the jet helicity frame (20 × 20 bins). All are stored as `SparseMerged` NANO tables (`<Level><Var>E{1,2,3}C[Entries]`), with bin edges in the Runs tree.
-- **Aggregation**: for each channel in `aggregateChannels`, `<ch>_eec<Level><Var>E<N>C` directories in `histFile`, filled from events passing that channel.
-- **Event info (MC)**: `genWeightsTable` (scheduled, so the Runs-tree sums include every processed event), `Pileup`, `Generator`. HLT bits are also written.
+## Configuration sections (`default.yaml`)
+- **`inputs`:** MiniAOD labels, the gen-event-info label, and the HLT and MET-filter process names.
+- **`selection`:** good-vertex cuts, MET filters, object definitions (PAT string cuts), and channels. A channel type is `dilepton`, `leptonMET` or `singleObject`; a new channel needs only a YAML entry.
+- **`jets`:**
+  - which channels' selected objects clean the jets;
+  - the jet collections: reco/gen, MiniAOD jets or reclustering, the translator, jet and constituent cuts, the table name, JME correctionlib keys (`jerc`), and variations (MC only).
+  - A collection with `mcOnly: true` is skipped in data. The constituent-variation sizes are placeholders.
+- **`observables`:** E2C/E3C (`penc`) and E1C (`e1c`) specs. They are computed for every jet collection and variation; tables are named `<Collection><Variation><observable>`.
+- **`aggregation`:** channels, observables and the covariance memory guard. It writes `<channel>_eec<Collection><Variation><observable>` directories in `histFile`.
+- **`output`:** whether to keep the HLT bits, and the MC event tables (genWeights, with Runs-tree sums over every processed event; Pileup; Generator).
 
-`checkEndToEnd.py nano.root hists.root` (needs `writeConstituents=1`) checks:
-- E2C/E3C/E1C against a numpy brute force;
-- the sum rule;
-- the Zmumu aggregator H, C and Σw against a recomputation from the NANO entries.
+`analysisConfig.load` reports every schema violation with its path. It also checks cross-references: channel object collections, cleaning and aggregation channels, binned aggregation observables, translator keys per jet type, JES/JER only on reco MiniAOD jets, and unique table names.
 
-It needs ≥ 20 jets per level, so use a high-pT sample.
+## Tests
+- `python3 -m unittest -v test_analysisConfig` (inside cmsenv). It checks that:
+  - malformed configurations are rejected;
+  - for MC and data, no module of the SRothman packages relies on a `fillDescriptions` default, because every tracked parameter is set from the YAML;
+  - YAML edits reach the right modules.
+- `checkEndToEnd.py nano.root hists.root` (run with `writeConstituents=1`; needs ≥ 20 jets per level, so use a high-pT sample) checks:
+  - E2C/E3C/E1C against a numpy brute force;
+  - the sum rule;
+  - the Zmumu aggregator H, C and Σw against a recomputation from NANO.
