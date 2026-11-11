@@ -1,15 +1,24 @@
 
 \begin{landscape}
 
-\begin{table}[htbp]
-    \centering
-    \small
-    \caption{Physics processes and experimental measurements for W/Z polarization studies.\label{tab:polarization-processes}}
-    % pdflscape leaves \textwidth at the portrait width; \linewidth is the rotated one.
-    \begin{tabularx}{\linewidth}{@{}lllll>{\raggedright\arraybackslash}X@{}}
+{\small
+% longtable cannot stretch an X column, so the last column has a fixed width; pdflscape makes \linewidth the rotated width.
+\begin{longtable}{@{}lllll>{\raggedright\arraybackslash}p{0.5\linewidth}@{}}
+    \caption{Physics processes and experimental measurements for W/Z polarization studies.\label{tab:polarization-processes}} \\
         \toprule
         Process & Experiment & Year & Citation & $\sqrt{s}$ & Quantities \\
         \midrule
+    \endfirsthead
+    \caption[]{(continued)} \\
+        \toprule
+        Process & Experiment & Year & Citation & $\sqrt{s}$ & Quantities \\
+        \midrule
+    \endhead
+        \midrule
+        \multicolumn{6}{r@{}}{\emph{continued on next page}} \\
+    \endfoot
+        \bottomrule
+    \endlastfoot
         $e^+e^- \to W^+W^-$ & OPAL & 1999 & \cite{OPAL:1998ixj} & 183\,GeV & $W$ polarization \\
         & L3 & 2000 & \cite{L3:1999cbg} & 183--189\,GeV & $W$ polarization \\
         & OPAL & 2000 & \cite{OPAL:2000wbs} & 189\,GeV & $W$, $WW$ polarization \\
@@ -57,7 +66,6 @@
         $pp \to WW \to 2\ell2\nu$ & CMS & 2021 & \cite{CMS:2020etf} & 13\,TeV & $W_L W_L$ cross sections \\
         & ATLAS & 2025 & \cite{ATLAS:2025wuw} & 13\,TeV & Polarized $W^{\pm}W^{\pm}$ production \\
         & ATLAS & 2025 & \cite{ATLAS:2025edf} & 13\,TeV & $W^{\pm}Z$ cross sections \\
-        \bottomrule
-    \end{tabularx}
-\end{table}
+\end{longtable}
+}
 \end{landscape}
