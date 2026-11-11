@@ -57,11 +57,32 @@ where the sum runs over all of the particles in the jet, and $\theta_i$ and $\ph
 
 ## A.2 Integration into CMSSW & Custom NanoAOD format
 
-In order to process the centrally-produced CMS samples we will need to be able to run our EEC calculation code in the CMSSW framework. This will require three pieces of glue:
+In order to process the centrally-produced CMS samples we will need to be able to run our EEC calculation code in the CMSSW framework. This will require several pieces of glue:
 
-1. A producer that translates between the CMSSW jet data formats and the expected input formats for the EEC calculation library
-2. A producer that calls the EEC calculation library
-3. A producer that takes the EEC calculation library outputs as input and produces NanoAOD FlatTables that can be saved into NanoAOD .root files. 
+1. A new DataFormats package with the necessary bindings for necessary data types into the edm framework. 
+
+2. A new JetSetup package which should include:
+    a. A producer that translates between the CMSSW jet data formats and the expected input formats for the EEC library
+    b. Utilities for selection and filtering of jets, with easy systematic variations
+    c. Utilities for selection and filtering of jet constituents, with easy systematic variations
+    d. CMSSW configuration for all of the above so as to easily integrate into a workflow
+
+3. New CMSSW plugins in the EECs package:
+    a. A producer which calls the EEC calculators
+    b. A producer which consumes the output of the EEC calculator producer and produces NanoAOD FlatTables
+    c. An EDAnalyzer which aggregates the output histograms from the EEC calculator. This must include correct handling of the statistical covariance, which is computed as follows (and should maybe be delegated to a dedicated highly-optimized utility):
+            i. Fill the EEC histogram per-event
+            ii. Compute the per-event covariance as the outer product of the per-event histogram with itself
+            iii. Aggregate this across events, alongside the aggregated EEC histogram
+
+4. A new EventSelection package with CMSSW utilities for event selection, including:
+    a. Event selection based on trigger bits
+    b. An event selection for $Z\to\mu\mu + jets$ events
+    c. An event selection for $Z\to ee + jets$ events
+    d. An event selection for $W\to \mu \nu_\mu + jets$ events
+    e. An event selection for $W \to e \nu_e + jets$ events
+    f. An purely hadronic event selection
+    g. An event selection for $\gamma + jets$ events. 
 
 ## A.3 Initial sample processing
 
