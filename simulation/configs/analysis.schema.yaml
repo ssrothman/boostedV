@@ -71,6 +71,41 @@ definitions:
           nMin: {$ref: '#/definitions/uint'}
           nMax: {$ref: '#/definitions/uint'}
 
+  genChannel:
+    oneOf:
+      - type: object
+        additionalProperties: false
+        required: [type, objects, leadPtMin, subleadPtMin, massMin, massMax,
+                   oppositeCharge, targetMass]
+        properties:
+          type: {const: dilepton}
+          objects: {$ref: '#/definitions/str'}
+          leadPtMin: {$ref: '#/definitions/num'}
+          subleadPtMin: {$ref: '#/definitions/num'}
+          massMin: {$ref: '#/definitions/num'}
+          massMax: {$ref: '#/definitions/num'}
+          oppositeCharge: {type: boolean}
+          targetMass: {$ref: '#/definitions/num'}
+      - type: object
+        additionalProperties: false
+        required: [type, objects, vetoes, ptMin, metMin, mtMin]
+        properties:
+          type: {const: leptonMET}
+          objects: {$ref: '#/definitions/str'}
+          vetoes: {$ref: '#/definitions/strList'}
+          ptMin: {$ref: '#/definitions/num'}
+          metMin: {$ref: '#/definitions/num'}
+          mtMin: {$ref: '#/definitions/num'}
+      - type: object
+        additionalProperties: false
+        required: [type, objects, vetoes, nMin, nMax]
+        properties:
+          type: {const: singleObject}
+          objects: {$ref: '#/definitions/str'}
+          vetoes: {$ref: '#/definitions/strList'}
+          nMin: {$ref: '#/definitions/uint'}
+          nMax: {$ref: '#/definitions/uint'}
+
   jetCuts:
     type: object
     additionalProperties: false
@@ -229,7 +264,8 @@ properties:
   inputs:
     type: object
     additionalProperties: false
-    required: [muons, electrons, photons, met, vertices, genEventInfo, hltProcess, metFilterProcess]
+    required: [muons, electrons, photons, met, vertices, genEventInfo, hltProcess, metFilterProcess,
+               prunedGenParticles, packedGenParticles]
     properties:
       muons: {$ref: '#/definitions/str'}
       electrons: {$ref: '#/definitions/str'}
@@ -239,34 +275,81 @@ properties:
       genEventInfo: {$ref: '#/definitions/str'}
       hltProcess: {$ref: '#/definitions/str'}
       metFilterProcess: {$ref: '#/definitions/str'}
+      prunedGenParticles: {$ref: '#/definitions/str'}
+      packedGenParticles: {$ref: '#/definitions/str'}
   selection:
     type: object
     additionalProperties: false
-    required: [vertex, metFilters, objects, channels]
+    required: [levels, reco, gen]
     properties:
-      vertex:
+      levels:
+        type: array
+        items: {enum: [reco, gen]}
+        minItems: 1
+        uniqueItems: true
+      reco:
         type: object
         additionalProperties: false
-        required: [ndofMin, absZMax, rhoMax]
+        required: [vertex, metFilters, objects, channels]
         properties:
-          ndofMin: {$ref: '#/definitions/num'}
-          absZMax: {$ref: '#/definitions/num'}
-          rhoMax: {$ref: '#/definitions/num'}
-      metFilters: {$ref: '#/definitions/strList', minItems: 1}
-      objects:
+          vertex:
+            type: object
+            additionalProperties: false
+            required: [ndofMin, absZMax, rhoMax]
+            properties:
+              ndofMin: {$ref: '#/definitions/num'}
+              absZMax: {$ref: '#/definitions/num'}
+              rhoMax: {$ref: '#/definitions/num'}
+          metFilters: {$ref: '#/definitions/strList', minItems: 1}
+          objects:
+            type: object
+            minProperties: 1
+            additionalProperties:
+              type: object
+              additionalProperties: false
+              required: [source, cut]
+              properties:
+                source: {enum: [muons, electrons, photons]}
+                cut: {$ref: '#/definitions/str'}
+          channels:
+            type: object
+            minProperties: 1
+            additionalProperties: {$ref: '#/definitions/channel'}
+      gen:
         type: object
-        minProperties: 1
-        additionalProperties:
-          type: object
-          additionalProperties: false
-          required: [source, cut]
-          properties:
-            source: {enum: [muons, electrons, photons]}
-            cut: {$ref: '#/definitions/str'}
-      channels:
-        type: object
-        minProperties: 1
-        additionalProperties: {$ref: '#/definitions/channel'}
+        additionalProperties: false
+        required: [particleLevel, objects, channels]
+        properties:
+          particleLevel:
+            type: object
+            additionalProperties: false
+            required: [usePromptFinalStates, particleMinPt, particleMaxEta, lepConeSize, lepMinPt, lepMaxEta,
+                       phoIsoConeSize, phoMaxRelIso, phoMinPt, phoMaxEta]
+            properties:
+              usePromptFinalStates: {type: boolean}
+              particleMinPt: {$ref: '#/definitions/num'}
+              particleMaxEta: {$ref: '#/definitions/num'}
+              lepConeSize: {$ref: '#/definitions/num'}
+              lepMinPt: {$ref: '#/definitions/num'}
+              lepMaxEta: {$ref: '#/definitions/num'}
+              phoIsoConeSize: {$ref: '#/definitions/num'}
+              phoMaxRelIso: {$ref: '#/definitions/num'}
+              phoMinPt: {$ref: '#/definitions/num'}
+              phoMaxEta: {$ref: '#/definitions/num'}
+          objects:
+            type: object
+            minProperties: 1
+            additionalProperties:
+              type: object
+              additionalProperties: false
+              required: [source, cut]
+              properties:
+                source: {enum: [leptons, photons]}
+                cut: {$ref: '#/definitions/str'}
+          channels:
+            type: object
+            minProperties: 1
+            additionalProperties: {$ref: '#/definitions/genChannel'}
   jets:
     type: object
     additionalProperties: false

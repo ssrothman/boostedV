@@ -12,101 +12,186 @@ inputs:                      # MiniAOD collection labels
   genEventInfo: generator    # MC only; event weights for the aggregators
   hltProcess: HLT
   metFilterProcess: PAT      # process holding the Flag_* MET-filter paths
+  prunedGenParticles: prunedGenParticles     # MC only; input to the Rivet particle level
+  packedGenParticles: packedGenParticles
 
 selection:
-  vertex: {ndofMin: 4.0, absZMax: 24.0, rhoMax: 2.0}   # first PV must pass
-  metFilters:                # all must pass (Run-3 list)
-    - Flag_goodVertices
-    - Flag_globalSuperTightHalo2016Filter
-    - Flag_EcalDeadCellTriggerPrimitiveFilter
-    - Flag_BadPFMuonFilter
-    - Flag_BadPFMuonDzFilter
-    - Flag_hfNoisyHitsFilter
-    - Flag_eeBadScFilter
-    - Flag_ecalBadCalibFilter
+  # Levels whose selections define a selected event: [reco], [gen] or [reco, gen] (the OR). Events passing any
+  # enabled level are written, with all observables. In MC both levels are always evaluated and their flags
+  # stored; in data only reco exists.
+  levels: [reco, gen]
 
-  objects:                   # PAT string cuts; source is one of muons, electrons, photons
-    tightMuons:
-      source: muons
-      cut: "pt > 15 && abs(eta) < 2.4 && passed('CutBasedIdTight') && passed('PFIsoTight')"
-    vetoMuons:
-      source: muons
-      cut: "pt > 10 && abs(eta) < 2.4 && passed('CutBasedIdLoose') && passed('PFIsoLoose')"
-    tightElectrons:
-      source: electrons
-      cut: "pt > 15 && abs(superCluster().eta()) < 2.5 && (abs(superCluster().eta()) < 1.4442 || abs(superCluster().eta()) > 1.566) && electronID('cutBasedElectronID-RunIIIWinter22-V1-tight') > 0.5"
-    vetoElectrons:
-      source: electrons
-      cut: "pt > 10 && abs(superCluster().eta()) < 2.5 && (abs(superCluster().eta()) < 1.4442 || abs(superCluster().eta()) > 1.566) && electronID('cutBasedElectronID-RunIIIWinter22-V1-veto') > 0.5"
-    tightPhotons:
-      source: photons
-      cut: "pt > 220 && abs(superCluster().eta()) < 1.4442 && photonID('cutBasedPhotonID-RunIIIWinter22-122X-V1-tight') > 0.5"
+  reco:
+    vertex: {ndofMin: 4.0, absZMax: 24.0, rhoMax: 2.0}   # first PV must pass
+    metFilters:                # all must pass (Run-3 list)
+      - Flag_goodVertices
+      - Flag_globalSuperTightHalo2016Filter
+      - Flag_EcalDeadCellTriggerPrimitiveFilter
+      - Flag_BadPFMuonFilter
+      - Flag_BadPFMuonDzFilter
+      - Flag_hfNoisyHitsFilter
+      - Flag_eeBadScFilter
+      - Flag_ecalBadCalibFilter
 
-  # Channel types:
-  #   dilepton      OS pair from `objects` closest to targetMass within [massMin, massMax]
-  #   leptonMET     exactly one `objects` lepton above ptMin, no other lepton in `vetoes`, MET and mT cuts
-  #   singleObject  nMin <= N(objects) <= nMax and all `vetoes` empty
-  channels:
-    Zmumu:
-      type: dilepton
-      triggers: ['HLT_IsoMu24_v*']
-      allowMissingTriggers: false
-      objects: tightMuons
-      leadPtMin: 26.0
-      subleadPtMin: 15.0
-      massMin: 71.0
-      massMax: 111.0
-      oppositeCharge: true
-      targetMass: 91.1876
-    Zee:
-      type: dilepton
-      triggers: ['HLT_Ele32_WPTight_Gsf_v*']
-      allowMissingTriggers: false
-      objects: tightElectrons
-      leadPtMin: 35.0
-      subleadPtMin: 15.0
-      massMin: 71.0
-      massMax: 111.0
-      oppositeCharge: true
-      targetMass: 91.1876
-    Wmunu:
-      type: leptonMET
-      triggers: ['HLT_IsoMu24_v*']
-      allowMissingTriggers: false
-      objects: tightMuons
-      vetoes: [vetoMuons, vetoElectrons]
-      ptMin: 30.0
-      metMin: 40.0
-      mtMin: 50.0
-    Wenu:
-      type: leptonMET
-      triggers: ['HLT_Ele32_WPTight_Gsf_v*']
-      allowMissingTriggers: false
-      objects: tightElectrons
-      vetoes: [vetoMuons, vetoElectrons]
-      ptMin: 35.0
-      metMin: 40.0
-      mtMin: 50.0
-    Hadronic:                # no leptons, no tight photon; jet requirements are in `jets`
-      type: singleObject
-      triggers: ['HLT_AK8PFJet500_v*', 'HLT_PFHT1050_v*']
-      allowMissingTriggers: false
-      objects: tightPhotons
-      vetoes: [vetoMuons, vetoElectrons]
-      nMin: 0
-      nMax: 0
-    GammaJets:
-      type: singleObject
-      triggers: ['HLT_Photon200_v*']
-      allowMissingTriggers: false
-      objects: tightPhotons
-      vetoes: [vetoMuons, vetoElectrons]
-      nMin: 1
-      nMax: 1
+    objects:                   # PAT string cuts; source is one of muons, electrons, photons
+      tightMuons:
+        source: muons
+        cut: "pt > 15 && abs(eta) < 2.4 && passed('CutBasedIdTight') && passed('PFIsoTight')"
+      vetoMuons:
+        source: muons
+        cut: "pt > 10 && abs(eta) < 2.4 && passed('CutBasedIdLoose') && passed('PFIsoLoose')"
+      tightElectrons:
+        source: electrons
+        cut: "pt > 15 && abs(superCluster().eta()) < 2.5 && (abs(superCluster().eta()) < 1.4442 || abs(superCluster().eta()) > 1.566) && electronID('cutBasedElectronID-RunIIIWinter22-V1-tight') > 0.5"
+      vetoElectrons:
+        source: electrons
+        cut: "pt > 10 && abs(superCluster().eta()) < 2.5 && (abs(superCluster().eta()) < 1.4442 || abs(superCluster().eta()) > 1.566) && electronID('cutBasedElectronID-RunIIIWinter22-V1-veto') > 0.5"
+      tightPhotons:
+        source: photons
+        cut: "pt > 220 && abs(superCluster().eta()) < 1.4442 && photonID('cutBasedPhotonID-RunIIIWinter22-122X-V1-tight') > 0.5"
+
+    # Channel types:
+    #   dilepton      OS pair from `objects` closest to targetMass within [massMin, massMax]
+    #   leptonMET     exactly one `objects` lepton above ptMin, no other lepton in `vetoes`, MET and mT cuts
+    #   singleObject  nMin <= N(objects) <= nMax and all `vetoes` empty
+    channels:
+      Zmumu:
+        type: dilepton
+        triggers: ['HLT_IsoMu24_v*']
+        allowMissingTriggers: false
+        objects: tightMuons
+        leadPtMin: 26.0
+        subleadPtMin: 15.0
+        massMin: 71.0
+        massMax: 111.0
+        oppositeCharge: true
+        targetMass: 91.1876
+      Zee:
+        type: dilepton
+        triggers: ['HLT_Ele32_WPTight_Gsf_v*']
+        allowMissingTriggers: false
+        objects: tightElectrons
+        leadPtMin: 35.0
+        subleadPtMin: 15.0
+        massMin: 71.0
+        massMax: 111.0
+        oppositeCharge: true
+        targetMass: 91.1876
+      Wmunu:
+        type: leptonMET
+        triggers: ['HLT_IsoMu24_v*']
+        allowMissingTriggers: false
+        objects: tightMuons
+        vetoes: [vetoMuons, vetoElectrons]
+        ptMin: 30.0
+        metMin: 40.0
+        mtMin: 50.0
+      Wenu:
+        type: leptonMET
+        triggers: ['HLT_Ele32_WPTight_Gsf_v*']
+        allowMissingTriggers: false
+        objects: tightElectrons
+        vetoes: [vetoMuons, vetoElectrons]
+        ptMin: 35.0
+        metMin: 40.0
+        mtMin: 50.0
+      Hadronic:                # no leptons, no tight photon; jet requirements are in `jets`
+        type: singleObject
+        triggers: ['HLT_AK8PFJet500_v*', 'HLT_PFHT1050_v*']
+        allowMissingTriggers: false
+        objects: tightPhotons
+        vetoes: [vetoMuons, vetoElectrons]
+        nMin: 0
+        nMax: 0
+      GammaJets:
+        type: singleObject
+        triggers: ['HLT_Photon200_v*']
+        allowMissingTriggers: false
+        objects: tightPhotons
+        vetoes: [vetoMuons, vetoElectrons]
+        nMin: 1
+        nMax: 1
+
+  # Generator level (MC only): Rivet particle-level objects, i.e. prompt final-state leptons dressed with photons,
+  # isolated prompt photons, and MET from prompt neutrinos. There are no trigger, vertex, MET-filter, ID or isolation
+  # requirements; the kinematic cuts mirror the reco ones.
+  gen:
+    particleLevel:           # ParticleLevelProducer settings, as in NanoAOD's particle level
+      usePromptFinalStates: true
+      particleMinPt: 0.0
+      particleMaxEta: 5.0
+      lepConeSize: 0.1       # photon dressing cone
+      lepMinPt: 1.0
+      lepMaxEta: 2.5
+      phoIsoConeSize: 0.4
+      phoMaxRelIso: 0.5
+      phoMinPt: 1.0
+      phoMaxEta: 2.5
+    objects:                 # candidate string cuts; source is leptons (dressed) or photons
+      genTightMuons:
+        source: leptons
+        cut: "abs(pdgId) == 13 && pt > 15 && abs(eta) < 2.4"
+      genVetoMuons:
+        source: leptons
+        cut: "abs(pdgId) == 13 && pt > 10 && abs(eta) < 2.4"
+      genTightElectrons:
+        source: leptons
+        cut: "abs(pdgId) == 11 && pt > 15 && abs(eta) < 2.5 && (abs(eta) < 1.4442 || abs(eta) > 1.566)"
+      genVetoElectrons:
+        source: leptons
+        cut: "abs(pdgId) == 11 && pt > 10 && abs(eta) < 2.5 && (abs(eta) < 1.4442 || abs(eta) > 1.566)"
+      genTightPhotons:
+        source: photons
+        cut: "pt > 220 && abs(eta) < 1.4442"
+    channels:                # same types as reco, without triggers
+      Zmumu:
+        type: dilepton
+        objects: genTightMuons
+        leadPtMin: 26.0
+        subleadPtMin: 15.0
+        massMin: 71.0
+        massMax: 111.0
+        oppositeCharge: true
+        targetMass: 91.1876
+      Zee:
+        type: dilepton
+        objects: genTightElectrons
+        leadPtMin: 35.0
+        subleadPtMin: 15.0
+        massMin: 71.0
+        massMax: 111.0
+        oppositeCharge: true
+        targetMass: 91.1876
+      Wmunu:
+        type: leptonMET
+        objects: genTightMuons
+        vetoes: [genVetoMuons, genVetoElectrons]
+        ptMin: 30.0
+        metMin: 40.0
+        mtMin: 50.0
+      Wenu:
+        type: leptonMET
+        objects: genTightElectrons
+        vetoes: [genVetoMuons, genVetoElectrons]
+        ptMin: 35.0
+        metMin: 40.0
+        mtMin: 50.0
+      Hadronic:
+        type: singleObject
+        objects: genTightPhotons
+        vetoes: [genVetoMuons, genVetoElectrons]
+        nMin: 0
+        nMax: 0
+      GammaJets:
+        type: singleObject
+        objects: genTightPhotons
+        vetoes: [genVetoMuons, genVetoElectrons]
+        nMin: 1
+        nMax: 1
 
 jets:
-  cleaning:                  # jets within cleaningDR of these channels' selected objects are removed
-    channels: [Zmumu, Zee, Wmunu, Wenu, GammaJets]
+  cleaning:                  # jets within cleaningDR of these channels' selected objects are removed;
+    channels: [Zmumu, Zee, Wmunu, Wenu, GammaJets]   # reco jets use the reco objects, gen jets the gen objects
   collections:
     Reco:
       level: reco            # reco | gen
@@ -192,7 +277,8 @@ observables:
     table: {weightPrecision: -1}
 
 aggregation:                 # histograms with covariance, written to histFile
-  channels: [Zmumu, Zee]     # one set per channel, filled from events passing that channel
+  channels: [Zmumu, Zee]     # one set per channel and enabled level, filled from events passing that channel at that
+                             # level, for every jet collection: <channel>_<level>_eec<Collection><Variation><observable>
   observables: [E2C, E3C, E1C]
   maxBins: 5000              # memory guard for the covariance
 

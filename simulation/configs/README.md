@@ -7,6 +7,7 @@
 | `analysisConfig.py` | `load(path)` validates against the schema plus cross-reference checks and returns a dict |
 | `eecNano_cfg.py` | MiniAOD → minimal custom NANO + aggregated EEC histograms, built entirely from the YAML |
 | `checkEndToEnd.py` | validation of the workflow output |
+| `checkLevels.py` | validation of the reco-only / gen-only / OR selection modes |
 | `test_analysisConfig.py` | loader and process-building tests |
 
 ```
@@ -20,13 +21,17 @@ cmsRun eecNano_cfg.py config=default.yaml inputFiles=file:in.root outputFile=nan
 
 ## Configuration sections (`default.yaml`)
 - **`inputs`:** MiniAOD labels, the gen-event-info label, and the HLT and MET-filter process names.
-- **`selection`:** good-vertex cuts, MET filters, object definitions (PAT string cuts), and channels. A channel type is `dilepton`, `leptonMET` or `singleObject`; a new channel needs only a YAML entry.
+- **`selection`:**
+  - `levels`: `[reco]`, `[gen]` or `[reco, gen]` (the OR). Events passing any channel at an enabled level are written, with all observables for both jet levels, and aggregated per channel and level. In MC both levels are always evaluated and their flags stored (`Selection_*`, `GenSelection_*`); data has only reco, and a gen-only configuration is an error there.
+  - `reco`: good-vertex cuts, MET filters, objects (PAT string cuts), channels with triggers.
+  - `gen` (MC): Rivet particle-level settings, objects (cuts on dressed leptons or isolated photons), and channels without triggers. The default kinematic cuts mirror the reco ones.
+  - A channel type is `dilepton`, `leptonMET` or `singleObject`; a new channel needs only a YAML entry.
 - **`jets`:**
-  - which channels' selected objects clean the jets;
+  - which channels' selected objects clean the jets (reco jets use the reco objects, gen jets the gen objects);
   - the jet collections: reco/gen, MiniAOD jets or reclustering, the translator, jet and constituent cuts, the table name, JME correctionlib keys (`jerc`), and variations (MC only).
   - A collection with `mcOnly: true` is skipped in data. The constituent-variation sizes are placeholders.
 - **`observables`:** E2C/E3C (`penc`) and E1C (`e1c`) specs. They are computed for every jet collection and variation; tables are named `<Collection><Variation><observable>`.
-- **`aggregation`:** channels, observables and the covariance memory guard. It writes `<channel>_eec<Collection><Variation><observable>` directories in `histFile`.
+- **`aggregation`:** channels, observables and the covariance memory guard. For each enabled level it writes `<channel>_<level>_eec<Collection><Variation><observable>` directories in `histFile`, filled from events passing that channel at that level, for every jet collection (e.g. reco observables in gen-selected events).
 - **`output`:** whether to keep the HLT bits, and the MC event tables (genWeights, with Runs-tree sums over every processed event; Pileup; Generator).
 
 `analysisConfig.load` reports every schema violation with its path. It also checks cross-references: channel object collections, cleaning and aggregation channels, binned aggregation observables, translator keys per jet type, JES/JER only on reco MiniAOD jets, and unique table names.
@@ -36,7 +41,12 @@ cmsRun eecNano_cfg.py config=default.yaml inputFiles=file:in.root outputFile=nan
   - malformed configurations are rejected;
   - for MC and data, no module of the SRothman packages relies on a `fillDescriptions` default, because every tracked parameter is set from the YAML;
   - YAML edits reach the right modules.
+- `checkLevels.py reco.root gen.root or.root [miniaod.root]` (outputs of the three modes on the same input) checks:
+  - every written event passes an enabled level, and the OR output is exactly the union of reco-only and gen-only;
+  - every written event has EEC tables for all jets;
+  - the gen dilepton masses are in the window;
+  - gen Z→μμ is compared with an FWLite selection of bare prompt muons (approximate, since the gen selection uses dressed leptons).
 - `checkEndToEnd.py nano.root hists.root` (run with `writeConstituents=1`; needs ≥ 20 jets per level, so use a high-pT sample) checks:
   - E2C/E3C/E1C against a numpy brute force;
   - the sum rule;
-  - the Zmumu aggregator H, C and Σw against a recomputation from NANO.
+  - the Zmumu aggregator H, C and Σw at each level against a recomputation from NANO.

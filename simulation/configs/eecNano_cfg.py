@@ -13,7 +13,7 @@ import sys
 import FWCore.ParameterSet.Config as cms
 from FWCore.ParameterSet.VarParsing import VarParsing
 from SRothman.EECs.eecTools import addAggregator, addObservable
-from SRothman.EventSelection.eventSelection_cff import addSelection, selectedObjects
+from SRothman.EventSelection.eventSelection_cff import addSelection, label, selectedObjects
 from SRothman.JetSetup.eecJets_cff import setupJets
 
 # edmConfigDump does not define __file__; the code object's filename is set by every loader.
@@ -44,15 +44,23 @@ process.TFileService = cms.Service('TFileService', fileName=cms.string(opts.hist
 task = cms.Task()
 
 # ---- event selection ----
-addSelection(process, cfg['selection'], inputs, task)
-process.anyChannelPath = cms.Path(process.anyChannelFilter, task)
+# Events passing any channel at any enabled level are written; data has no gen level.
+levels = [l for l in cfg['selection']['levels'] if isMC or l == 'reco']
+if not levels:
+    raise analysisConfig.ConfigError('%s: selection/levels %s has no level available in data'
+                                     % (cfgPath, cfg['selection']['levels']))
+sel = cfg['selection']
+addSelection(process, sel, inputs, levels, isMC, task)
+process.anySelectedPath = cms.Path(process.anySelectedFilter, task)
 
 # ---- jets ----
-vetoes = selectedObjects(cfg['selection'], cfg['jets']['cleaning']['channels'])
+cleaning = cfg['jets']['cleaning']['channels']
 collections = []  # (EEC name prefix, jet collection label)
 for name, spec in cfg['jets']['collections'].items():
     if spec['mcOnly'] and not isMC:
         continue
+    # Each level's jets are cleaned against that level's selected objects.
+    vetoes = selectedObjects(sel[spec['level']], spec['level'], cleaning)
     labels = setupJets(process, 'jets' + name, spec, isMC, vetoSrcs=vetoes,
                        writeConstituents=bool(opts.writeConstituents), task=task)
     collections += [(name + v, label) for v, label in labels.items()]
@@ -64,14 +72,15 @@ for prefix, jets in collections:
 
 agg = cfg['aggregation']
 genInfo = inputs['genEventInfo'] if isMC else ''
-for ch in agg['channels']:
-    seq = getattr(process, ch + 'Filter')
-    for prefix, _ in collections:
-        for obs in agg['observables']:
-            lab = 'eec%s%s' % (prefix, obs)
-            seq = seq + addAggregator(process, '%s_%s' % (ch, lab), lab, cfg['observables'][obs], genInfo,
-                                      agg['maxBins'])
-    setattr(process, ch + 'AggPath', cms.Path(seq, task))
+for level in levels:
+    for ch in agg['channels']:
+        seq = getattr(process, label(level, ch) + 'Filter')
+        for prefix, _ in collections:
+            for obs in agg['observables']:
+                lab = 'eec%s%s' % (prefix, obs)
+                seq = seq + addAggregator(process, '%s_%s_%s' % (ch, level, lab), lab, cfg['observables'][obs],
+                                          genInfo, agg['maxBins'])
+        setattr(process, '%s_%s_AggPath' % (ch, level), cms.Path(seq, task))
 
 # ---- event-level tables ----
 if isMC and cfg['output']['mcEventTables']:
@@ -89,6 +98,6 @@ keep = ['drop *', 'keep nanoaodFlatTable_*Table_*_*', 'keep nanoaodMergeableCoun
 if cfg['output']['keepHLTBits']:
     keep.append('keep edmTriggerResults_*_*_%s' % inputs['hltProcess'])
 process.out = cms.OutputModule('NanoAODOutputModule', fileName=cms.untracked.string(opts.outputFile),
-                               SelectEvents=cms.untracked.PSet(SelectEvents=cms.vstring('anyChannelPath')),
+                               SelectEvents=cms.untracked.PSet(SelectEvents=cms.vstring('anySelectedPath')),
                                outputCommands=cms.untracked.vstring(*keep))
 process.outPath = cms.EndPath(process.out, task)

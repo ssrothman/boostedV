@@ -43,6 +43,11 @@ def buildProcess(cfgDict=None, isMC=1):
         sys.argv = argv
 
 
+def labels(vtags):
+    """Module labels of a VInputTag, whose entries may be InputTags or 'label:instance' strings."""
+    return [t.getModuleLabel() if hasattr(t, 'getModuleLabel') else t.split(':')[0] for t in vtags]
+
+
 def describedDefaults(moduleType):
     """The module type's fillDescriptions PSet (generated cfi), or None if the type is not ours."""
     for pkg in PACKAGES:
@@ -68,31 +73,51 @@ class LoaderRejects(unittest.TestCase):
 
     def test_unknown_keys(self):
         self.assertRejected(lambda c: c.update(extra=1), 'Additional properties')
-        self.assertRejected(lambda c: c['selection']['channels']['Zmumu'].update(massMinn=81.0),
-                            'selection/channels/Zmumu', 'massMinn')
+        self.assertRejected(lambda c: c['selection']['reco']['channels']['Zmumu'].update(massMinn=81.0),
+                            'selection/reco/channels/Zmumu', 'massMinn')
         self.assertRejected(lambda c: c['jets']['collections']['Reco']['jetCuts'].update(etaMax=2.0),
                             'jets/collections/Reco', 'etaMax')
         self.assertRejected(lambda c: c['observables']['E2C'].update(bins=3), 'observables/E2C', 'bins')
 
     def test_missing_keys(self):
-        self.assertRejected(lambda c: c['selection']['channels']['Zmumu'].pop('massMin'),
-                            'selection/channels/Zmumu', 'massMin')
+        self.assertRejected(lambda c: c['selection']['reco']['channels']['Zmumu'].pop('massMin'),
+                            'selection/reco/channels/Zmumu', 'massMin')
         self.assertRejected(lambda c: c['jets']['collections']['Reco']['jerc'].pop('jesKey'),
                             'jets/collections/Reco/jerc', 'jesKey')
         self.assertRejected(lambda c: c.pop('aggregation'), 'aggregation')
 
+    def test_levels_and_gen_schema(self):
+        self.assertRejected(lambda c: c['selection'].update(levels=[]), 'selection/levels')
+        self.assertRejected(lambda c: c['selection'].update(levels=['reco', 'reco']), 'selection/levels')
+        self.assertRejected(lambda c: c['selection'].update(levels=['particle']), 'selection/levels')
+        self.assertRejected(lambda c: c['selection']['gen']['channels']['Zmumu'].update(triggers=['HLT_IsoMu24_v*']),
+                            'selection/gen/channels/Zmumu', 'triggers')
+        self.assertRejected(lambda c: c['selection']['gen']['objects']['genTightMuons'].update(source='muons'),
+                            'selection/gen/objects/genTightMuons')
+        self.assertRejected(lambda c: c['selection']['gen']['particleLevel'].pop('lepConeSize'),
+                            'selection/gen/particleLevel', 'lepConeSize')
+
     def test_wrong_types_and_values(self):
-        self.assertRejected(lambda c: c['selection']['channels']['Zmumu'].update(massMin='71'), 'selection/channels/Zmumu')
+        self.assertRejected(lambda c: c['selection']['reco']['channels']['Zmumu'].update(massMin='71'), 'selection/reco/channels/Zmumu')
         self.assertRejected(lambda c: c['observables']['E2C'].update(N=7), 'observables/E2C')
         self.assertRejected(lambda c: c['observables']['E2C'].update(weight='Charge'), 'observables/E2C')
         self.assertRejected(lambda c: c['jets']['collections']['Reco']['variations']['TrkDrop'].update(
             dropProbability=1.5), 'jets/collections/Reco/variations/TrkDrop')
 
     def test_cross_references(self):
-        self.assertRejected(lambda c: c['selection']['channels']['Zmumu'].update(objects='tightMuon'),
+        self.assertRejected(lambda c: c['selection']['reco']['channels']['Zmumu'].update(objects='tightMuon'),
                             'unknown object collection tightMuon')
-        self.assertRejected(lambda c: c['jets']['cleaning']['channels'].append('Zmm'), 'unknown channel Zmm')
-        self.assertRejected(lambda c: c['aggregation']['channels'].append('Ztautau'), 'unknown channel Ztautau')
+        self.assertRejected(lambda c: c['jets']['cleaning']['channels'].append('Zmm'), 'channel Zmm missing at reco level')
+        self.assertRejected(lambda c: c['aggregation']['channels'].append('Ztautau'), 'channel Ztautau missing at reco level')
+        self.assertRejected(lambda c: c['selection']['gen']['channels'].pop('Zee'), 'channel Zee missing at gen level')
+        self.assertRejected(lambda c: c['selection']['gen']['channels']['Zmumu'].update(objects='tightMuons'),
+                            'selection/gen/channels/Zmumu: unknown object collection tightMuons')
+
+        def sharedLabel(c):
+            c['selection']['gen']['objects']['tightMuons'] = c['selection']['gen']['objects'].pop('genTightMuons')
+            c['selection']['gen']['channels']['Zmumu']['objects'] = 'tightMuons'
+            c['selection']['gen']['channels']['Wmunu']['objects'] = 'tightMuons'
+        self.assertRejected(sharedLabel, 'object labels used at both levels')
 
         def unbinned(c):
             c['observables']['E2C']['output'] = 'Unbinned'
@@ -142,11 +167,45 @@ class BuiltProcess(unittest.TestCase):
         self.assertFalse(hasattr(p, 'jetsGenRaw'))           # mcOnly collection skipped
         self.assertFalse(hasattr(p, 'jetsRecoJESUp'))        # variations are MC only
         self.assertFalse(hasattr(p, 'jetsRecoJER'))          # no JER smearing in data
-        self.assertEqual(p.Zmumu_eecRecoE2C.genEventInfo.getModuleLabel(), '')
+        self.assertEqual(p.Zmumu_reco_eecRecoE2C.genEventInfo.getModuleLabel(), '')
+        self.assertFalse(hasattr(p, 'genParticleLevel'))     # no gen level in data
+        self.assertFalse(hasattr(p, 'Zmumu_gen_eecRecoE2C'))
+        self.assertEqual(labels(p.anySelected.srcs), ['anyChannel'])
+
+    def test_gen_only_in_data_is_an_error(self):
+        cfg = loadDefault()
+        cfg['selection']['levels'] = ['gen']
+        with self.assertRaises(analysisConfig.ConfigError):
+            buildProcess(cfg, isMC=0)
+
+    def test_levels_select_written_events_and_aggregation(self):
+        for levels in (['reco'], ['gen'], ['reco', 'gen']):
+            cfg = loadDefault()
+            cfg['selection']['levels'] = levels
+            p = buildProcess(cfg)
+            anyFlags = labels(p.anySelected.srcs)
+            self.assertEqual(anyFlags, [{'reco': 'anyChannel', 'gen': 'genAnyChannel'}[l] for l in levels])
+            self.assertEqual(list(p.out.SelectEvents.SelectEvents), ['anySelectedPath'])
+            for level in ('reco', 'gen'):
+                self.assertEqual(hasattr(p, 'Zmumu_%s_eecGenE2C' % level), level in levels)
+                self.assertEqual(hasattr(p, 'Zmumu_%s_AggPath' % level), level in levels)
+            # Both levels are always evaluated in MC, so their flags and objects exist whatever `levels` is.
+            self.assertTrue(hasattr(p, 'genZmumuSel') and hasattr(p, 'ZmumuSel'))
+            self.assertEqual(labels(p.genZmumuFilter.srcs), ['genZmumu'])
+
+    def test_jets_cleaned_against_own_level(self):
+        p = buildProcess()
+        reco = labels(p.jetsReco.vetoSrcs)
+        gen = labels(p.jetsGen.vetoSrcs)
+        self.assertEqual(reco, ['ZmumuSel', 'ZeeSel', 'WmunuSel', 'WenuSel', 'GammaJetsSel'])
+        self.assertEqual(gen, ['genZmumuSel', 'genZeeSel', 'genWmunuSel', 'genWenuSel', 'genGammaJetsSel'])
+        self.assertEqual(p.genWmunuSel.met.getModuleLabel(), 'genParticleLevel')
+        self.assertEqual(p.genWmunuSel.met.getProductInstanceLabel(), 'mets')
+        self.assertEqual(p.WmunuSel.met.getModuleLabel(), 'slimmedMETsPuppi')
 
     def test_yaml_values_reach_modules(self):
         cfg = loadDefault()
-        cfg['selection']['channels']['Zmumu']['massMin'] = 81.0
+        cfg['selection']['reco']['channels']['Zmumu']['massMin'] = 81.0
         cfg['jets']['collections']['Reco']['jetCuts']['ptMin'] = 250.0
         cfg['jets']['collections']['Reco']['variations']['TrkDrop']['dropProbability'] = 0.05
         cfg['observables']['E2C']['axes'][0]['nbins'] = 40
@@ -160,9 +219,9 @@ class BuiltProcess(unittest.TestCase):
         self.assertEqual(p.jetsRecoTrkDropVar.dropProbability.value(), 0.05)
         self.assertEqual(p.eecRecoE2C.axes[0].nbins.value(), 40)
         self.assertEqual(p.eecRecoE2CTable.axes[0].nbins.value(), 40)
-        self.assertEqual(p.Wmunu_eecRecoE2C.axes[0].nbins.value(), 40)
-        self.assertTrue(hasattr(p, 'WmunuAggPath'))
-        self.assertFalse(hasattr(p, 'ZmumuAggPath'))
+        self.assertEqual(p.Wmunu_reco_eecRecoE2C.axes[0].nbins.value(), 40)
+        self.assertTrue(hasattr(p, 'Wmunu_reco_AggPath') and hasattr(p, 'Wmunu_gen_AggPath'))
+        self.assertFalse(hasattr(p, 'Zmumu_reco_AggPath'))
 
     def test_default_matches_previous_hardcoded_setup(self):
         # The values that used to be hard-coded in the python helpers, now coming from default.yaml.

@@ -2,7 +2,8 @@
 Usage: python3 checkEndToEnd.py nano.root hists.root
  (i)   E2C/E3C/E1C entries vs a brute-force numpy computation from the constituent table
  (ii)  sum rule: every jet's weights sum to 1 (Pt weights, sumPt norm, n = 1)
- (iii) aggregator H and C vs a recomputation from the NANO entries and Generator_weight, for Zmumu events
+ (iii) aggregator H and C vs a recomputation from the NANO entries and Generator_weight, for Zmumu events at
+       each selection level in the histogram file
 """
 import sys
 import numpy as np
@@ -121,23 +122,27 @@ for level in ('Reco', 'Gen'):
                    'jets %d (skipped %d with > %d constituents), max sum|diff| %.2e' % (nj, skipped, MAXM, worst[k]))
         report('%s sum rule' % k, np.allclose(sums[k], 1.0, atol=1e-5), 'min %.6f max %.6f' % (min(sums[k]), max(sums[k])))
 
-# (iii) aggregator recomputation for Zmumu
-for obs, nb in (('RecoE2C', 52), ('RecoE3C', 52), ('RecoE1C', 484), ('GenE2C', 52)):
-    H = np.zeros(nb)
-    C = np.zeros((nb, nb))
-    sw = 0.0
-    for e in np.nonzero(ev['Selection_Zmumu'])[0]:
-        h = np.bincount(ev[obs + 'Entries_bin'][e], weights=ev[obs + 'Entries_weight'][e], minlength=nb)
-        w = float(ev['Generator_weight'][e])
-        H += w * h
-        C += w * w * np.outer(h, h)
-        sw += w
-    d = hists['Zmumu_eec%s' % obs]
-    hv = d['values'].values(flow=False)
-    hc = d['covariance'].values(flow=False)
-    scale = max(np.abs(H).max(), 1e-30)
-    report('Zmumu %s aggregator H' % obs, np.allclose(hv, H, rtol=1e-4, atol=1e-6 * scale), 'max|diff| %.2e (max H %.2e)' % (np.abs(hv - H).max(), scale))
-    report('Zmumu %s aggregator C' % obs, np.allclose(hc, C, rtol=1e-4, atol=1e-6 * np.abs(C).max()), 'max|diff| %.2e' % np.abs(hc - C).max())
-    report('Zmumu %s aggregator sumW' % obs, np.isclose(d['sumW'].member('fVal'), sw, rtol=1e-4),
-           'aggregator %.6g vs nano %.6g' % (d['sumW'].member('fVal'), sw))
+# (iii) aggregator recomputation for Zmumu, per selection level present in the histogram file
+for level, flag in (('reco', 'Selection_Zmumu'), ('gen', 'GenSelection_Zmumu')):
+    if 'Zmumu_%s_eecRecoE2C' % level not in [k.split(';')[0] for k in hists.keys(recursive=False)]:
+        continue
+    for obs, nb in (('RecoE2C', 52), ('RecoE3C', 52), ('RecoE1C', 484), ('GenE2C', 52)):
+        H = np.zeros(nb)
+        C = np.zeros((nb, nb))
+        sw = 0.0
+        for e in np.nonzero(ev[flag])[0]:
+            h = np.bincount(ev[obs + 'Entries_bin'][e], weights=ev[obs + 'Entries_weight'][e], minlength=nb)
+            w = float(ev['Generator_weight'][e])
+            H += w * h
+            C += w * w * np.outer(h, h)
+            sw += w
+        d = hists['Zmumu_%s_eec%s' % (level, obs)]
+        hv = d['values'].values(flow=False)
+        hc = d['covariance'].values(flow=False)
+        scale = max(np.abs(H).max(), 1e-30)
+        tag = 'Zmumu[%s] %s aggregator' % (level, obs)
+        report(tag + ' H', np.allclose(hv, H, rtol=1e-4, atol=1e-6 * scale), 'max|diff| %.2e (max H %.2e)' % (np.abs(hv - H).max(), scale))
+        report(tag + ' C', np.allclose(hc, C, rtol=1e-4, atol=1e-6 * max(np.abs(C).max(), 1e-30)), 'max|diff| %.2e' % np.abs(hc - C).max())
+        report(tag + ' sumW', np.isclose(d['sumW'].member('fVal'), sw, rtol=1e-4),
+               'aggregator %.6g vs nano %.6g' % (d['sumW'].member('fVal'), sw))
 sys.exit(0 if ok else 1)

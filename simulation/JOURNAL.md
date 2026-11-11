@@ -6,6 +6,7 @@
 - 2026-11-11 EventSelection and end-to-end validation
 - 2026-11-11 Placeholder constituent variations, selection overrides
 - 2026-11-11 Single YAML analysis configuration
+- 2026-11-11 Generator-level selections
 
 ## 2026-11-11 A.2 setup and DataFormats
 - Plan: `stepA2_plan.md`. New local repos (remotes pending): `EECDataFormats` (pkg `SRothman/DataFormats`),
@@ -58,3 +59,19 @@
   - `cms.InputTag('').value()` is `'""'`.
   - `__pycache__/*.pyc` from `scram b python` had been committed to EECs, JetSetup and EventSelection; they are now untracked and ignored.
 - The validation configs in JetSetup and EventSelection take `config=` too. Their checks pass with the same numbers, except the 50% drop test, whose `seedSalt` changed (0.514 kept).
+
+## 2026-11-11 Generator-level selections
+- Design choices made with the user:
+  - Gen objects come from the Rivet particle level (`ParticleLevelProducer`, as in NanoAOD): dressed prompt leptons (ΔR 0.1), isolated prompt photons, MET from prompt neutrinos.
+  - Gen cuts mirror the reco kinematics.
+  - Jets are cleaned against their own level's objects.
+  - Aggregation is per channel and level, for all jet collections.
+- `selection.levels` = [reco] | [gen] | [reco, gen] picks which levels define written and aggregated events. Both levels are always evaluated in MC.
+- Trap: `GenParticles2HepMCConverter` needs `PDTRecord`. `addGenCommon` loads `SimGeneral.HepPDTESSource.pythiapdt_cfi`.
+- 1000 PTLL-400to600 events:
+  - reco-only writes 466 events, gen-only 677 and OR 727, with 416 in both. OR = reco ∪ gen exactly.
+  - Zmumu: reco and gen 198, reco only 0, gen only 49. Zee: 153 / 0 / 95.
+  - Gen Z→μμ vs bare prompt muons (FWLite): 247 vs 243 selected, with 996 of 1000 events agreeing.
+  - The Rivet chain adds about 10 s per 1000 events (25 s → 35 s).
+- Regression: reco-only reproduces the previous run's 466 events. All 1254 non-gen branches and all 144 reco histograms are identical (the histogram directories are now `<ch>_reco_…`). Gen observables change because gen jets are now cleaned against gen objects.
+- End-to-end checks pass in OR mode (36 checks, including aggregation at both levels). The config tests (13) cover the levels, data behaviour, gen schema and per-level cleaning.

@@ -44,19 +44,26 @@ def _message(e):
 def crossCheck(cfg):
     """Checks between sections that the schema cannot express; returns a list of problems."""
     p = []
-    sel = cfg['selection']
-    objects, channels, obs = sel['objects'], sel['channels'], cfg['observables']
-    for name, ch in channels.items():
-        for o in [ch['objects']] + ch.get('vetoes', []):
-            if o not in objects:
-                p.append('selection/channels/%s: unknown object collection %s' % (name, o))
+    sel, obs = cfg['selection'], cfg['observables']
+    for level in ('reco', 'gen'):
+        objects = sel[level]['objects']
+        for name, ch in sel[level]['channels'].items():
+            for o in [ch['objects']] + ch.get('vetoes', []):
+                if o not in objects:
+                    p.append('selection/%s/channels/%s: unknown object collection %s' % (level, name, o))
+    if set(sel['reco']['objects']) & set(sel['gen']['objects']):
+        p.append('selection: object labels used at both levels: %s'
+                 % sorted(set(sel['reco']['objects']) & set(sel['gen']['objects'])))
+    # Reco jets are cleaned against reco objects and gen jets against gen objects, so both levels need the channels.
     for c in cfg['jets']['cleaning']['channels']:
-        if c not in channels:
-            p.append('jets/cleaning/channels: unknown channel %s' % c)
+        for level in ('reco', 'gen'):
+            if c not in sel[level]['channels']:
+                p.append('jets/cleaning/channels: channel %s missing at %s level' % (c, level))
     agg = cfg['aggregation']
     for c in agg['channels']:
-        if c not in channels:
-            p.append('aggregation/channels: unknown channel %s' % c)
+        for level in sel['levels']:
+            if c not in sel[level]['channels']:
+                p.append('aggregation/channels: channel %s missing at %s level' % (c, level))
     for o in agg['observables']:
         if o not in obs:
             p.append('aggregation/observables: unknown observable %s' % o)
