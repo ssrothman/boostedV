@@ -7,4 +7,5 @@ literature/.cache/
 
 # Local DAS query cache from planning/make_samples_table.py
 planning/das_cache.json
+planning/plan.pdf
 *.pyc
