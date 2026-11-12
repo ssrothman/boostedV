@@ -104,3 +104,8 @@
     2. The k in the resolution variation: C++ √(k_data²−k_mc²), Python k_mc, differing by up to 0.6% in pT. Default `cpp`, provisional.
     3. Only the event number enters the smearing seed: the length-one seed sequence uses only its first input.
   - The muon POG pt-correction wiki needs CERN SSO, so it could not be consulted from here.
+- Integration (1000 PTLL-400to600 events):
+  - With all options off, the output is identical to the previous run (1357 / 192 / 1144 objects).
+  - With muon corrections and cone dressing (pt moved to `dressedCut`), all three level modes run, and `checkLevels` and `checkEndToEnd` pass.
+  - Z→μμ reco − gen mass: mean −0.58 → −0.23 GeV, RMS 3.08 → 2.80 GeV (about 200 events).
+- Muon-correction mutations caught (4/4): no 200 GeV cut, k switch ignored, lumi in the seed, smearing in data.
