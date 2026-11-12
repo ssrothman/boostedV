@@ -1,7 +1,7 @@
 """MiniAOD -> minimal custom NANO with EEC tables, plus per-channel aggregated EEC histograms with covariance.
 
-cmsRun eecNano_cfg.py config=default.yaml inputFiles=file:in.root outputFile=nano.root histFile=hists.root \\
-    isMC=1 maxEvents=-1 [writeConstituents=1]
+cmsRun eecNano_cfg.py config=default.yaml globalTag=<GT> inputFiles=file:in.root outputFile=nano.root \\
+    histFile=hists.root isMC=1 maxEvents=-1 [lumiMask=golden.json] [writeConstituents=1]
 
 All physics settings come from the YAML `config` (validated by analysisConfig.py); a relative path is resolved
 against the current directory first, then this file's directory.
@@ -27,10 +27,16 @@ opts.register('config', 'default.yaml', VarParsing.multiplicity.singleton, VarPa
 opts.register('isMC', 1, VarParsing.multiplicity.singleton, VarParsing.varType.int, 'MC (1) or data (0)')
 opts.register('histFile', 'eecHists.root', VarParsing.multiplicity.singleton, VarParsing.varType.string,
               'TFileService output')
+opts.register('globalTag', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
+              'conditions GlobalTag (required)')
+opts.register('lumiMask', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
+              'certification JSON restricting the processed lumisections (empty: all)')
 opts.register('writeConstituents', 0, VarParsing.multiplicity.singleton, VarParsing.varType.int,
               'store jet constituents')
 opts.parseArguments()
 isMC = bool(opts.isMC)
+if not opts.globalTag:
+    raise analysisConfig.ConfigError('globalTag is required')
 cfgPath = opts.config if os.path.exists(opts.config) else os.path.join(HERE, opts.config)
 cfg = analysisConfig.load(cfgPath)
 inputs = cfg['inputs']
@@ -40,6 +46,12 @@ process.load('FWCore.MessageService.MessageLogger_cfi')
 process.MessageLogger.cerr.FwkReport.reportEvery = 1000
 process.source = cms.Source('PoolSource', fileNames=cms.untracked.vstring(opts.inputFiles))
 process.maxEvents.input = opts.maxEvents
+if opts.lumiMask:
+    from FWCore.PythonUtilities.LumiList import LumiList
+    process.source.lumisToProcess = LumiList(filename=opts.lumiMask).getVLuminosityBlockRange()
+process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
+from Configuration.AlCa.GlobalTag import GlobalTag  # noqa: E402
+process.GlobalTag = GlobalTag(process.GlobalTag, opts.globalTag, '')
 process.TFileService = cms.Service('TFileService', fileName=cms.string(opts.histFile))
 task = cms.Task()
 

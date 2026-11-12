@@ -29,11 +29,14 @@ def writeTmp(cfg):
     return f.name
 
 
-def buildProcess(cfgDict=None, isMC=1):
+TEST_GT = '130X_mcRun3_2022_realistic_postEE_v6'
+
+
+def buildProcess(cfgDict=None, isMC=1, extra=('globalTag=' + TEST_GT,)):
     """Executes eecNano_cfg.py with the given configuration and returns its process."""
     path = writeTmp(cfgDict) if cfgDict is not None else DEFAULT
     argv = sys.argv
-    sys.argv = [CFG, 'config=' + path, 'isMC=%d' % isMC]
+    sys.argv = [CFG, 'config=' + path, 'isMC=%d' % isMC] + list(extra)
     try:
         g = {'__name__': '__cfg__'}
         with open(CFG) as f:
@@ -191,6 +194,22 @@ class BuiltProcess(unittest.TestCase):
         self.assertFalse(hasattr(p, 'genParticleLevel'))     # no gen level in data
         self.assertFalse(hasattr(p, 'Zmumu_gen_eecRecoE2C'))
         self.assertEqual(labels(p.anySelected.srcs), ['anyChannel'])
+
+    def test_global_tag(self):
+        for isMC, gt in ((1, TEST_GT), (0, '130X_dataRun3_PromptAnalysis_v1')):
+            p = buildProcess(isMC=isMC, extra=('globalTag=' + gt,))
+            self.assertEqual(p.GlobalTag.globaltag.value(), gt)
+        with self.assertRaisesRegex(analysisConfig.ConfigError, 'globalTag is required'):
+            buildProcess(extra=())
+
+    def test_lumi_mask(self):
+        self.assertFalse(hasattr(buildProcess().source, 'lumisToProcess'))
+        mask = tempfile.NamedTemporaryFile('w', suffix='.json', delete=False)
+        mask.write('{"360458": [[215, 215], [236, 237]], "360459": [[6, 6]]}')
+        mask.close()
+        p = buildProcess(isMC=0, extra=('globalTag=x', 'lumiMask=' + mask.name))
+        self.assertEqual(list(p.source.lumisToProcess),
+                         ['360458:215', '360458:236-360458:237', '360459:6'])
 
     def test_gen_only_in_data_is_an_error(self):
         cfg = loadDefault()

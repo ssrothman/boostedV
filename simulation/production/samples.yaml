@@ -1,0 +1,35 @@
+# Production manifest: one entry per sample (schema: samples.schema.yaml). Paths are relative to this file.
+# globalTag: for central MC, the GT in the dataset name; for data, the GT in the MiniAOD provenance (edmProvDump).
+outputBase: /store/user/srothman/boostedV
+storageSite: T3_US_FNALLPC
+eosRedirector: root://cmseos.fnal.gov
+inputRedirector: root://cmsxrootd.fnal.gov
+
+samples:
+  DYto2L-4Jets_MLM_PTLL-400to600:
+    input: {dataset: /DYto2L-4Jets_MLL-50_PTLL-400to600_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer22EEMiniAODv4-130X_mcRun3_2022_realistic_postEE_v6-v3/MINIAODSIM}
+    isMC: true
+    globalTag: 130X_mcRun3_2022_realistic_postEE_v6
+    config: ../configs/default.yaml
+    lumiMask: ''
+    backend: condor
+    splitting: {mode: files, unitsPerJob: 5}
+    maxJobs: -1
+  DYto2L-4Jets_MLM_PTLL-600:
+    input: {dataset: /DYto2L-4Jets_MLL-50_PTLL-600_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer22EEMiniAODv4-130X_mcRun3_2022_realistic_postEE_v6-v3/MINIAODSIM}
+    isMC: true
+    globalTag: 130X_mcRun3_2022_realistic_postEE_v6
+    config: ../configs/default.yaml
+    lumiMask: ''
+    backend: crab
+    splitting: {mode: files, unitsPerJob: 5}
+    maxJobs: -1
+  Muon_Run2022F-22Sep2023:
+    input: {dataset: /Muon/Run2022F-22Sep2023-v2/MINIAOD}
+    isMC: false
+    globalTag: 130X_dataRun3_PromptAnalysis_v1
+    config: ../configs/default.yaml
+    lumiMask: /cvmfs/cms-griddata.cern.ch/cat/metadata/DC/Collisions22/2026-05-28/Cert_Collisions2022_eraF_360390_362167_Golden.json
+    backend: crab
+    splitting: {mode: files, unitsPerJob: 8}
+    maxJobs: -1

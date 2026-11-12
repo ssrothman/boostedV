@@ -8,6 +8,7 @@
 - 2026-11-11 Single YAML analysis configuration
 - 2026-11-11 Generator-level selections
 - 2026-11-11 Reco lepton dressing and muon momentum corrections
+- 2026-11-12 Batch production (CRAB and LPC condor)
 
 ## 2026-11-11 A.2 setup and DataFormats
 - Plan: `stepA2_plan.md`. New local repos (remotes pending): `EECDataFormats` (pkg `SRothman/DataFormats`),
@@ -109,3 +110,36 @@
   - With muon corrections and cone dressing (pt moved to `dressedCut`), all three level modes run, and `checkLevels` and `checkEndToEnd` pass.
   - Z→μμ reco − gen mass: mean −0.58 → −0.23 GeV, RMS 3.08 → 2.80 GeV (about 200 events).
 - Muon-correction mutations caught (4/4): no 200 GeV cut, k switch ignored, lumi in the seed, smearing in data.
+
+## 2026-11-12 Batch production (CRAB and LPC condor)
+- `production/`: manifest `samples.yaml` → `submit.py` (CRAB or condor) → `status.py` → `merge.py`. See `production/README.md`. Choices made with the user:
+  - both backends behind one manifest;
+  - MC and data;
+  - merge the histograms per sample and keep the per-job NANO;
+  - tags `YYYYMMDD_desc`;
+  - the GlobalTag is a per-sample manifest field.
+- **cfg**: `globalTag=` is now required, and there is an optional `lumiMask=`.
+  - No module reads conditions yet. With the GT set, the 1000-event output is identical to before (all NANO trees and histogram objects).
+  - Loading the GT costs about 40–140 s of Frontier start-up interactively and about 2.5 min on an LPC worker.
+- **GTs from the MiniAOD provenance** (`edmProvDump`):
+  - Summer22EE MC: `130X_mcRun3_2022_realistic_postEE_v6`, as in the dataset name.
+  - `/Muon/Run2022F-22Sep2023-v2/MINIAOD`: `130X_dataRun3_PromptAnalysis_v1`. It is a re-MINI of PromptReco AOD; `Run2022F-19Dec2023-v1` also exists.
+  - DAS `config` queries return no GT.
+- **Golden JSONs**: `/cvmfs/cms-griddata.cern.ch/cat/metadata/DC/Collisions22/<date>/`; `latest/` moves.
+- **Data skim** `testdata/Muon_Run2022F-22Sep2023_8lumis_2000ev.root`: 250 events from each of 8 lumis; 225 and 226 of run 360458 are not golden. With the mask, exactly the 6 golden lumis are processed (285 → 207 events written).
+- **Merge test** (`test_merge`): two half-jobs merged against one job over both halves.
+  - It matches at 1e-12 for every histogram object (values, covariance, axes, `sumW`, `sumW2`, `nEvents`, `axisTypes`), the Runs sums, the Events count and the processed lumis.
+  - `hadd` sums the TParameters and keeps the TNamed.
+  - Mutations caught: 6/6 in merge plus 5/5 in the comparator; unit tests 16/16.
+- **Condor end-to-end** (2 DY PTLL-400to600 files): genEventCount 3010 = 731 + 2279 (DAS). The job-0 output is identical to a local cmsRun on the same file.
+- **Condor data end-to-end** (1 Run2022F file, 67391 events): it took 9.4 ms per event, and the processed lumis equal DAS file lumis ∩ golden.
+  - Deleting `nano_0` and running `status.py --resubmit` reran the job.
+  - The re-merged histograms are identical to the first merge, with 9127 events written both times.
+- **Traps**:
+  - The LPC `condor_*` wrappers have no shebang line (run them via `sh`). `condor_rm -constraint` needs `-name <schedd>`. In `condor_q`, the cluster ids must precede `-af`.
+  - The LPC schedds do not mount `/cvmfs/cms-griddata`, and condor transfers inputs only when a job starts, so `submit.py` snapshots the cfg, YAML, mask and `job.sh` into `work/<tag>/<sample>/inputs/`.
+  - CMSSW's uproot has no `fsspec-xrootd`; use `handler=uproot.source.xrootd.XRootDSource`.
+  - `EECs/build` contains symlink loops; the tarball skips `build/`.
+  - CRAB's sandbox walks `src/` without following symlinks, so the symlinked packages' `interface/` dirs are not shipped. The cfg itself is evaluated at submission.
+  - CRAB needs a MyProxy delegation (`crab createmyproxy`), which asks for the grid pass phrase.
+- **Sizes**: 56 MB histogram file per job with `default.yaml`. About 20k events per Summer22EE DY MLM file, but individual files vary (731 and 2279 seen).

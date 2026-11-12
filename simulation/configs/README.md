@@ -12,10 +12,12 @@
 
 ```
 cmsenv   # in /uscms_data/d3/srothman/eecdev/CMSSW_15_0_22/src
-cmsRun eecNano_cfg.py config=default.yaml inputFiles=file:in.root outputFile=nano.root histFile=hists.root \
-       isMC=1 maxEvents=-1 [writeConstituents=1]
+cmsRun eecNano_cfg.py config=default.yaml globalTag=<GT> inputFiles=file:in.root outputFile=nano.root histFile=hists.root \
+       isMC=1 maxEvents=-1 [lumiMask=golden.json] [writeConstituents=1]
 ```
 - Only the per-job settings are command-line arguments; everything else is in the YAML.
+- `globalTag` is required (no default); no module reads conditions yet, and loading the GT adds about 1 min of Frontier start-up. `lumiMask` restricts the source to a certification JSON.
+- Batch processing of whole datasets: `../production/README.md`.
 - A relative `config` is looked up in the current directory, then next to `eecNano_cfg.py`. Batch jobs must ship the YAML, `analysisConfig.py` and `analysis.schema.yaml` with the cfg.
 - VarParsing appends `_numEvent<N>` to `outputFile` when `maxEvents` is set.
 

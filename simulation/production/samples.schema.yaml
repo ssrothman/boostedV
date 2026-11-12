@@ -1,0 +1,50 @@
+# JSON Schema (draft-07) for the production manifest (samples.yaml). Closed objects, all keys required;
+# cross-checks (backend/splitting compatibility, data needs a lumi mask, configs valid) are in manifest.py.
+$schema: http://json-schema.org/draft-07/schema#
+type: object
+additionalProperties: false
+required: [outputBase, storageSite, eosRedirector, inputRedirector, samples]
+
+definitions:
+  str: {type: string, minLength: 1}
+  sample:
+    type: object
+    additionalProperties: false
+    required: [input, isMC, globalTag, config, lumiMask, backend, splitting, maxJobs]
+    properties:
+      input:
+        oneOf:
+          - type: object
+            additionalProperties: false
+            required: [dataset]
+            properties:
+              dataset: {type: string, pattern: '^/[^/]+/[^/]+/[A-Z]+(SIM)?$'}
+          - type: object
+            additionalProperties: false
+            required: [fileList]          # text file of LFNs or URLs, one per line (condor only)
+            properties:
+              fileList: {$ref: '#/definitions/str'}
+      isMC: {type: boolean}
+      globalTag: {$ref: '#/definitions/str'}
+      config: {$ref: '#/definitions/str'}         # analysis YAML, relative to this manifest
+      lumiMask: {type: string}                     # certification JSON for data, '' for MC
+      backend: {enum: [crab, condor]}
+      splitting:
+        type: object
+        additionalProperties: false
+        required: [mode, unitsPerJob]
+        properties:
+          mode: {enum: [files, events]}            # events: CRAB EventAwareLumiBased only
+          unitsPerJob: {type: integer, minimum: 1}
+      maxJobs: {type: integer, minimum: -1, not: {const: 0}}   # -1: all; otherwise a test run of the first N jobs
+
+properties:
+  outputBase: {type: string, pattern: '^/store/user/[^/]+/'}   # LFN; outputs go to <outputBase>/<tag>/<sample>/
+  storageSite: {$ref: '#/definitions/str'}                      # CRAB stage-out site
+  eosRedirector: {type: string, pattern: '^root://'}            # for condor stage-out and output listing
+  inputRedirector: {type: string, pattern: '^root://'}          # condor input reads (AAA)
+  samples:
+    type: object
+    minProperties: 1
+    propertyNames: {pattern: '^[A-Za-z0-9_-]{1,80}$'}
+    additionalProperties: {$ref: '#/definitions/sample'}
