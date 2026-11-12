@@ -40,7 +40,8 @@ cmsRun eecNano_cfg.py config=default.yaml globalTag=<GT> inputFiles=file:in.root
   - A collection with `mcOnly: true` is skipped in data. The constituent-variation sizes are placeholders.
 - **`observables`:** E2C/E3C (`penc`) and E1C (`e1c`) specs. They are computed for every jet collection and variation; tables are named `<Collection><Variation><observable>`.
 - **`aggregation`:** channels, observables and the covariance memory guard. For each enabled level it writes `<channel>_<level>_eec<Collection><Variation><observable>` directories in `histFile`, filled from events passing that channel at that level, for every jet collection (e.g. reco observables in gen-selected events).
-- **`output`:** whether to keep the HLT bits, and the MC event tables (genWeights, with Runs-tree sums over every processed event; Pileup; Generator).
+- **NANO contents:** every table, and which configuration keys create and name it: `simulation/NANO.md`.
+- **`output`:** whether to keep the HLT bits, the MC event tables (genWeights, with Runs-tree sums over every processed event; Pileup; Generator), and the MC LHE tables (`LHE` event quantities and `LHEPart` particles, from the first of `inputs.lheInfo` present, with the standard NanoAOD settings).
 
 `analysisConfig.load` reports every schema violation with its path. It also checks cross-references: channel object collections, cleaning and aggregation channels, binned aggregation observables, translator keys per jet type, JES/JER only on reco MiniAOD jets, and unique table names.
 

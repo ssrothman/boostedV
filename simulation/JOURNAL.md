@@ -11,6 +11,9 @@
 - 2026-11-12 Batch production (CRAB and LPC condor)
 - 2026-11-12 Production review fixes; corrections on cms-griddata latest
 - 2026-11-12 MUO POG Run-3 compliance: high-pT muons and muon SFs
+- 2026-11-12 LHE tables in the NANO
+- 2026-11-12 Selected leptons and MET in the NANO
+- 2026-11-12 NANO documentation
 
 ## 2026-11-11 A.2 setup and DataFormats
 - Plan: `stepA2_plan.md`. New local repos (remotes pending): `EECDataFormats` (pkg `SRothman/DataFormats`),
@@ -204,3 +207,30 @@
   - `checkMuonSF.py` redoes the HLT matching from MiniAOD with FWLite: ≤ 4.3e-8 on PTLL and inclusive DY, default and
     hybrid (the inclusive hybrid check fails only its ≥ 10 high-regime-events guard: there are none); no warnings.
 - New `OPEN_QUESTIONS.md` (repo root): all open questions (MUO, JME, our decisions, unverified, literature).
+
+## 2026-11-12 LHE tables in the NANO
+- `output.lheTables` (default true, MC only): CMSSW `LHETablesProducer` with the standard NanoAOD settings
+  (`precision 14`, `storeLHEParticles`), on the first of `inputs.lheInfo` = [externalLHEProducer, source] present.
+  Writes `LHEPart` (pt, eta, phi, mass, incomingpz, pdgId, status, spin, firstMotherIdx, lastMotherIdx) and `LHE`
+  (HT, HTIncoming, Vpt, AlphaS, Njets, Nb, Nc, Nuds, Nglu, NpLO, NpNLO).
+- On 300 PTLL-400to600 events: all 222 written events match the LHEEventProduct HEPEUP read with FWLite (pdgId and
+  status lists exact, pt / incoming pz within 3e-5, the 14-bit mantissa); 6–9 LHE particles per event. Data: no LHE
+  branches. Config test: 3/3 mutations caught (MC-only guard, storeLHEParticles, scheduling).
+
+## 2026-11-12 Selected leptons and MET in the NANO
+- `<ch>Leptons` / `Gen<ch>Leptons` for every dilepton and leptonMET channel (pt, eta, phi, mass, charge, pdgId of the
+  `<ch>Sel:leptons` copies, i.e. after dressing and muon corrections; filled whenever `<ch>Sel` passes, which does not
+  include the trigger). `MET` / `GenMET` singleton (pt, phi) of the MET the leptonMET selectors use, only if such a
+  channel exists at that level. Trap: singleton SimpleCandidateFlatTableProducer rejects a `cut` parameter.
+- 300 PTLL-400to600 events (default and hybrid): multiplicity 2/1 exactly when `<ch>Sel` passes, |pdgId| as the
+  channel, Z mass and W pt (lepton + MET) rebuilt from the tables match the boson tables (≤ 3.3e-7); MET equals
+  slimmedMETsPuppi read with FWLite in all 222 events. Gen W channels select nothing in DY (no W sample locally), so
+  their lepton content is untested on events. Data: tables present, no gen tables. Config test: 4/4 mutations caught.
+
+## 2026-11-12 NANO documentation
+- `NANO.md`: every table family, which configuration keys create, name and fill it, conventions, per-table columns, a
+  worked `default.yaml` inventory and pitfalls. The inventory is measured from a 300-event PTLL MC file and a data file
+  (39 EEC per-jet tables in MC: 12 Reco chains × 3 observables + Gen × 3).
+- Checked on the file: EEC per-jet rows = jet rows (nominal, variation, gen); `nEntries` sums to the Entries count;
+  `iJet` sorted; bins below the flow-inclusive extent; dilepton leptons leading first; jets in source order; gen jetId 0;
+  LHE incoming pt 0; every written event passes some channel flag.

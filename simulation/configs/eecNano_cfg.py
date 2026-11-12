@@ -110,6 +110,11 @@ if isMC and cfg['output']['mcEventTables']:
     task.add(process.puTable, process.genTable)
     # Scheduled on its own path so that the Runs-tree sums of weights include every processed event.
     process.genWeightsPath = cms.Path(process.genWeightsTable)
+if isMC and cfg['output']['lheTables']:
+    # Settings of the standard NanoAOD lheInfoTable (PhysicsTools/NanoAOD/python/particlelevel_cff.py).
+    process.lheInfoTable = cms.EDProducer('LHETablesProducer', lheInfo=cms.VInputTag(*inputs['lheInfo']),
+                                          precision=cms.int32(14), storeLHEParticles=cms.bool(True))
+    task.add(process.lheInfoTable)
 
 keep = ['drop *', 'keep nanoaodFlatTable_*Table_*_*', 'keep nanoaodMergeableCounterTable_*Table_*_*',
         'keep nanoaodUniqueString_nanoMetadata_*_*']

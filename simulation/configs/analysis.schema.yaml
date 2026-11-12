@@ -266,7 +266,7 @@ properties:
   inputs:
     type: object
     additionalProperties: false
-    required: [muons, electrons, photons, pfCandidates, met, vertices, genEventInfo, hltProcess, triggerObjects,
+    required: [muons, electrons, photons, pfCandidates, met, vertices, genEventInfo, lheInfo, hltProcess, triggerObjects,
                metFilterProcess, prunedGenParticles, packedGenParticles]
     properties:
       muons: {$ref: '#/definitions/str'}
@@ -276,6 +276,7 @@ properties:
       met: {$ref: '#/definitions/str'}
       vertices: {$ref: '#/definitions/str'}
       genEventInfo: {$ref: '#/definitions/str'}
+      lheInfo: {$ref: '#/definitions/strList'}
       hltProcess: {$ref: '#/definitions/str'}
       triggerObjects: {$ref: '#/definitions/str'}
       metFilterProcess: {$ref: '#/definitions/str'}
@@ -451,7 +452,8 @@ properties:
   output:
     type: object
     additionalProperties: false
-    required: [keepHLTBits, mcEventTables]
+    required: [keepHLTBits, mcEventTables, lheTables]
     properties:
       keepHLTBits: {type: boolean}
       mcEventTables: {type: boolean}
+      lheTables: {type: boolean}

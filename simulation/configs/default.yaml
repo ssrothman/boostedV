@@ -11,6 +11,7 @@ inputs:                      # MiniAOD collection labels
   met: slimmedMETsPuppi
   vertices: offlineSlimmedPrimaryVertices
   genEventInfo: generator    # MC only; event weights for the aggregators
+  lheInfo: [externalLHEProducer, source]   # MC only; LHEEventProduct labels, the first present is used
   hltProcess: HLT
   triggerObjects: slimmedPatTrigger   # MC only; HLT objects for the muon trigger SFs
   metFilterProcess: PAT      # process holding the Flag_* MET-filter paths
@@ -361,3 +362,4 @@ aggregation:                 # histograms with covariance, written to histFile
 output:
   keepHLTBits: true
   mcEventTables: true        # genWeights (Runs-tree sums), Pileup, Generator
+  lheTables: true            # MC only: LHE (HT, Njets, Vpt, ...) and LHEPart (LHE particles), as in standard NanoAOD

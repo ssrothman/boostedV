@@ -378,6 +378,46 @@ class BuiltProcess(unittest.TestCase):
         self.assertEqual(labels(p.Zmumu_reco_eecRecoE2C.weights), [])
         self.assertTrue(p.correctedMuons.isData.value())
 
+    def test_selected_lepton_and_met_tables(self):
+        p = buildProcess()
+        for level, prefix, met in (('reco', '', 'slimmedMETsPuppi'), ('gen', 'Gen', 'genParticleLevel')):
+            lab = lambda ch: ('gen' + ch if level == 'gen' else ch)
+            for ch in ('Zmumu', 'Zee', 'Wmunu', 'Wenu'):
+                t = getattr(p, lab(ch) + 'LeptonsTable')
+                self.assertEqual((t.src.getModuleLabel(), t.src.getProductInstanceLabel()), (lab(ch) + 'Sel', 'leptons'))
+                self.assertEqual(t.name.value(), prefix + ch + 'Leptons')
+                self.assertEqual(sorted(t.variables.parameterNames_()), ['charge', 'eta', 'mass', 'pdgId', 'phi', 'pt'])
+                self.assertIn(lab(ch) + 'LeptonsTable', p.outPath.moduleNames())
+            for ch in ('Hadronic', 'GammaJets'):
+                self.assertFalse(hasattr(p, lab(ch) + 'LeptonsTable'))
+            m = getattr(p, ('gen' if level == 'gen' else '') + ('MetTable' if level == 'gen' else 'metTable'))
+            self.assertEqual((m.src.getModuleLabel(), m.name.value(), m.singleton.value()), (met, prefix + 'MET', True))
+            self.assertEqual(m.src.getModuleLabel(), getattr(p, lab('Wmunu') + 'Sel').met.getModuleLabel())
+        cfg = loadDefault()
+        for level in ('reco', 'gen'):
+            chans = cfg['selection'][level]['channels']
+            for ch in [c for c in chans if chans[c]['type'] == 'leptonMET']:
+                del chans[ch]
+        cfg['selection']['reco']['muonScaleFactors'].pop('Wmunu')
+        cfg['jets']['cleaning']['channels'] = ['Zmumu', 'Zee', 'GammaJets']
+        cfg['jets']['cleaning']['channels'] = ['Zmumu', 'Zee', 'GammaJets']
+        p = buildProcess(cfg)
+        self.assertFalse(hasattr(p, 'metTable') or hasattr(p, 'genMetTable'))
+        self.assertTrue(hasattr(p, 'ZmumuLeptonsTable'))
+
+    def test_lhe_tables(self):
+        p = buildProcess()
+        t = p.lheInfoTable
+        self.assertEqual(t.type_(), 'LHETablesProducer')
+        self.assertEqual(labels(t.lheInfo), ['externalLHEProducer', 'source'])
+        self.assertTrue(t.storeLHEParticles.value())
+        self.assertEqual(t.precision.value(), 14)
+        self.assertIn('lheInfoTable', p.outPath.moduleNames())
+        self.assertFalse(hasattr(buildProcess(isMC=0), 'lheInfoTable'))
+        cfg = loadDefault()
+        cfg['output']['lheTables'] = False
+        self.assertFalse(hasattr(buildProcess(cfg), 'lheInfoTable'))
+
     def test_default_scale_factors(self):
         p = buildProcess()
         for ch in ('Zmumu', 'Wmunu'):
