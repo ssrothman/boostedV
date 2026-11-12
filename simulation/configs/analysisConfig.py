@@ -41,6 +41,45 @@ def _message(e):
     return e.message
 
 
+def _muonChecks(reco):
+    p = []
+    mc = reco['muonCorrections']
+    regimes = {'pf': {'medium'}, 'tuneP': {'high'}, 'hybrid': {'medium', 'high'}}[mc['momentum']]
+    var = mc['variation']
+    if var != 'nominal':
+        if not mc['apply']:
+            p.append('selection/reco/muonCorrections: variation %s needs apply' % var)
+        if ('high' if var.startswith('highPt') else 'medium') not in regimes:
+            p.append('selection/reco/muonCorrections: variation %s has no effect with momentum %s' % (var, mc['momentum']))
+    for ch, terms in reco['muonScaleFactors'].items():
+        where = 'selection/reco/muonScaleFactors/%s' % ch
+        if ch not in reco['channels']:
+            p.append('%s: unknown channel' % where)
+        elif reco['channels'][ch]['type'] == 'singleObject':
+            p.append('%s: the channel selects no leptons' % where)
+        elif reco['objects'].get(reco['channels'][ch]['objects'], {}).get('source', 'muons') != 'muons':
+            p.append('%s: the channel does not select muons' % where)
+        names = [t['name'] for t in terms]
+        if len(set(names)) != len(names):
+            p.append('%s: duplicate term names' % where)
+        for t in terms:
+            if t['regime'] not in regimes:
+                p.append('%s/%s: regime %s never occurs with momentum %s' % (where, t['name'], t['regime'], mc['momentum']))
+        for r in ('medium', 'high'):
+            if sum(t['trigger'] and t['regime'] == r for t in terms) > 1:
+                p.append('%s: more than one %s trigger term' % (where, r))
+        triggered = {t['regime'] for t in terms if t['trigger']}
+        if triggered and not regimes <= triggered:
+            p.append('%s: trigger terms needed for every regime (%s) or none' % (where, ', '.join(sorted(regimes))))
+        for t in terms:
+            if t['trigger'] != bool(t['paths']):
+                p.append('%s/%s: paths must be set exactly for trigger terms' % (where, t['name']))
+            missing = [x for x in t['paths'] if x not in reco['channels'].get(ch, {}).get('triggers', [])]
+            if missing:
+                p.append('%s/%s: paths %s are not triggers of the channel' % (where, t['name'], missing))
+    return p
+
+
 def crossCheck(cfg):
     """Checks between sections that the schema cannot express; returns a list of problems."""
     p = []
@@ -51,6 +90,7 @@ def crossCheck(cfg):
             for o in [ch['objects']] + ch.get('vetoes', []):
                 if o not in objects:
                     p.append('selection/%s/channels/%s: unknown object collection %s' % (level, name, o))
+    p += _muonChecks(sel['reco'])
     dressing = sel['reco']['dressing']['mode']
     for name, o in sel['reco']['objects'].items():
         if o['dressedCut'] and (dressing == 'none' or o['source'] == 'photons'):

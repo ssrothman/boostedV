@@ -13,7 +13,7 @@ import sys
 import FWCore.ParameterSet.Config as cms
 from FWCore.ParameterSet.VarParsing import VarParsing
 from SRothman.EECs.eecTools import addAggregator, addObservable
-from SRothman.EventSelection.eventSelection_cff import addSelection, label, selectedObjects
+from SRothman.EventSelection.eventSelection_cff import addSelection, label, muonSFLabel, selectedObjects
 from SRothman.JetSetup.eecJets_cff import setupJets
 
 # edmConfigDump does not define __file__; the code object's filename is set by every loader.
@@ -63,7 +63,7 @@ if not levels:
                                      % (cfgPath, cfg['selection']['levels']))
 sel = cfg['selection']
 muCorr = sel['reco']['muonCorrections']
-if not isMC and muCorr['apply'] and muCorr['variation'] != 'nominal':
+if not isMC and muCorr['variation'] != 'nominal':
     raise analysisConfig.ConfigError('%s: selection/reco/muonCorrections/variation %s is for MC only'
                                      % (cfgPath, muCorr['variation']))
 addSelection(process, sel, inputs, levels, isMC, task)
@@ -91,11 +91,13 @@ genInfo = inputs['genEventInfo'] if isMC else ''
 for level in levels:
     for ch in agg['channels']:
         seq = getattr(process, label(level, ch) + 'Filter')
+        # Reco-level MC histograms carry the channel's muon efficiency scale factors.
+        weights = [muonSFLabel(ch)] if isMC and level == 'reco' and ch in sel['reco']['muonScaleFactors'] else []
         for prefix, _ in collections:
             for obs in agg['observables']:
                 lab = 'eec%s%s' % (prefix, obs)
                 seq = seq + addAggregator(process, '%s_%s_%s' % (ch, level, lab), lab, cfg['observables'][obs],
-                                          genInfo, agg['maxBins'])
+                                          genInfo, agg['maxBins'], weights)
         setattr(process, '%s_%s_AggPath' % (ch, level), cms.Path(seq, task))
 
 # ---- event-level tables ----

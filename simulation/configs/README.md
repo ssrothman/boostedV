@@ -27,7 +27,8 @@ cmsRun eecNano_cfg.py config=default.yaml globalTag=<GT> inputFiles=file:in.root
   - `levels`: `[reco]`, `[gen]` or `[reco, gen]` (the OR). Events passing any channel at an enabled level are written, with all observables for both jet levels, and aggregated per channel and level. In MC both levels are always evaluated and their flags stored (`Selection_*`, `GenSelection_*`); data has only reco, and a gen-only configuration is an error there.
   - `reco`:
     - good-vertex cuts and MET filters;
-    - optional MUO POG muon momentum corrections (`muonCorrections`, off by default);
+    - muon momentum assignment (`muonCorrections.momentum`: pf | tuneP | hybrid by pT) and optional MUO POG medium- and high-pT momentum corrections (`muonCorrections.apply`, off by default);
+    - MC muon efficiency scale factors per channel (`muonScaleFactors`), applied to that channel's reco-level aggregated histograms and stored as `<channel>MuonSF`;
     - optional lepton dressing (`dressing.mode: none | fsr | cone`, default `none`; with dressing, `dressedCut` selects on the dressed leptons);
     - objects (PAT string cuts) and channels with triggers.
     - See `EventSelection/README.md` for the open POG questions on the muon corrections.

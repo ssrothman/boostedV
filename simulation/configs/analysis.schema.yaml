@@ -266,8 +266,8 @@ properties:
   inputs:
     type: object
     additionalProperties: false
-    required: [muons, electrons, photons, pfCandidates, met, vertices, genEventInfo, hltProcess, metFilterProcess,
-               prunedGenParticles, packedGenParticles]
+    required: [muons, electrons, photons, pfCandidates, met, vertices, genEventInfo, hltProcess, triggerObjects,
+               metFilterProcess, prunedGenParticles, packedGenParticles]
     properties:
       muons: {$ref: '#/definitions/str'}
       electrons: {$ref: '#/definitions/str'}
@@ -277,6 +277,7 @@ properties:
       vertices: {$ref: '#/definitions/str'}
       genEventInfo: {$ref: '#/definitions/str'}
       hltProcess: {$ref: '#/definitions/str'}
+      triggerObjects: {$ref: '#/definitions/str'}
       metFilterProcess: {$ref: '#/definitions/str'}
       prunedGenParticles: {$ref: '#/definitions/str'}
       packedGenParticles: {$ref: '#/definitions/str'}
@@ -293,19 +294,48 @@ properties:
       reco:
         type: object
         additionalProperties: false
-        required: [vertex, metFilters, muonCorrections, dressing, objects, channels]
+        required: [vertex, metFilters, muonCorrections, muonScaleFactors, dressing, objects, channels]
         properties:
           muonCorrections:
             type: object
             additionalProperties: false
-            required: [apply, correctionFile, lowPtThreshold, highPtThreshold, variation, resolutionVariationK]
+            required: [apply, momentum, regimeThreshold, correctionFile, lowPtThreshold, highPtThreshold, variation,
+                       resolutionVariationK, highPt]
             properties:
               apply: {type: boolean}
+              momentum: {enum: [pf, tuneP, hybrid]}
+              regimeThreshold: {$ref: '#/definitions/num'}
               correctionFile: {$ref: '#/definitions/str'}
               lowPtThreshold: {$ref: '#/definitions/num'}
               highPtThreshold: {$ref: '#/definitions/num'}
               resolutionVariationK: {enum: [cpp, python]}
-              variation: {enum: [nominal, scaleUp, scaleDown, resolutionUp, resolutionDown]}
+              variation: {enum: [nominal, scaleUp, scaleDown, resolutionUp, resolutionDown, highPtScaleUp,
+                                 highPtScaleDown, highPtResolution]}
+              highPt:
+                type: object
+                additionalProperties: false
+                required: [era, ptMin, kappaTarget]
+                properties:
+                  era: {enum: [2022preEE, 2022postEE, 2023preBPix, 2023postBPix]}
+                  ptMin: {$ref: '#/definitions/num'}
+                  kappaTarget: {enum: [mc, data]}
+          muonScaleFactors:
+            type: object
+            additionalProperties:
+              type: array
+              minItems: 1
+              items:
+                type: object
+                additionalProperties: false
+                required: [name, regime, file, key, trigger, paths, outOfRange]
+                properties:
+                  name: {type: string, pattern: '^[A-Za-z][A-Za-z0-9]*$'}
+                  regime: {enum: [medium, high]}
+                  file: {$ref: '#/definitions/str'}
+                  key: {$ref: '#/definitions/str'}
+                  trigger: {type: boolean}
+                  paths: {type: array, items: {$ref: '#/definitions/str'}}
+                  outOfRange: {enum: [error, skip]}
           dressing:
             type: object
             additionalProperties: false

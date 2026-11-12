@@ -12,6 +12,7 @@ inputs:                      # MiniAOD collection labels
   vertices: offlineSlimmedPrimaryVertices
   genEventInfo: generator    # MC only; event weights for the aggregators
   hltProcess: HLT
+  triggerObjects: slimmedPatTrigger   # MC only; HLT objects for the muon trigger SFs
   metFilterProcess: PAT      # process holding the Flag_* MET-filter paths
   prunedGenParticles: prunedGenParticles     # MC only; input to the Rivet particle level
   packedGenParticles: packedGenParticles
@@ -42,18 +43,59 @@ selection:
     # With dressing, `cut` selects the leptons before dressing and `dressedCut` (a candidate cut on the dressed
     # four-vector) after it; move the pt/eta cuts to dressedCut to mirror the gen level. Isolation is not
     # recomputed: PFIso still counts the dressing photons.
-    # MUO POG Run-3 muon momentum corrections ("MuonScaRe", Z-peak method, CMS-DP-2024-065): scale in data and MC,
-    # resolution smearing in MC, for lowPtThreshold <= pt <= highPtThreshold (other muons are unchanged). Applied
-    # before every muon selection. The smearing random number depends only on the event number, as in the POG code.
+    # Muon momentum assignment and MUO POG Run-3 corrections, applied before every muon selection.
+    # momentum: pf (PF pt; "medium-pT" regime), tuneP (TuneP pt; "high-pT" regime), or hybrid (per muon: TuneP if the
+    # PF pt >= regimeThreshold). Each muon carries userInt('highPtRegime') (0 or 1) for the object cuts.
+    # With apply:
+    #  - medium regime: "MuonScaRe" (Z-peak method, CMS-DP-2024-065), scale in data and MC, resolution smearing in MC,
+    #    for lowPtThreshold <= pt <= highPtThreshold. Its random number depends only on the event number, as in the POG code.
+    #  - high regime, TuneP pt >= highPt.ptMin: Generalized-Endpoint kappa_b (MUO POG wiki tables for highPt.era),
+    #    q/pt -> q/pt + kappa_b on MC (kappaTarget mc) or q/pt - kappa_b on data (kappaTarget data), then the wiki's
+    #    MC smearing p -> p (1 + N(0, sigma(p, eta) f)).
+    #    TODO confirm with the MUO POG: the kappa_b formula, its sign and which sample it corrects.
+    #    TODO ask the MUO POG: the smearing and its systematics in every mode (medium, high, hybrid);
+    #    the PUPPI MET correction for TuneP muons (Wmunu, not implemented).
     muonCorrections:
       apply: false
+      momentum: pf
+      regimeThreshold: 200.0
       correctionFile: /cvmfs/cms-griddata.cern.ch/cat/metadata/MUO/Run3-22EFGSep23-Summer22EE-NanoAODv12/latest/muon_scalesmearing.json.gz
       lowPtThreshold: 26.0
       highPtThreshold: 200.0   # stated validity; the POG C++ example corrects the scale at all pt above lowPtThreshold
-      variation: nominal       # MC only: nominal | scaleUp | scaleDown | resolutionUp | resolutionDown
+      # MC only: nominal | scaleUp | scaleDown | resolutionUp | resolutionDown (medium regime);
+      # highPtScaleUp | highPtScaleDown (kappa_b uncertainty) | highPtResolution (extra smearing, f = 0.46) (high regime)
+      variation: nominal
       # TODO clarify with the MUO POG: the k in the resolution variation differs between the POG references
       # (cpp: sqrt(k_data^2 - k_mc^2) as in MuonScaRe.cc; python: k_mc as in MuonScaRe.py).
       resolutionVariationK: cpp
+      highPt: {era: 2022postEE, ptMin: 200.0, kappaTarget: mc}
+
+    # MC only: muon efficiency scale factors per channel, as an event weight applied to the channel's reco aggregated
+    # histograms and stored in the <channel>MuonSF NanoAOD table (nominal, <name>_{stat,syst}{Up,Down}). Each term
+    # applies to the selected muons of its regime (see muonCorrections.momentum). Trigger terms (one per possible regime,
+    # or none; `paths` among the channel's triggers) apply only to the triggering muon: the highest-pt selected muon
+    # matched (dR < 0.1) to an HLT object of the last filter of a fired path in `paths`. If a path fired but no muon
+    # matches, a warning is emitted and there is no trigger SF.
+    # TODO ask the MUO POG: the trigger SF when several muons match (provisional: highest-pt matched muon only), and
+    # when none matches (provisional: no trigger SF).
+    # outOfRange: error, or skip (SF 1).
+    # High-pT example (momentum hybrid or tuneP; channel triggers IsoMu24 || Mu50 || CascadeMu100 || HighPtTkMu100,
+    # objects with passed('CutBasedIdGlobalHighPt') && passed('TkIsoLoose') for userInt('highPtRegime') == 1):
+    #   - {name: highReco, regime: high, file: <MUO dir>/muon_HighPt.json.gz, key: NUM_GlobalMuons_DEN_TrackerMuonProbes, trigger: false, paths: [], outOfRange: error}
+    #   - {name: highId, regime: high, file: <MUO dir>/muon_HighPt.json.gz, key: NUM_HighPtID_DEN_GlobalMuonProbes, trigger: false, paths: [], outOfRange: error}
+    #   - {name: highIso, regime: high, file: <MUO dir>/muon_HighPt.json.gz, key: NUM_probe_LooseRelTkIso_DEN_HighPtProbes, trigger: false, paths: [], outOfRange: error}
+    #   - {name: highTrig, regime: high, file: <MUO dir>/muon_Z.json.gz, key: NUM_IsoMu24_or_Mu50_or_CascadeMu100_or_HighPtTkMu100_DEN_CutBasedIdGlobalHighPt_and_TkIsoLoose, trigger: true, paths: <the four channel triggers>, outOfRange: skip}
+    # with, for the medium regime, the trigger key NUM_IsoMu24_or_Mu50_or_CascadeMu100_or_HighPtTkMu100_DEN_CutBasedIdTight_and_PFIsoTight.
+    muonScaleFactors:
+      Zmumu: &mediumMuonSFs
+        - {name: id, regime: medium, file: /cvmfs/cms-griddata.cern.ch/cat/metadata/MUO/Run3-22EFGSep23-Summer22EE-NanoAODv12/latest/muon_Z.json.gz,
+           key: NUM_TightID_DEN_TrackerMuons, trigger: false, paths: [], outOfRange: error}
+        - {name: iso, regime: medium, file: /cvmfs/cms-griddata.cern.ch/cat/metadata/MUO/Run3-22EFGSep23-Summer22EE-NanoAODv12/latest/muon_Z.json.gz,
+           key: NUM_TightPFIso_DEN_TightID, trigger: false, paths: [], outOfRange: error}
+        - {name: trig, regime: medium, file: /cvmfs/cms-griddata.cern.ch/cat/metadata/MUO/Run3-22EFGSep23-Summer22EE-NanoAODv12/latest/muon_Z.json.gz,
+           key: NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight, trigger: true, paths: ['HLT_IsoMu24_v*'],
+           outOfRange: skip}
+      Wmunu: *mediumMuonSFs
 
     dressing:
       mode: none

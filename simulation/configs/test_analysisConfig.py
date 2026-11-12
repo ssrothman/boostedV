@@ -97,6 +97,49 @@ class LoaderRejects(unittest.TestCase):
         self.assertRejected(lambda c: c['selection']['reco']['muonCorrections'].pop('highPtThreshold'),
                             'selection/reco/muonCorrections', 'highPtThreshold')
 
+    def test_high_pt_and_scale_factor_schema(self):
+        mc = lambda c: c['selection']['reco']['muonCorrections']
+        sfs = lambda c: c['selection']['reco']['muonScaleFactors']
+        self.assertRejected(lambda c: mc(c).update(momentum='global'), 'selection/reco/muonCorrections')
+        self.assertRejected(lambda c: mc(c)['highPt'].update(era='2024'), 'selection/reco/muonCorrections/highPt')
+        self.assertRejected(lambda c: mc(c)['highPt'].update(kappaTarget='both'), 'selection/reco/muonCorrections/highPt')
+        self.assertRejected(lambda c: mc(c)['highPt'].pop('ptMin'), 'selection/reco/muonCorrections/highPt', 'ptMin')
+        self.assertRejected(lambda c: sfs(c)['Zmumu'][0].pop('outOfRange'), 'selection/reco/muonScaleFactors/Zmumu/0')
+        self.assertRejected(lambda c: sfs(c)['Zmumu'][0].update(name='id_1'), 'selection/reco/muonScaleFactors/Zmumu/0')
+        self.assertRejected(lambda c: sfs(c)['Zmumu'][0].update(regime='low'), 'selection/reco/muonScaleFactors/Zmumu/0')
+        self.assertRejected(lambda c: sfs(c).update(Zmumu=[]), 'selection/reco/muonScaleFactors/Zmumu')
+        self.assertRejected(lambda c: sfs(c)['Zmumu'][2].pop('paths'), 'selection/reco/muonScaleFactors/Zmumu/2')
+        self.assertRejected(lambda c: c['inputs'].pop('triggerObjects'), 'inputs', 'triggerObjects')
+
+    def test_muon_cross_checks(self):
+        mc = lambda c: c['selection']['reco']['muonCorrections']
+        sfs = lambda c: c['selection']['reco']['muonScaleFactors']
+        self.assertRejected(lambda c: mc(c).update(variation='scaleUp'), 'variation scaleUp needs apply')
+        self.assertRejected(lambda c: mc(c).update(apply=True, variation='highPtScaleUp'),
+                            'variation highPtScaleUp has no effect with momentum pf')
+        self.assertRejected(lambda c: mc(c).update(apply=True, momentum='tuneP', variation='resolutionUp'),
+                            'variation resolutionUp has no effect with momentum tuneP')
+        self.assertRejected(lambda c: sfs(c).update(Zmm=sfs(c)['Zmumu']), 'muonScaleFactors/Zmm: unknown channel')
+        self.assertRejected(lambda c: sfs(c).update(Zee=sfs(c)['Zmumu']), 'muonScaleFactors/Zee: the channel does not select muons')
+        self.assertRejected(lambda c: sfs(c).update(Hadronic=sfs(c)['Zmumu']), 'muonScaleFactors/Hadronic: the channel selects no leptons')
+        self.assertRejected(lambda c: sfs(c)['Zmumu'][1].update(name='id'), 'muonScaleFactors/Zmumu: duplicate term names')
+        self.assertRejected(lambda c: sfs(c)['Zmumu'][0].update(regime='high'), 'Zmumu/id: regime high never occurs with momentum pf')
+        self.assertRejected(lambda c: sfs(c)['Zmumu'][1].update(trigger=True), 'more than one medium trigger term')
+        self.assertRejected(lambda c: sfs(c)['Zmumu'][0].update(paths=['HLT_IsoMu24_v*']),
+                            'Zmumu/id: paths must be set exactly for trigger terms')
+        self.assertRejected(lambda c: sfs(c)['Zmumu'][2].update(paths=[]), 'Zmumu/trig: paths must be set exactly for trigger terms')
+        self.assertRejected(lambda c: sfs(c)['Zmumu'][2].update(paths=['HLT_IsoMu24_v*', 'HLT_Mu50_v*']),
+                            "Zmumu/trig: paths ['HLT_Mu50_v*'] are not triggers of the channel")
+
+        def hybridMediumTriggerOnly(c):
+            mc(c)['momentum'] = 'hybrid'
+            sfs(c)['Zmumu'] = sfs(c)['Zmumu'] + [dict(sfs(c)['Zmumu'][0], name='highId', regime='high')]
+        self.assertRejected(hybridMediumTriggerOnly, 'Zmumu: trigger terms needed for every regime (high, medium) or none')
+
+        def tuneP(c):
+            mc(c)['momentum'] = 'tuneP'
+        self.assertRejected(tuneP, 'regime medium never occurs with momentum tuneP')
+
     def test_levels_and_gen_schema(self):
         self.assertRejected(lambda c: c['selection'].update(levels=[]), 'selection/levels')
         self.assertRejected(lambda c: c['selection'].update(levels=['reco', 'reco']), 'selection/levels')
@@ -175,10 +218,14 @@ class BuiltProcess(unittest.TestCase):
             missing = set(tracked) - set(mod.parameterNames_())
             self.assertFalse(missing, '%s (%s) relies on fillDescriptions defaults for %s' % (label, mod.type_(), sorted(missing)))
             for name in ref.parameterNames_():
-                if type(getattr(ref, name)).__name__ == 'VPSet':
+                kind = type(getattr(ref, name)).__name__
+                if kind == 'VPSet' and len(getattr(ref, name)):
                     for a in getattr(mod, name):
-                        self.assertEqual(set(a.parameterNames_()), set(ref.axes[0].parameterNames_()),
+                        self.assertEqual(set(a.parameterNames_()), set(getattr(ref, name)[0].parameterNames_()),
                                          '%s.%s entry is incomplete' % (label, name))
+                elif kind == 'PSet':
+                    self.assertEqual(set(getattr(mod, name).parameterNames_()), set(getattr(ref, name).parameterNames_()),
+                                     '%s.%s is incomplete' % (label, name))
         return checked
 
     def test_no_hidden_defaults_mc(self):
@@ -247,7 +294,7 @@ class BuiltProcess(unittest.TestCase):
             self.assertEqual(p.tightMuonsUndressed.cut.value(), "abs(eta) < 2.4 && passed('CutBasedIdTight')")
             self.assertEqual(p.tightMuonsDressed.type_(), 'DressedLeptonProducer')
             self.assertEqual(p.tightMuonsDressed.mode.value(), mode)
-            self.assertEqual(p.tightMuonsDressed.originals.getModuleLabel(), 'slimmedMuons')
+            self.assertEqual(p.tightMuonsDressed.originals.getModuleLabel(), 'correctedMuons')  # made for the MC SFs
             self.assertEqual(p.tightMuonsDressed.fsrIndex.getProductInstanceLabel(), 'muFsrIndex')
             self.assertEqual(p.tightElectronsDressed.fsrIndex.getProductInstanceLabel(), 'eleFsrIndex')
             self.assertEqual(p.tightMuons.type_(), 'CandPtrSelector')
@@ -257,7 +304,12 @@ class BuiltProcess(unittest.TestCase):
             self.assertEqual(p.tightMuonsDressed.coneSize.value(), reco['dressing']['cone']['coneSize'])
 
     def test_muon_corrections(self):
+        # Default: PF momentum, no corrections; correctedMuons exists in MC only, for the scale factors.
         p = buildProcess()
+        self.assertEqual(p.correctedMuons.momentum.value(), 'pf')
+        self.assertFalse(p.correctedMuons.applyCorrections.value())
+        self.assertEqual(p.tightMuons.src.getModuleLabel(), 'correctedMuons')
+        p = buildProcess(isMC=0)
         self.assertFalse(hasattr(p, 'correctedMuons'))
         self.assertEqual(p.tightMuons.src.getModuleLabel(), 'slimmedMuons')
         cfg = loadDefault()
@@ -269,6 +321,7 @@ class BuiltProcess(unittest.TestCase):
         self.assertNoHiddenDefaults(p)
         c = p.correctedMuons
         self.assertEqual(c.type_(), 'MuonCorrectionProducer')
+        self.assertTrue(c.applyCorrections.value())
         self.assertEqual(c.src.getModuleLabel(), 'slimmedMuons')
         self.assertFalse(c.isData.value())
         self.assertEqual(c.variation.value(), 'resolutionUp')
@@ -284,6 +337,55 @@ class BuiltProcess(unittest.TestCase):
         reco['muonCorrections']['variation'] = 'scaleUp'
         with self.assertRaises(analysisConfig.ConfigError):
             buildProcess(cfg, isMC=0)
+
+    def test_high_pt_muons_and_scale_factors(self):
+        from SRothman.EventSelection.muonHighPtRun3_cff import ERAS
+        cfg = loadDefault()
+        reco = cfg['selection']['reco']
+        reco['muonCorrections'].update(apply=True, momentum='hybrid', regimeThreshold=150.0, variation='highPtResolution',
+                                       highPt={'era': '2023preBPix', 'ptMin': 180.0, 'kappaTarget': 'data'})
+        high = dict(reco['muonScaleFactors']['Zmumu'][0], name='highId', regime='high')
+        highTrig = dict(reco['muonScaleFactors']['Zmumu'][2], name='highTrig', regime='high')
+        reco['muonScaleFactors'] = {'Zmumu': reco['muonScaleFactors']['Zmumu'] + [high, highTrig]}
+        p = buildProcess(cfg)
+        self.assertNoHiddenDefaults(p)
+        c = p.correctedMuons
+        self.assertEqual((c.momentum.value(), c.regimeThreshold.value(), c.variation.value()),
+                         ('hybrid', 150.0, 'highPtResolution'))
+        self.assertEqual(list(c.highPt.kappa), ERAS['2023preBPix']['kappa'])
+        self.assertEqual(list(c.highPt.sigmaEndcap), ERAS['2023preBPix']['sigmaEndcap'])
+        self.assertEqual((c.highPt.ptMin.value(), c.highPt.kappaTarget.value(), c.highPt.smearEndcap.value()),
+                         (180.0, 'data', 0.46))
+        sf = p.ZmumuMuonSFTable
+        self.assertEqual(sf.type_(), 'MuonSFProducer')
+        self.assertEqual((sf.src.getModuleLabel(), sf.src.getProductInstanceLabel()), ('ZmumuSel', 'leptons'))
+        self.assertEqual(sf.muons.getModuleLabel(), 'correctedMuons')
+        self.assertEqual(sf.name.value(), 'ZmumuMuonSF')
+        self.assertEqual([(t.name.value(), t.regime.value(), t.trigger.value()) for t in sf.terms],
+                         [('id', 'medium', False), ('iso', 'medium', False), ('trig', 'medium', True), ('highId', 'high', False),
+                          ('highTrig', 'high', True)])
+        self.assertEqual([list(t.paths) for t in sf.terms], [[], [], ['HLT_IsoMu24_v*'], [], ['HLT_IsoMu24_v*']])
+        self.assertEqual((sf.triggerResults.getModuleLabel(), sf.triggerResults.getProcessName()), ('TriggerResults', 'HLT'))
+        self.assertEqual(sf.triggerObjects.getModuleLabel(), 'slimmedPatTrigger')
+        self.assertFalse(hasattr(p, 'WmunuMuonSFTable'))
+        self.assertEqual(labels(p.Zmumu_reco_eecRecoE2C.weights), ['ZmumuMuonSFTable'])
+        self.assertEqual(labels(p.Zmumu_gen_eecRecoE2C.weights), [])
+        self.assertEqual(labels(p.Zee_reco_eecRecoE2C.weights), [])
+        # Data: no scale factors, no weights; the regime and the kappa_b on data still apply.
+        reco['muonCorrections']['variation'] = 'nominal'
+        p = buildProcess(cfg, isMC=0)
+        self.assertFalse(hasattr(p, 'ZmumuMuonSFTable'))
+        self.assertEqual(labels(p.Zmumu_reco_eecRecoE2C.weights), [])
+        self.assertTrue(p.correctedMuons.isData.value())
+
+    def test_default_scale_factors(self):
+        p = buildProcess()
+        for ch in ('Zmumu', 'Wmunu'):
+            sf = getattr(p, ch + 'MuonSFTable')
+            self.assertEqual([t.key.value() for t in sf.terms],
+                             ['NUM_TightID_DEN_TrackerMuons', 'NUM_TightPFIso_DEN_TightID',
+                              'NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight'])
+        self.assertEqual(labels(p.Zmumu_reco_eecRecoE2C.weights), ['ZmumuMuonSFTable'])
 
     def test_jets_cleaned_against_own_level(self):
         p = buildProcess()

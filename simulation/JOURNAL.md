@@ -10,6 +10,7 @@
 - 2026-11-11 Reco lepton dressing and muon momentum corrections
 - 2026-11-12 Batch production (CRAB and LPC condor)
 - 2026-11-12 Production review fixes; corrections on cms-griddata latest
+- 2026-11-12 MUO POG Run-3 compliance: high-pT muons and muon SFs
 
 ## 2026-11-11 A.2 setup and DataFormats
 - Plan: `stepA2_plan.md`. New local repos (remotes pending): `EECDataFormats` (pkg `SRothman/DataFormats`),
@@ -167,3 +168,39 @@
   - LPC workers read both files (3 jobs, one node). CRAB grid sites are not checked.
   - Tests: all 8 C++ suites, `test_analysisConfig`, `test_production`. The JER test now covers nominal/up/down; the absolute form and swapped
     up/down both fail it.
+
+## 2026-11-12 MUO POG Run-3 compliance: high-pT muons and muon SFs
+- Source: MUO POG wiki git source (`~/nobackup/cms-wikis/muo-wiki`, guidelines/{recommendations,corrections}.md). Plan: `muonPOG_plan.md`.
+- PTLL-400to600 test file: 347/697 muons (Tight or HighPt ID, pT > 15) above 200 GeV; leading muon > 200 GeV in 263/275
+  dimuon events; only 7 of the 347 HighPt-ID muons above 200 GeV fail Tight ID. HLT_Mu50, HLT_CascadeMu100,
+  HLT_HighPtTkMu100 exist in Summer22EE MiniAOD.
+- Summer22EE MUO files: trigger keys have `nominal` = DATAeff/MCeff (≤ 7e-8); `stat`/`syst` are absolute SF
+  uncertainties (for ID keys systup = nominal + hypot(stat, syst)); out-of-range errors contain "bounds".
+  `muon_HighPt.json.gz` HLT keys have no DATAeff/MCeff, so the high-regime trigger term uses the `muon_Z` key
+  `..._DEN_CutBasedIdGlobalHighPt_and_TkIsoLoose`.
+- Built (user decisions): momentum pf | tuneP | hybrid (per muon, PF pT ≥ 200), GE κ_b (q/pT + κ_b on MC by default,
+  `kappaTarget`) and high-pT smearing for 2022–2023, `MuonSFProducer` with nominal SF in reco aggregators.
+- Validation:
+  - wiki tables transcribed exactly (`checkHighPtTables.py`; 3/3 injected wiki edits caught).
+  - high-pT producer vs independent numpy: κ_b shifts exact (≤ 4.4e-16), smearing pulls mean 0.06, std 1.02 (n=387).
+  - medium-pT output bit-identical to the previous producer (8 variants, 5248 muons).
+  - SF weights vs independent Python correctionlib: ≤ 4e-8 (float storage) for 13 (default) and 29 (hybrid) columns.
+  - Mutations caught by unit tests: lepton pt instead of matched muon, ε_data = ε_MC, regime ignored, charge-blind
+    matching, η-major κ index, κ in c/GeV, aggregator ignoring weights.
+- End to end (PTLL-400to600, 1000 events): `checkEndToEnd` 36/36 PASS with the default config and with the hybrid
+  recipe (`EventSelection/test/validation/muonRecipes.py`); reco Zmumu Σw now includes the muon SF (1070.31 vs NANO
+  1070.32). On the 2000-event inclusive file the brute-force checks fail only their ≥ 20-jet guard (9 jets). Data runs.
+- User: the smearing and its systematics (medium, high, hybrid) and the PUPPI MET correction for TuneP muons are
+  marked "ask the POG" (README, plan, default.yaml). Trigger-key `systup` = nominal + syst only (stat excluded).
+- Trigger SFs now use HLT matching (user): only the triggering muon gets the trigger SF, i.e. the highest-pT selected
+  muon within ΔR 0.1 of a `slimmedPatTrigger` object from the last filter of a fired path of its regime's trigger term
+  (term field `paths`). If a path fired but no muon matches: warning, no trigger SF. Both rules are provisional (ask the
+  POG; `OPEN_QUESTIONS.md`). The SF producer now only computes for events passing the full channel flag: Sel leptons
+  exist also when the trigger fails, which first threw on PTLL event 1:1002:11473109.
+  - FWLite on the test files (Tight+PFIsoTight, IsoMu24): Zmumu-like 0/528 events without a matched selected muon;
+    exactly-one-tight-muon 2/~730, both fired by a muon failing Tight PF iso but passing the loose veto.
+  - Unit test: 8/8 mutations caught (selection gate, leading choice, fired check, last filter, ΔR, term paths, SF for all
+    muons, SF without match). Config checks: 3/3 mutations caught.
+  - `checkMuonSF.py` redoes the HLT matching from MiniAOD with FWLite: ≤ 4.3e-8 on PTLL and inclusive DY, default and
+    hybrid (the inclusive hybrid check fails only its ≥ 10 high-regime-events guard: there are none); no warnings.
+- New `OPEN_QUESTIONS.md` (repo root): all open questions (MUO, JME, our decisions, unverified, literature).

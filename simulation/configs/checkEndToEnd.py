@@ -2,8 +2,8 @@
 Usage: python3 checkEndToEnd.py nano.root hists.root
  (i)   E2C/E3C/E1C entries vs a brute-force numpy computation from the constituent table
  (ii)  sum rule: every jet's weights sum to 1 (Pt weights, sumPt norm, n = 1)
- (iii) aggregator H and C vs a recomputation from the NANO entries and Generator_weight, for Zmumu events at
-       each selection level in the histogram file
+ (iii) aggregator H and C vs a recomputation from the NANO entries and Generator_weight (times ZmumuMuonSF_nominal
+       at reco level, if stored), for Zmumu events at each selection level in the histogram file
 """
 import sys
 import numpy as np
@@ -133,6 +133,8 @@ for level, flag in (('reco', 'Selection_Zmumu'), ('gen', 'GenSelection_Zmumu')):
         for e in np.nonzero(ev[flag])[0]:
             h = np.bincount(ev[obs + 'Entries_bin'][e], weights=ev[obs + 'Entries_weight'][e], minlength=nb)
             w = float(ev['Generator_weight'][e])
+            if level == 'reco' and 'ZmumuMuonSF_nominal' in ev:
+                w *= float(ev['ZmumuMuonSF_nominal'][e])
             H += w * h
             C += w * w * np.outer(h, h)
             sw += w
