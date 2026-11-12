@@ -324,7 +324,9 @@ class BuiltProcess(unittest.TestCase):
         self.assertEqual(p.WenuSel.ptMin.value(), 35.0)
         self.assertEqual(p.HadronicSel.nMax.value(), 0)
         self.assertEqual(p.jetsRecoRaw.ptMin.value(), 180.0)
-        self.assertEqual(p.jetsRecoJER.jerScaleFactorKey.value(), 'Summer22EE_22Sep2023_JRV1_MC_ScaleFactor_AK8PFPuppi')
+        self.assertEqual(p.jetsRecoJER.jerScaleFactorKey.value(), 'Summer22EE_22Sep2023_JRV2_MC_ScaleFactor_AK8PFPuppi')
+        self.assertEqual(p.jetsRecoJERUpJER.jerScaleFactorUncertaintyKey.value(),
+                         'Summer22EE_22Sep2023_JRV2_MC_SFUncertainty_AK8PFPuppi')
         self.assertEqual(p.jetsRecoTrkDropVar.seedSalt.value(), 1)
         self.assertEqual(p.jetsRecoJER.seedSalt.value(), 0)
 

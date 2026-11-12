@@ -210,11 +210,13 @@ definitions:
       jerc:
         type: object
         additionalProperties: false
-        required: [correctionFile, jesKey, jerScaleFactorKey, jerResolutionKey, rho, genJets, jerSeedSalt]
+        required: [correctionFile, jesKey, jerScaleFactorKey, jerScaleFactorUncertaintyKey, jerResolutionKey, rho, genJets,
+                   jerSeedSalt]
         properties:
           correctionFile: {$ref: '#/definitions/str'}
           jesKey: {$ref: '#/definitions/str'}
           jerScaleFactorKey: {$ref: '#/definitions/str'}
+          jerScaleFactorUncertaintyKey: {$ref: '#/definitions/str'}
           jerResolutionKey: {$ref: '#/definitions/str'}
           rho: {$ref: '#/definitions/str'}
           genJets: {$ref: '#/definitions/str'}

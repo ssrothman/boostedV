@@ -9,6 +9,7 @@
 - 2026-11-11 Generator-level selections
 - 2026-11-11 Reco lepton dressing and muon momentum corrections
 - 2026-11-12 Batch production (CRAB and LPC condor)
+- 2026-11-12 Production review fixes; corrections on cms-griddata latest
 
 ## 2026-11-11 A.2 setup and DataFormats
 - Plan: `stepA2_plan.md`. New local repos (remotes pending): `EECDataFormats` (pkg `SRothman/DataFormats`),
@@ -143,3 +144,26 @@
   - CRAB's sandbox walks `src/` without following symlinks, so the symlinked packages' `interface/` dirs are not shipped. The cfg itself is evaluated at submission.
   - CRAB needs a MyProxy delegation (`crab createmyproxy`), which asks for the grid pass phrase.
 - **Sizes**: 56 MB histogram file per job with `default.yaml`. About 20k events per Summer22EE DY MLM file, but individual files vary (731 and 2279 seen).
+
+## 2026-11-12 Production review fixes; corrections on cms-griddata latest
+- **Review fixes** (`production/`, details in its README):
+  - `merge.py --tag` refuses without a job list.
+  - The condor tarball is tied to the code state it was built from (`cmssw.tgz.state`) and to its EOS adler32.
+  - `condor.json` stores `{cluster, schedd}`.
+  - The committed test outputs were removed.
+  - Tags submitted before this change (`20261112_e2etest`) are not readable by the new `status.py`/`submit.py`.
+- **CRAB without the packages' `interface/` headers works**: cmsRun on an unpacked sandbox with every `SRothman/*/interface`
+  deleted ran, and strace showed no SRothman header opened. The previous entry's sandbox concern is not a problem.
+- **Lumis**: NanoAODOutputModule writes every processed lumi (also with no selected events). In Run2022F run 360458
+  (53 files, 246 lumis) no lumi spans two files.
+- **Corrections** now come from `/cvmfs/cms-griddata.cern.ch/cat/metadata/{JME,MUO}/Run3-22EFGSep23-Summer22EE-NanoAODv12/latest/`
+  (user's choice: `latest`, read directly by the jobs).
+  - The old `/cvmfs/cms.cern.ch/rsync/.../jsonpog-integration/POG/` copies stopped updating on 2025-09-23. Its JME file equals the dated 2025-07-15 copy.
+  - JME: JES V2 → V4, JER JRV1 → JRV2. JRV2 has no up/down input: the SF and its uncertainty are separate keys (new YAML
+    field `jerScaleFactorUncertaintyKey`). Up/down = SF·(1 ± unc), as in cms-cat nanoAOD-tools-modules PR #32 (user's choice).
+  - The JRV2 uncertainty matches JRV1's absolute `up − nom` instead, so this may be a JME bug: `JME_JRV2_SFUncertainty.md`
+    (to report).
+  - MUO `latest` has the same keys and inputs, plus a new `RandomSmearing` correction (evtNr, lumiNr, phi) that is not used here.
+  - LPC workers read both files (3 jobs, one node). CRAB grid sites are not checked.
+  - Tests: all 8 C++ suites, `test_analysisConfig`, `test_production`. The JER test now covers nominal/up/down; the absolute form and swapped
+    up/down both fail it.

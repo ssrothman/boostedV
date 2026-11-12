@@ -47,7 +47,7 @@ selection:
     # before every muon selection. The smearing random number depends only on the event number, as in the POG code.
     muonCorrections:
       apply: false
-      correctionFile: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2022_Summer22EE/muon_scalesmearing.json.gz
+      correctionFile: /cvmfs/cms-griddata.cern.ch/cat/metadata/MUO/Run3-22EFGSep23-Summer22EE-NanoAODv12/latest/muon_scalesmearing.json.gz
       lowPtThreshold: 26.0
       highPtThreshold: 200.0   # stated validity; the POG C++ example corrects the scale at all pt above lowPtThreshold
       variation: nominal       # MC only: nominal | scaleUp | scaleDown | resolutionUp | resolutionDown
@@ -242,10 +242,11 @@ jets:
       cleaningDR: 0.8
       table: {name: RecoJet, precision: -1}
       jerc:                  # MC only: nominal JER smearing and the JES/JER variations
-        correctionFile: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2022_Summer22EE/fatJet_jerc.json.gz
-        jesKey: Summer22EE_22Sep2023_V2_MC_Total_AK8PFPuppi
-        jerScaleFactorKey: Summer22EE_22Sep2023_JRV1_MC_ScaleFactor_AK8PFPuppi
-        jerResolutionKey: Summer22EE_22Sep2023_JRV1_MC_PtResolution_AK8PFPuppi
+        correctionFile: /cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-22EFGSep23-Summer22EE-NanoAODv12/latest/fatJet_jerc.json.gz
+        jesKey: Summer22EE_22Sep2023_V4_MC_Total_AK8PFPuppi
+        jerScaleFactorKey: Summer22EE_22Sep2023_JRV2_MC_ScaleFactor_AK8PFPuppi
+        jerScaleFactorUncertaintyKey: Summer22EE_22Sep2023_JRV2_MC_SFUncertainty_AK8PFPuppi   # up/down: SF * (1 +- unc)
+        jerResolutionKey: Summer22EE_22Sep2023_JRV2_MC_PtResolution_AK8PFPuppi
         rho: fixedGridRhoFastjetAll
         genJets: slimmedGenJetsAK8
         jerSeedSalt: 0
