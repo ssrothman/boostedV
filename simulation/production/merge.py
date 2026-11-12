@@ -86,6 +86,14 @@ def merge(outDir, localOut, isMC, expected=None, allowMissing=False, meta=None):
     return info
 
 
+def expectedOrFail(workDir):
+    """The submitted job indices; without them a job that wrote nothing would go unnoticed."""
+    expected = outputs.expectedJobs(workDir)
+    if expected is None:
+        raise RuntimeError('%s: no job list (CRAB: run status.py first)' % workDir)
+    return expected
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('samples', nargs='*')
@@ -109,7 +117,7 @@ def main():
         sub = outputs.submission(workDir)
         outDir = sub['outDir']
         localOut = os.path.join(workDir, 'merged')
-        info = merge(outDir, localOut, sub['isMC'], outputs.expectedJobs(workDir), args.allow_missing,
+        info = merge(outDir, localOut, sub['isMC'], expectedOrFail(workDir), args.allow_missing,
                      meta={'sample': name, 'tag': args.tag, 'outDir': outDir})
         print('%s: %d jobs merged, %d missing -> %s' % (name, len(info['jobs']), len(info['missing']), localOut))
         if args.stage:

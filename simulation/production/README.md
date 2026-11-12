@@ -29,7 +29,8 @@ cd .../simulation/production
 - **Provenance** (`work/<tag>/provenance/`): the git hashes of boostedV and its submodules, the manifest, and each sample's analysis YAML. `submit.py` refuses a dirty tree unless `--allow-dirty`, in which case the diff is recorded.
 - **Dry runs** go to `work/dryrun/<tag>/` and never block the real submission. condor: builds the tarball and the job list without uploading or submitting. CRAB: `crab submit --dryrun`.
 - **Each job** writes `nano_<i>.root` and `hists_<i>.root`. A job counts as done only when both exist.
-- **condor tarball**: `work/<tag>/cmssw.tgz` (copied to `<outputBase>/<tag>/`) is built at the first condor submission of a tag and reused, so rebuilt CMSSW libraries need a new tag. The cfg, analysis YAML and lumi mask are shipped per job and are always current.
+- **condor tarball**: `work/<tag>/cmssw.tgz` (copied to `<outputBase>/<tag>/`) is built at the first condor submission of a tag and reused, so rebuilt CMSSW libraries need a new tag. The code state it was built from (commits plus any uncommitted diff) is kept in `cmssw.tgz.state`. A later submission under the tag is refused if that state differs from the current one, or if the EOS copy's adler32 differs from the local tarball. Each sample's `condor.json` records the tarball's adler32. The cfg, analysis YAML and lumi mask are shipped per job and are always current.
+- **condor clusters** are recorded in `condor.json` as `{cluster, schedd}`, because cluster ids are unique only per LPC schedd.
 
 ## Manifest fields
 - `input`: `{dataset: <DAS name>}` or `{fileList: <file of LFNs/URLs>}` (condor only).
@@ -41,7 +42,7 @@ cd .../simulation/production
 - `maxJobs`: `-1` for everything, N for a test run of the first N jobs.
 
 ## Merging
-`merge.py` uses exactly the complete jobs. It refuses if any expected job is missing (condor: `jobs.txt`; CRAB: the job list saved by the last `status.py`), unless `--allow-missing` is given.
+`merge.py` uses exactly the complete jobs. It refuses if any expected job is missing (condor: `jobs.txt`; CRAB: the job list saved by the last `status.py`), unless `--allow-missing` is given. With `--tag`, it also refuses if there is no job list at all, which for CRAB means `status.py` has not been run yet.
 - **`merged/hists.root`**: `hadd` of the histogram files.
   - Values and covariance (sums of w·h and w²·hhᵀ), `sumW`, `sumW2` and `nEvents` add.
   - The axis histograms and `axisTypes` are identical in every job and survive unchanged.

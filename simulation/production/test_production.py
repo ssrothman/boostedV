@@ -6,6 +6,7 @@ import sys
 import tarfile
 import tempfile
 import unittest
+from unittest import mock
 
 import yaml
 
@@ -171,6 +172,72 @@ class Condor(unittest.TestCase):
             self.assertTrue(m['CMSSW_X/external/ext'].issym())
             self.assertFalse([n for n in m if '/build' in n or '/tmp' in n])
 
+    def test_parse_submit(self):
+        out = ('Querying the CMS LPC pool and trying to find an available schedd...\n\n'
+               'Attempting to submit jobs to lpcschedd4.fnal.gov\n\n'
+               'Submitting job(s)...\n3 job(s) submitted to cluster 4242.\n')
+        self.assertEqual(condorBackend.parseSubmit(out), {'cluster': 4242, 'schedd': 'lpcschedd4.fnal.gov'})
+        with self.assertRaisesRegex(RuntimeError, 'not understood'):
+            condorBackend.parseSubmit('3 job(s) submitted to cluster 4242.\n')
+
+
+class Tarball(unittest.TestCase):
+    """submit.condorTarball with the build, git and EOS calls replaced."""
+
+    def setUp(self):
+        import submit
+        self.submit = submit
+        self.dir = tempfile.mkdtemp()
+        self.man = {'eosRedirector': 'root://eos', 'outputBase': '/store/user/x'}
+        self.state, self.onEOS, self.copied = 'commit A\n', None, []
+
+    def build(self, base, path):
+        with open(path, 'w') as f:
+            f.write('tarball')
+
+    def call(self, dryrun=False):
+        def run(cmd, **kw):
+            self.copied.append(cmd)
+        with mock.patch.object(self.submit, 'codeState', lambda: self.state), \
+                mock.patch.object(self.submit, 'remoteAdler32', lambda host, path: self.onEOS), \
+                mock.patch.object(condorBackend, 'makeTarball', self.build), \
+                mock.patch.object(self.submit.subprocess, 'run', run), \
+                mock.patch.dict(os.environ, {'CMSSW_BASE': '/cmssw'}):
+            return self.submit.condorTarball(self.dir, self.man, 'T', dryrun)
+
+    def test_adler32(self):
+        p = os.path.join(self.dir, 'w')
+        with open(p, 'w') as f:
+            f.write('Wikipedia')
+        self.assertEqual(self.submit.adler32(p), '11e60398')
+
+    def test_build_upload_reuse(self):
+        url, checksum = self.call(dryrun=True)
+        self.assertEqual(url, 'root://eos//store/user/x/T/cmssw.tgz')
+        self.assertEqual(checksum, self.submit.adler32(os.path.join(self.dir, 'cmssw.tgz')))
+        self.assertEqual(self.copied, [])
+        self.call()
+        self.assertEqual(self.copied, [['xrdcp', os.path.join(self.dir, 'cmssw.tgz'), url]])
+        self.onEOS = checksum
+        self.assertEqual(self.call(), (url, checksum))
+        self.assertEqual(len(self.copied), 1)
+
+    def test_refuses_other_code(self):
+        self.call()
+        self.state = 'commit B\n'
+        with self.assertRaisesRegex(SystemExit, 'built from other code'):
+            self.call()
+        os.unlink(os.path.join(self.dir, 'cmssw.tgz.state'))
+        self.state = 'commit A\n'
+        with self.assertRaisesRegex(SystemExit, 'built from other code'):
+            self.call()
+
+    def test_refuses_other_eos_copy(self):
+        self.onEOS = 'deadbeef'
+        with self.assertRaisesRegex(SystemExit, 'is not'):
+            self.call()
+        self.assertEqual(self.copied, [])
+
 
 class Outputs(unittest.TestCase):
     def test_pairing(self):
@@ -199,7 +266,29 @@ class Outputs(unittest.TestCase):
     def test_condor_missing(self):
         self.assertEqual(status.condorMissing(range(6), {0: 0, 2: 0}, {3}), [1, 4, 5])
         self.assertEqual(status.condorMissing(range(6), {0: 0}, {3: (2, 's'), 4: (status.HELD, 's')}), [1, 2, 5])
-        self.assertEqual(status.heldConstraint([7, 8]), 'JobStatus == 5 && (ClusterId == 7 || ClusterId == 8)')
+        clusters = [{'cluster': 7, 'schedd': 'a'}, {'cluster': 8, 'schedd': 'b'}, {'cluster': 9, 'schedd': 'a'}]
+        self.assertEqual(status.heldConstraint(clusters, 'a'), 'JobStatus == 5 && (ClusterId == 7 || ClusterId == 9)')
+        self.assertEqual(status.heldConstraint(clusters, 'b'), 'JobStatus == 5 && (ClusterId == 8)')
+
+    def test_queue_keeps_recorded_schedd_cluster_pairs(self):
+        # Cluster 7 exists on both schedds; only the one on s1 is ours.
+        res = ('1 s1.fnal.gov#7.0#1700000000 0 a o t c g 1 none\n'
+               '5 s1.fnal.gov#7.1#1700000000 1 a o t c g 1 none\n'
+               '2 s2.fnal.gov#7.0#1700000001 2 a o t c g 1 none\n'
+               '2 s2.fnal.gov#8.0#1700000002 3 a o t c g 1 none\n')
+        clusters = [{'cluster': 7, 'schedd': 's1.fnal.gov'}, {'cluster': 8, 'schedd': 's2.fnal.gov'}]
+        self.assertEqual(status.parseQueue(res, clusters),
+                         {0: (1, 's1.fnal.gov'), 1: (5, 's1.fnal.gov'), 3: (2, 's2.fnal.gov')})
+
+    def test_merge_needs_job_list(self):
+        d = tempfile.mkdtemp()
+        with open(os.path.join(d, 'crab.json'), 'w') as f:
+            f.write('{"backend": "crab"}')
+        with self.assertRaisesRegex(RuntimeError, 'no job list'):
+            merge.expectedOrFail(d)
+        with open(os.path.join(d, 'crabJobs.json'), 'w') as f:
+            f.write('[1, 2, 3]')
+        self.assertEqual(merge.expectedOrFail(d), [1, 2, 3])
 
     def test_lumi_ranges(self):
         self.assertEqual(merge.lumiRanges([(2, 5), (1, 3), (1, 1), (1, 2), (1, 2), (2, 7), (2, 6)]),

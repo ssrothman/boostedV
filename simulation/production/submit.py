@@ -11,6 +11,7 @@ import os
 import shutil
 import subprocess
 import sys
+import zlib
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -54,20 +55,58 @@ def proxyPath(minHours=24):
     return subprocess.run(['voms-proxy-info', '-path'], check=True, capture_output=True, text=True).stdout.strip()
 
 
+def codeState():
+    """The commits of boostedV and its submodules, plus any uncommitted diff."""
+    state, dirty = gitState()
+    if dirty:
+        state += git('diff') + git('submodule', 'foreach', '--quiet', 'git diff')
+    return state
+
+
+def adler32(path):
+    a = 1
+    with open(path, 'rb') as f:
+        for block in iter(lambda: f.read(1 << 20), b''):
+            a = zlib.adler32(block, a)
+    return '%08x' % a
+
+
+def remoteAdler32(host, path):
+    """EOS checksum of path, or None if it does not exist."""
+    res = subprocess.run(['xrdfs', host, 'query', 'checksum', path], capture_output=True, text=True)
+    if res.returncode != 0:
+        if '[3011]' in res.stderr:  # kXR_NotFound
+            return None
+        raise RuntimeError(res.stderr)
+    return res.stdout.split()[1]
+
+
 def condorTarball(tagDir, man, tag, dryrun):
-    """Builds the CMSSW tarball once per tag and copies it to EOS; returns its URL."""
+    """Builds the CMSSW tarball once per tag and copies it to EOS; returns (URL, adler32).
+    Refuses if the code changed since the build, or if the EOS copy is not the local one."""
     import condorBackend
     local = os.path.join(tagDir, 'cmssw.tgz')
+    stateFile = local + '.state'
     remote = '%s/%s/%s/cmssw.tgz' % (man['eosRedirector'], man['outputBase'], tag)
+    state = codeState()
     if not os.path.exists(local):
         print('building %s' % local)
         condorBackend.makeTarball(os.environ['CMSSW_BASE'], local + '.part')
+        with open(stateFile, 'w') as f:
+            f.write(state)
         os.rename(local + '.part', local)
-    host, path = remote.split('//', 2)[1], '/' + remote.split('//', 2)[2]
-    stat = subprocess.run(['xrdfs', 'root://' + host, 'stat', path], capture_output=True)
-    if not dryrun and stat.returncode != 0:
-        subprocess.run(['xrdcp', '-f', local, remote], check=True)
-    return remote
+    elif not os.path.exists(stateFile) or open(stateFile).read() != state:
+        raise SystemExit('%s was built from other code than the current (see %s); rebuilt libraries need a new tag'
+                         % (local, stateFile))
+    checksum = adler32(local)
+    host, path = 'root://' + remote.split('//', 2)[1], '/' + remote.split('//', 2)[2]
+    onEOS = remoteAdler32(host, path)
+    if onEOS is None:
+        if not dryrun:
+            subprocess.run(['xrdcp', local, remote], check=True)
+    elif onEOS != checksum:
+        raise SystemExit('%s (adler32 %s) is not %s (adler32 %s)' % (remote, onEOS, local, checksum))
+    return remote, checksum
 
 
 def main():
@@ -114,8 +153,8 @@ def main():
 def submitSample(s, n, workDir, tagDir, man, tag, proxy, dryrun):
     if s['backend'] == 'condor':
         import condorBackend
-        tarball = condorTarball(tagDir, man, tag, dryrun)
-        nJobs = condorBackend.submit(s, n, workDir, tag, man, tarball, proxy, dryrun)
+        tarball, checksum = condorTarball(tagDir, man, tag, dryrun)
+        nJobs = condorBackend.submit(s, n, workDir, tag, man, tarball, checksum, proxy, dryrun)
         print('%s: %d condor jobs %s' % (n, nJobs, '(dry run)' if dryrun else 'submitted'))
     else:
         import crabBackend

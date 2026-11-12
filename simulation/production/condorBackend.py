@@ -114,7 +114,7 @@ def jdl(workDir, inputs, argsFile, proxy):
         ''])
 
 
-def submit(sample, name, workDir, tag, man, tarballUrl, proxy, dryrun):
+def submit(sample, name, workDir, tag, man, tarballUrl, tarballAdler32, proxy, dryrun):
     """Writes jobs.txt and the JDL into workDir and submits unless dryrun; returns the job count."""
     outDir = '%s/%s/%s/%s' % (man['eosRedirector'], man['outputBase'], tag, name)
     files = inputFiles(sample)
@@ -127,7 +127,7 @@ def submit(sample, name, workDir, tag, man, tarballUrl, proxy, dryrun):
     with open(os.path.join(workDir, 'submit.jdl'), 'w') as f:
         f.write(jdl(workDir, inputs, argsFile, proxy))
     info = {'backend': 'condor', 'nJobs': len(lines), 'nFiles': sum(len(l.split()[1].split(',')) for l in lines),
-            'outDir': outDir, 'isMC': sample['isMC'], 'clusters': []}
+            'outDir': outDir, 'isMC': sample['isMC'], 'tarballAdler32': tarballAdler32, 'clusters': []}
     if not dryrun:
         info['clusters'].append(condorSubmit(os.path.join(workDir, 'submit.jdl')))
     with open(os.path.join(workDir, 'condor.json'), 'w') as f:
@@ -140,9 +140,14 @@ def condorCommand(*args):
     return subprocess.run(['sh', '-c', '"$0" "$@"'] + list(args), check=True, capture_output=True, text=True).stdout
 
 
-def condorSubmit(jdlPath):
-    out = condorCommand('condor_submit', jdlPath)
+def parseSubmit(out):
+    """{'cluster', 'schedd'} from the LPC condor_submit wrapper's output; cluster ids are unique only per schedd."""
     m = re.search(r'submitted to cluster (\d+)', out)
-    if not m:
+    s = re.search(r'Attempting to submit jobs to (\S+)', out)
+    if not m or not s:
         raise RuntimeError('condor_submit output not understood:\n' + out)
-    return int(m.group(1))
+    return {'cluster': int(m.group(1)), 'schedd': s.group(1)}
+
+
+def condorSubmit(jdlPath):
+    return parseSubmit(condorCommand('condor_submit', jdlPath))

@@ -22,25 +22,34 @@ WORK = os.path.join(HERE, 'work')
 HELD = 5
 
 
-def condorQueued(clusters):
-    """{job index (the args' first field): (JobStatus, schedd)} of the jobs still in the given clusters."""
-    if not clusters:
-        return {}
-    import condorBackend
-    # The cluster ids must precede -af, which takes every later argument as an attribute.
-    res = condorBackend.condorCommand('condor_q', *[str(c) for c in clusters], '-af', 'JobStatus', 'GlobalJobId',
-                                      'Args')
+def parseQueue(res, clusters):
+    """{job index (the args' first field): (JobStatus, schedd)} from `condor_q -af JobStatus GlobalJobId Args`,
+    keeping only the recorded (schedd, cluster) pairs: the query spans every LPC schedd."""
+    mine = {(c['schedd'], c['cluster']) for c in clusters}
     out = {}
     for l in res.splitlines():
         if l.strip():
             st, gid, idx = l.split()[:3]
-            out[int(idx)] = (int(st), gid.split('#')[0])
+            schedd, jobId = gid.split('#')[:2]
+            if (schedd, int(jobId.split('.')[0])) in mine:
+                out[int(idx)] = (int(st), schedd)
     return out
 
 
-def heldConstraint(clusters):
-    """Held jobs of these clusters only."""
-    return 'JobStatus == %d && (%s)' % (HELD, ' || '.join('ClusterId == %d' % c for c in clusters))
+def condorQueued(clusters):
+    if not clusters:
+        return {}
+    import condorBackend
+    # The cluster ids must precede -af, which takes every later argument as an attribute.
+    res = condorBackend.condorCommand('condor_q', *sorted({str(c['cluster']) for c in clusters}), '-af',
+                                      'JobStatus', 'GlobalJobId', 'Args')
+    return parseQueue(res, clusters)
+
+
+def heldConstraint(clusters, schedd):
+    """Held jobs of the clusters submitted to this schedd."""
+    ids = sorted(c['cluster'] for c in clusters if c['schedd'] == schedd)
+    return 'JobStatus == %d && (%s)' % (HELD, ' || '.join('ClusterId == %d' % c for c in ids))
 
 
 def condorMissing(expected, done, queued):
@@ -63,7 +72,8 @@ def condorStatus(workDir, resubmit):
         # A held job never finishes by itself, so it is removed and resubmitted with the failed ones.
         # The LPC wrapper needs the schedd named for a -constraint removal.
         for schedd in sorted({queued[i][1] for i in held}):
-            condorBackend.condorCommand('condor_rm', '-name', schedd, '-constraint', heldConstraint(rec['clusters']))
+            condorBackend.condorCommand('condor_rm', '-name', schedd, '-constraint',
+                                        heldConstraint(rec['clusters'], schedd))
         missing = sorted(lost + held)
     if resubmit and missing:
         with open(os.path.join(workDir, 'jobs.txt')) as f:
