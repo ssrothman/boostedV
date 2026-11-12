@@ -23,7 +23,12 @@ cmsRun eecNano_cfg.py config=default.yaml inputFiles=file:in.root outputFile=nan
 - **`inputs`:** MiniAOD labels, the gen-event-info label, and the HLT and MET-filter process names.
 - **`selection`:**
   - `levels`: `[reco]`, `[gen]` or `[reco, gen]` (the OR). Events passing any channel at an enabled level are written, with all observables for both jet levels, and aggregated per channel and level. In MC both levels are always evaluated and their flags stored (`Selection_*`, `GenSelection_*`); data has only reco, and a gen-only configuration is an error there.
-  - `reco`: good-vertex cuts, MET filters, objects (PAT string cuts), channels with triggers.
+  - `reco`:
+    - good-vertex cuts and MET filters;
+    - optional MUO POG muon momentum corrections (`muonCorrections`, off by default);
+    - optional lepton dressing (`dressing.mode: none | fsr | cone`, default `none`; with dressing, `dressedCut` selects on the dressed leptons);
+    - objects (PAT string cuts) and channels with triggers.
+    - See `EventSelection/README.md` for the open POG questions on the muon corrections.
   - `gen` (MC): Rivet particle-level settings, objects (cuts on dressed leptons or isolated photons), and channels without triggers. The default kinematic cuts mirror the reco ones.
   - A channel type is `dilepton`, `leptonMET` or `singleObject`; a new channel needs only a YAML entry.
 - **`jets`:**

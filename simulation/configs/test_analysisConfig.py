@@ -86,6 +86,14 @@ class LoaderRejects(unittest.TestCase):
                             'jets/collections/Reco/jerc', 'jesKey')
         self.assertRejected(lambda c: c.pop('aggregation'), 'aggregation')
 
+    def test_muon_corrections_schema(self):
+        self.assertRejected(lambda c: c['selection']['reco']['muonCorrections'].update(variation='scaleUpp'),
+                            'selection/reco/muonCorrections')
+        self.assertRejected(lambda c: c['selection']['reco']['muonCorrections'].update(resolutionVariationK='java'),
+                            'selection/reco/muonCorrections')
+        self.assertRejected(lambda c: c['selection']['reco']['muonCorrections'].pop('highPtThreshold'),
+                            'selection/reco/muonCorrections', 'highPtThreshold')
+
     def test_levels_and_gen_schema(self):
         self.assertRejected(lambda c: c['selection'].update(levels=[]), 'selection/levels')
         self.assertRejected(lambda c: c['selection'].update(levels=['reco', 'reco']), 'selection/levels')
@@ -96,6 +104,18 @@ class LoaderRejects(unittest.TestCase):
                             'selection/gen/objects/genTightMuons')
         self.assertRejected(lambda c: c['selection']['gen']['particleLevel'].pop('lepConeSize'),
                             'selection/gen/particleLevel', 'lepConeSize')
+
+    def test_dressing_config(self):
+        self.assertRejected(lambda c: c['selection']['reco']['objects']['tightMuons'].update(dressedCut='pt > 15'),
+                            'dressedCut applies only to dressed leptons (dressing mode none')
+
+        def photonDressedCut(c):
+            c['selection']['reco']['dressing']['mode'] = 'cone'
+            c['selection']['reco']['objects']['tightPhotons']['dressedCut'] = 'pt > 230'
+        self.assertRejected(photonDressedCut, 'tightPhotons: dressedCut applies only to dressed leptons')
+        self.assertRejected(lambda c: c['selection']['reco']['dressing'].update(mode='rivet'), 'selection/reco/dressing')
+        self.assertRejected(lambda c: c['selection']['reco']['objects']['tightMuons'].pop('dressedCut'),
+                            'selection/reco/objects/tightMuons', 'dressedCut')
 
     def test_wrong_types_and_values(self):
         self.assertRejected(lambda c: c['selection']['reco']['channels']['Zmumu'].update(massMin='71'), 'selection/reco/channels/Zmumu')
@@ -192,6 +212,59 @@ class BuiltProcess(unittest.TestCase):
             # Both levels are always evaluated in MC, so their flags and objects exist whatever `levels` is.
             self.assertTrue(hasattr(p, 'genZmumuSel') and hasattr(p, 'ZmumuSel'))
             self.assertEqual(labels(p.genZmumuFilter.srcs), ['genZmumu'])
+
+    def test_dressing_modules(self):
+        p = buildProcess()
+        self.assertEqual(p.tightMuons.type_(), 'PATMuonSelector')
+        self.assertFalse(hasattr(p, 'tightMuonsDressed') or hasattr(p, 'leptonFSRphotons'))
+        for mode in ('fsr', 'cone'):
+            cfg = loadDefault()
+            reco = cfg['selection']['reco']
+            reco['dressing']['mode'] = mode
+            reco['objects']['tightMuons'].update(cut="abs(eta) < 2.4 && passed('CutBasedIdTight')", dressedCut='pt > 15')
+            p = buildProcess(cfg)
+            self.assertNoHiddenDefaults(p)
+            self.assertEqual(p.tightMuonsUndressed.type_(), 'PATMuonSelector')
+            self.assertEqual(p.tightMuonsUndressed.cut.value(), "abs(eta) < 2.4 && passed('CutBasedIdTight')")
+            self.assertEqual(p.tightMuonsDressed.type_(), 'DressedLeptonProducer')
+            self.assertEqual(p.tightMuonsDressed.mode.value(), mode)
+            self.assertEqual(p.tightMuonsDressed.originals.getModuleLabel(), 'slimmedMuons')
+            self.assertEqual(p.tightMuonsDressed.fsrIndex.getProductInstanceLabel(), 'muFsrIndex')
+            self.assertEqual(p.tightElectronsDressed.fsrIndex.getProductInstanceLabel(), 'eleFsrIndex')
+            self.assertEqual(p.tightMuons.type_(), 'CandPtrSelector')
+            self.assertEqual(p.tightMuons.cut.value(), 'pt > 15')
+            self.assertEqual(p.tightPhotons.type_(), 'PATPhotonSelector')      # photons are never dressed
+            self.assertEqual(hasattr(p, 'leptonFSRphotons'), mode == 'fsr')
+            self.assertEqual(p.tightMuonsDressed.coneSize.value(), reco['dressing']['cone']['coneSize'])
+
+    def test_muon_corrections(self):
+        p = buildProcess()
+        self.assertFalse(hasattr(p, 'correctedMuons'))
+        self.assertEqual(p.tightMuons.src.getModuleLabel(), 'slimmedMuons')
+        cfg = loadDefault()
+        reco = cfg['selection']['reco']
+        reco['muonCorrections'].update(apply=True, variation='resolutionUp', resolutionVariationK='python',
+                                       highPtThreshold=1e9)
+        reco['dressing']['mode'] = 'fsr'
+        p = buildProcess(cfg)
+        self.assertNoHiddenDefaults(p)
+        c = p.correctedMuons
+        self.assertEqual(c.type_(), 'MuonCorrectionProducer')
+        self.assertEqual(c.src.getModuleLabel(), 'slimmedMuons')
+        self.assertFalse(c.isData.value())
+        self.assertEqual(c.variation.value(), 'resolutionUp')
+        self.assertEqual(c.resolutionVariationK.value(), 'python')
+        self.assertEqual(c.highPtThreshold.value(), 1e9)
+        for consumer in (p.tightMuonsUndressed.src, p.vetoMuonsUndressed.src, p.leptonFSRphotons.muons,
+                         p.tightMuonsDressed.originals):
+            self.assertEqual(consumer.getModuleLabel(), 'correctedMuons')
+        self.assertEqual(p.tightElectronsUndressed.src.getModuleLabel(), 'slimmedElectrons')
+        # Data: scale correction only, and variations are refused.
+        reco['muonCorrections']['variation'] = 'nominal'
+        self.assertTrue(buildProcess(cfg, isMC=0).correctedMuons.isData.value())
+        reco['muonCorrections']['variation'] = 'scaleUp'
+        with self.assertRaises(analysisConfig.ConfigError):
+            buildProcess(cfg, isMC=0)
 
     def test_jets_cleaned_against_own_level(self):
         p = buildProcess()

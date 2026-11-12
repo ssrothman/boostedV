@@ -51,6 +51,11 @@ def crossCheck(cfg):
             for o in [ch['objects']] + ch.get('vetoes', []):
                 if o not in objects:
                     p.append('selection/%s/channels/%s: unknown object collection %s' % (level, name, o))
+    dressing = sel['reco']['dressing']['mode']
+    for name, o in sel['reco']['objects'].items():
+        if o['dressedCut'] and (dressing == 'none' or o['source'] == 'photons'):
+            p.append('selection/reco/objects/%s: dressedCut applies only to dressed leptons (dressing mode %s, source %s)'
+                     % (name, dressing, o['source']))
     if set(sel['reco']['objects']) & set(sel['gen']['objects']):
         p.append('selection: object labels used at both levels: %s'
                  % sorted(set(sel['reco']['objects']) & set(sel['gen']['objects'])))

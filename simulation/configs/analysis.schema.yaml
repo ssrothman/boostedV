@@ -264,12 +264,13 @@ properties:
   inputs:
     type: object
     additionalProperties: false
-    required: [muons, electrons, photons, met, vertices, genEventInfo, hltProcess, metFilterProcess,
+    required: [muons, electrons, photons, pfCandidates, met, vertices, genEventInfo, hltProcess, metFilterProcess,
                prunedGenParticles, packedGenParticles]
     properties:
       muons: {$ref: '#/definitions/str'}
       electrons: {$ref: '#/definitions/str'}
       photons: {$ref: '#/definitions/str'}
+      pfCandidates: {$ref: '#/definitions/str'}
       met: {$ref: '#/definitions/str'}
       vertices: {$ref: '#/definitions/str'}
       genEventInfo: {$ref: '#/definitions/str'}
@@ -290,8 +291,45 @@ properties:
       reco:
         type: object
         additionalProperties: false
-        required: [vertex, metFilters, objects, channels]
+        required: [vertex, metFilters, muonCorrections, dressing, objects, channels]
         properties:
+          muonCorrections:
+            type: object
+            additionalProperties: false
+            required: [apply, correctionFile, lowPtThreshold, highPtThreshold, variation, resolutionVariationK]
+            properties:
+              apply: {type: boolean}
+              correctionFile: {$ref: '#/definitions/str'}
+              lowPtThreshold: {$ref: '#/definitions/num'}
+              highPtThreshold: {$ref: '#/definitions/num'}
+              resolutionVariationK: {enum: [cpp, python]}
+              variation: {enum: [nominal, scaleUp, scaleDown, resolutionUp, resolutionDown]}
+          dressing:
+            type: object
+            additionalProperties: false
+            required: [mode, fsr, cone]
+            properties:
+              mode: {enum: [none, fsr, cone]}
+              fsr:
+                type: object
+                additionalProperties: false
+                required: [muonPtMin, muonEtaMax, elePtMin, eleEtaMax, photonPtMin, deltaROverEt2Max, isolation]
+                properties:
+                  muonPtMin: {$ref: '#/definitions/num'}
+                  muonEtaMax: {$ref: '#/definitions/num'}
+                  elePtMin: {$ref: '#/definitions/num'}
+                  eleEtaMax: {$ref: '#/definitions/num'}
+                  photonPtMin: {$ref: '#/definitions/num'}
+                  deltaROverEt2Max: {$ref: '#/definitions/num'}
+                  isolation: {$ref: '#/definitions/num'}
+              cone:
+                type: object
+                additionalProperties: false
+                required: [coneSize, photonPtMin, applyPuppiWeights]
+                properties:
+                  coneSize: {type: number, exclusiveMinimum: 0}
+                  photonPtMin: {$ref: '#/definitions/num'}
+                  applyPuppiWeights: {type: boolean}
           vertex:
             type: object
             additionalProperties: false
@@ -307,10 +345,11 @@ properties:
             additionalProperties:
               type: object
               additionalProperties: false
-              required: [source, cut]
+              required: [source, cut, dressedCut]
               properties:
                 source: {enum: [muons, electrons, photons]}
                 cut: {$ref: '#/definitions/str'}
+                dressedCut: {type: string}
           channels:
             type: object
             minProperties: 1

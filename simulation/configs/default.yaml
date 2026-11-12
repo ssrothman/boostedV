@@ -7,6 +7,7 @@ inputs:                      # MiniAOD collection labels
   muons: slimmedMuons
   electrons: slimmedElectrons
   photons: slimmedPhotons
+  pfCandidates: packedPFCandidates   # photons for reco lepton dressing
   met: slimmedMETsPuppi
   vertices: offlineSlimmedPrimaryVertices
   genEventInfo: generator    # MC only; event weights for the aggregators
@@ -33,22 +34,54 @@ selection:
       - Flag_eeBadScFilter
       - Flag_ecalBadCalibFilter
 
+    # Reco lepton dressing (photons added to muon and electron momenta):
+    #   none  no dressing (the `objects` cut is the whole selection; every dressedCut must be "")
+    #   fsr   CMSSW LeptonFSRProducer (as for NanoAOD FsrPhoton): at most one isolated PF photon per lepton,
+    #         outside electron footprints, with dR/ET^2 below deltaROverEt2Max
+    #   cone  Rivet-like: every PF photon within coneSize of the nearest lepton, outside electron footprints
+    # With dressing, `cut` selects the leptons before dressing and `dressedCut` (a candidate cut on the dressed
+    # four-vector) after it; move the pt/eta cuts to dressedCut to mirror the gen level. Isolation is not
+    # recomputed: PFIso still counts the dressing photons.
+    # MUO POG Run-3 muon momentum corrections ("MuonScaRe", Z-peak method, CMS-DP-2024-065): scale in data and MC,
+    # resolution smearing in MC, for lowPtThreshold <= pt <= highPtThreshold (other muons are unchanged). Applied
+    # before every muon selection. The smearing random number depends only on the event number, as in the POG code.
+    muonCorrections:
+      apply: false
+      correctionFile: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2022_Summer22EE/muon_scalesmearing.json.gz
+      lowPtThreshold: 26.0
+      highPtThreshold: 200.0   # stated validity; the POG C++ example corrects the scale at all pt above lowPtThreshold
+      variation: nominal       # MC only: nominal | scaleUp | scaleDown | resolutionUp | resolutionDown
+      # TODO clarify with the MUO POG: the k in the resolution variation differs between the POG references
+      # (cpp: sqrt(k_data^2 - k_mc^2) as in MuonScaRe.cc; python: k_mc as in MuonScaRe.py).
+      resolutionVariationK: cpp
+
+    dressing:
+      mode: none
+      fsr: {muonPtMin: 3.0, muonEtaMax: 2.4, elePtMin: 5.0, eleEtaMax: 2.5, photonPtMin: 2.0,
+            deltaROverEt2Max: 0.05, isolation: 2.0}
+      cone: {coneSize: 0.1, photonPtMin: 0.0, applyPuppiWeights: true}
+
     objects:                   # PAT string cuts; source is one of muons, electrons, photons
       tightMuons:
         source: muons
         cut: "pt > 15 && abs(eta) < 2.4 && passed('CutBasedIdTight') && passed('PFIsoTight')"
+        dressedCut: ""
       vetoMuons:
         source: muons
         cut: "pt > 10 && abs(eta) < 2.4 && passed('CutBasedIdLoose') && passed('PFIsoLoose')"
+        dressedCut: ""
       tightElectrons:
         source: electrons
         cut: "pt > 15 && abs(superCluster().eta()) < 2.5 && (abs(superCluster().eta()) < 1.4442 || abs(superCluster().eta()) > 1.566) && electronID('cutBasedElectronID-RunIIIWinter22-V1-tight') > 0.5"
+        dressedCut: ""
       vetoElectrons:
         source: electrons
         cut: "pt > 10 && abs(superCluster().eta()) < 2.5 && (abs(superCluster().eta()) < 1.4442 || abs(superCluster().eta()) > 1.566) && electronID('cutBasedElectronID-RunIIIWinter22-V1-veto') > 0.5"
+        dressedCut: ""
       tightPhotons:
         source: photons
         cut: "pt > 220 && abs(superCluster().eta()) < 1.4442 && photonID('cutBasedPhotonID-RunIIIWinter22-122X-V1-tight') > 0.5"
+        dressedCut: ""
 
     # Channel types:
     #   dilepton      OS pair from `objects` closest to targetMass within [massMin, massMax]

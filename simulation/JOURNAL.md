@@ -7,6 +7,7 @@
 - 2026-11-11 Placeholder constituent variations, selection overrides
 - 2026-11-11 Single YAML analysis configuration
 - 2026-11-11 Generator-level selections
+- 2026-11-11 Reco lepton dressing and muon momentum corrections
 
 ## 2026-11-11 A.2 setup and DataFormats
 - Plan: `stepA2_plan.md`. New local repos (remotes pending): `EECDataFormats` (pkg `SRothman/DataFormats`),
@@ -75,3 +76,31 @@
   - The Rivet chain adds about 10 s per 1000 events (25 s → 35 s).
 - Regression: reco-only reproduces the previous run's 466 events. All 1254 non-gen branches and all 144 reco histograms are identical (the histogram directories are now `<ch>_reco_…`). Gen observables change because gen jets are now cleaned against gen objects.
 - End-to-end checks pass in OR mode (36 checks, including aggregation at both levels). The config tests (13) cover the levels, data behaviour, gen schema and per-level cleaning.
+
+## 2026-11-11 Reco lepton dressing and muon momentum corrections
+- **Dressing** (`selection.reco.dressing.mode`, default none):
+  - Modes: `fsr` (CMSSW `LeptonFSRProducer`) and `cone` (Rivet-like, ΔR 0.1, outside electron footprints, PUPPI-weighted).
+  - The PAT selectors produce copies, so `fsr` matches each copy to its `slimmed*` original by identical pt/η/φ.
+  - Validation, 2000 inclusive DY events (761 tight μ, 577 tight e): `fsr` matches the FSR producer's photons and `cone` matches an independent FWLite recomputation, both to ≤ 1.3e-7 of E. Dressed: fsr 18 μ and 2 e; cone 29 μ and 16 e.
+  - Mutations caught: no footprint veto (electron E doubled), PUPPI ignored (80 μ dressed instead of 29, up to +78% E: pileup photons matter), cone ×2, FSR photon not added.
+  - With pt moved to `dressedCut`, reco − gen Z→μμ mass over 216 events:
+
+    | Mode | Mean | RMS |
+    |---|---|---|
+    | none | −0.34 GeV | 1.64 GeV |
+    | fsr | −0.10 GeV | 1.74 GeV |
+    | cone | −0.18 GeV | 1.47 GeV |
+
+    Z→ee mean −0.65 / −0.61 / −0.59 GeV, i.e. barely changed (the supercluster energy is already dressed).
+  - Isolation is not recomputed for dressed leptons.
+- **Muon corrections** (`selection.reco.muonCorrections`, default off): a port of the MUO POG MuonScaRe (Run-3 Summer22EE `muon_scalesmearing.json.gz`). `correctedMuons` feeds every muon consumer.
+  - It matches the POG `MuonScaRe.py` to ≤ 2.2e-16 on 5248 muons for MC and data nominal, scale up/down, and resolution up/down with `python` k. The `cpp` k is checked against the written-out `MuonScaRe.cc` formula.
+  - Trap: the reference `MuonScaRe.py` non-nested path is broken; call it with jagged arrays (nested=True).
+  - Mutations caught: upper threshold ignored, k switch ignored, lumi in the seed, smearing in data.
+  - With the corrections on (2000 inclusive DY, 216 Z→μμ in both levels), the reco − gen mass mean is −0.25 GeV (none −0.34). With cone dressing as well it is −0.09 GeV. The RMS grows slightly (+0.08 GeV) because the MC smearing targets the data resolution, not gen.
+  - With everything off, the output is identical to before (1357 branches, 1144 histograms).
+  - **Open with the MUO POG** (also in EventSelection/README.md):
+    1. The scale above 200 GeV: C++ corrects, Python leaves unchanged. We use highPtThreshold 200, configurable.
+    2. The k in the resolution variation: C++ √(k_data²−k_mc²), Python k_mc, differing by up to 0.6% in pT. Default `cpp`, provisional.
+    3. Only the event number enters the smearing seed: the length-one seed sequence uses only its first input.
+  - The muon POG pt-correction wiki needs CERN SSO, so it could not be consulted from here.

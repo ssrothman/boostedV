@@ -50,6 +50,10 @@ if not levels:
     raise analysisConfig.ConfigError('%s: selection/levels %s has no level available in data'
                                      % (cfgPath, cfg['selection']['levels']))
 sel = cfg['selection']
+muCorr = sel['reco']['muonCorrections']
+if not isMC and muCorr['apply'] and muCorr['variation'] != 'nominal':
+    raise analysisConfig.ConfigError('%s: selection/reco/muonCorrections/variation %s is for MC only'
+                                     % (cfgPath, muCorr['variation']))
 addSelection(process, sel, inputs, levels, isMC, task)
 process.anySelectedPath = cms.Path(process.anySelectedFilter, task)
 
