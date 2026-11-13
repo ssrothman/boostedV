@@ -174,9 +174,9 @@ those; other channels' vetoes are not applied.
 | `srcIdx` | uint32 | index in the source collection |
 
 **Extension columns (nominal table only).** For a reco `pat` collection, `table.extraVariables` adds columns evaluated
-on the MiniAOD jet `src[srcIdx]`, plus the built-in `jerFactor` (the JER smearing factor applied, 1 in data). The
+on the jet `src[srcIdx]` after the `jec` step, plus the built-in `jerFactor` (the JER smearing factor applied, 1 in data). The
 variation tables have no extension columns: match them to the nominal through `srcIdx`. `default.yaml` (`RecoJet`):
-- corrections: `jecPt` (MiniAOD-JEC pt, before JER; `pt = jecPt × jerFactor`), `area`, `rawFactor`;
+- corrections: `jecPt` (pt with the re-applied `jec` correction, before JER; `pt = jecPt × jerFactor`), `jecFactor`, `area`, `rawFactor`;
 - substructure: `msoftdrop`, `tau1`–`tau4`, `n2b1`, `n3b1`, `subJetIdx1`, `subJetIdx2` (MiniAOD soft-drop subjets, not stored);
 - ParticleNet with mass: `particleNetWithMass_{QCD,TvsQCD,WvsQCD,ZvsQCD,H4qvsQCD,HbbvsQCD,HccvsQCD}`;
 - ParticleNet from MiniAOD: `particleNet_{QCD,QCD2HF,QCD1HF,QCD0HF,massCorr}`, `particleNet_{Xbb,Xcc,Xqq,Xgg,Xtt,Xtm,Xte}VsQCD`;
@@ -190,7 +190,7 @@ The names follow the NanoAODv12 `FatJet` table where it has them.
 - **How:** the standard NanoAOD recipe, `updateJetCollection` with the GlobalTag JECs of `retag.jecPayload`. The
   re-tagged copy of `src` only provides the `retag.variables` columns, read at the same index (a jet that differs in
   η/φ is an error).
-- **Unchanged:** the EEC jets, the selection and every other column keep the MiniAOD jets and their JECs.
+- **Unchanged:** the EEC jets, the selection and every other column use the `jec` re-corrected jets, not the tagger's JECs.
 - **`default.yaml` columns:** the 23 NanoAOD `globalParT3_*` columns (GlobalParticleTransformer AK8, model V03):
   - the class scores `Xbb`, `Xcc`, `Xcs`, `Xqq`, `Xtauhtau{e,m,h}`, `XWW4q`, `XWW3q`, `XWWqq{e,m}v`, `TopbWqq`, `TopbWq`,
     `TopbW{e,m,tauh}v`, `QCD`;
@@ -230,7 +230,7 @@ For each jet collection `<C>`, variation `<v>` and observable `<obs>` (name `<C>
 - `weight` is the product of (E_p / E_jet)ⁿ over the tuple, with E_p from `weight` (`Energy` or `Pt`).
 - `bin` is the flow-inclusive linear index over all axes: 0 is underflow, axis 0 varies fastest.
 - Axis 0 is θ_max (pENC) or the first frame coordinate (E1C). For E1C the coordinates are (θ, φ) in `frame`
-  (`lab`, `jetHelicity`, `jetCS`).
+  (`lab`, `jetAxis`, `jetHelicity`, `jetCS`; see `EECs/interface/Config.h`).
 - To use another normalisation E′, multiply the weights by (E_jet / E′)^(n·N).
 - Definitions and conventions: `EECs/docs/guide.md`.
 
@@ -348,7 +348,7 @@ Measured on 300 events of `DYto2L-4Jets_MLL-50_PTLL-400to600` (Summer22EE MC, 22
   channel X use, drop the jets with `veto<X>`.
 - Every jet has at least two constituents after `constituentCuts` (`jetCuts.minConstituents >= 2`, enforced by the
   config check): a one-particle jet has no E1C frame.
-- The AK8 `RecoJet` pt includes the JER smearing (MC); `jecPt` does not. The AK4 `AK4Jet` pt has the re-applied V4 JEC
-  and no JER; the AK8 jets keep the MiniAOD JEC.
+- The AK8 `RecoJet` pt has the JEC of the collection's `jec` block (re-applied from raw; V4 in `default.yaml`) and,
+  in MC, the JER smearing; `jecPt` has no JER. The AK4 `AK4Jet` pt has the re-applied V4 JEC and no JER.
 - Table and column names follow the configuration. Code reading these files should take the names from the YAML used
   (kept in the job provenance) rather than hard-coding the `default.yaml` names.

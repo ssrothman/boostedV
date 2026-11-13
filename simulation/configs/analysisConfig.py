@@ -157,6 +157,8 @@ def crossCheck(cfg):
         recoPat = c['level'] == 'reco' and c['mode'] == 'pat'
         if recoPat and not c['mcOnly'] and 'jerc' not in c:
             p.append('%s: reco MiniAOD jets need a jerc block (JER smearing in MC)' % where)
+        if recoPat != ('jec' in c):
+            p.append('%s: a jec block is needed exactly for reco MiniAOD jets' % where)
         for v, spec in c.get('variations', {}).items():
             if spec['type'] in ('jes', 'jer') and not recoPat:
                 p.append('%s/variations/%s: JES/JER need reco MiniAOD jets' % (where, v))

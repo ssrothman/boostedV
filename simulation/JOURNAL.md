@@ -16,6 +16,7 @@
 - 2026-11-12 NANO documentation
 - 2026-11-13 NANO additions: event tables, AK8/AK4 jets, lepton details, GloParT
 - 2026-11-13 Jets flagged, not removed, near selected objects
+- 2026-11-13 V4 JEC on the AK8 EEC jets; jet-axis E1C frame; ZX_test config
 
 ## 2026-11-11 A.2 setup and DataFormats
 - Plan: `stepA2_plan.md`. New local repos (remotes pending): `EECDataFormats` (pkg `SRothman/DataFormats`),
@@ -284,3 +285,16 @@
   minimum is 2 and `analysisConfig` rejects `cuts` variations below 2 (test fails without that check).
   `checkEndToEnd` again compares E1C for every jet and reports any jet with < 2 constituents. Per the user, the full
   regression was not rerun for this configuration change; only the config tests were (33 OK).
+
+## 2026-11-13 V4 JEC on the AK8 EEC jets; jet-axis E1C frame; ZX_test config
+- Plan: `ak8JEC_jetAxisFrame_plan.md`. AK8 jets: `PATJetJECProducer` (V4 `L1L2L3Res_AK8PFPuppi`, source order) before
+  the translator, from a required-for-reco-pat `jec` block (default.yaml and ZX_test.yaml).
+- V4/MiniAOD AK8 pt (MiniAOD pt > 170): MC mean 1.001 (0.984–1.011), Run2022F data mean 0.991 (0.983–1.018); below
+  170 at most 1.017 (data), so translator `ptMin: 180` is safe against daughterless jets.
+- `setP4` on a pat::Jet copy leaves the MiniAOD JEC levels: `correctedP4("Uncorrected")`, `jecFactor('Uncorrected')`
+  and the energy fractions were wrong (300 PTLL events: 802/802 raw pts, 615/651 PF-jet fractions). Fixed with
+  `correctedJet("Uncorrected")` + `scaleEnergy(c, "Uncorrected")`: 0 mismatches in MC (802 jets) and data (428). This
+  also fixes the AK4 table's energy-fraction columns, which used the `setP4` copies.
+- `frame: jetAxis` (EECs): lab frame, z = jet, x toward +z beam. Unit test vs lab-built (θ, φ); mutations (x flipped,
+  boost added) caught.
+- Unit/config tests: EECs 55, EECsPlugins 12, JetSetupModules 15 (sortByPt mutation caught), config 35 OK.

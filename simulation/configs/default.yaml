@@ -348,7 +348,7 @@ jets:
         taggers: [GlobalParT]   # GlobalParticleTransformer AK8 (GloParT 3, model V03)
         vertices: offlineSlimmedPrimaryVertices
         secondaryVertices: slimmedSecondaryVertices
-        jecPayload: AK8PFPuppi  # GlobalTag JECs the tagger re-applies (as NanoAOD); the EEC jets keep the MiniAOD JECs
+        jecPayload: AK8PFPuppi  # GlobalTag JECs the tagger re-applies (as NanoAOD); the EEC jets use the jec block
         variables:              # columns from the re-tagged jets (NanoAOD FatJet globalParT3_*), nominal table only
           - {name: globalParT3_Xbb, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 X->bb score. Note: For sig vs bkg (e.g. bkg=QCD) tagging, use sig/(sig+bkg) to construct the discriminator',
              expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probXbb'')'}
@@ -399,9 +399,11 @@ jets:
       table:
         name: RecoJet
         precision: -1
-        extraVariables:          # nominal table only, pat-mode reco jets: columns from the source pat::Jet (NanoAODv12 FatJet set)
-          - {name: jecPt, type: float, precision: -1, mcOnly: false, doc: 'pt with the MiniAOD JEC, before JER smearing',
+        extraVariables:          # nominal table only, pat-mode reco jets: columns from the source pat::Jet after the jec step (NanoAODv12 FatJet set)
+          - {name: jecPt, type: float, precision: -1, mcOnly: false, doc: 'pt with the re-applied JEC (jec block), before JER smearing',
              expr: 'pt'}
+          - {name: jecFactor, type: float, precision: -1, mcOnly: false, doc: 're-applied JEC factor (jecPt / raw pt)',
+             expr: 'userFloat(''jecFactor'')'}
           - {name: area, type: float, precision: 10, mcOnly: false, doc: 'jet catchment area',
              expr: 'jetArea()'}
           - {name: rawFactor, type: float, precision: 10, mcOnly: false, doc: '1 - factor to get back to raw pt',
@@ -484,6 +486,11 @@ jets:
              expr: 'jetFlavourInfo().getbHadrons().size()'}
           - {name: nCHadrons, type: uint8, precision: -1, mcOnly: true, doc: 'number of c-hadrons clustered in the jet',
              expr: 'jetFlavourInfo().getcHadrons().size()'}
+      jec:                   # re-applied from the raw momentum before the translator (data key takes the run)
+        correctionFile: /cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-22EFGSep23-Summer22EE-NanoAODv12/latest/fatJet_jerc.json.gz
+        mcKey: Summer22EE_22Sep2023_V4_MC_L1L2L3Res_AK8PFPuppi
+        dataKey: Summer22EE_22Sep2023_V4_DATA_L1L2L3Res_AK8PFPuppi
+        rho: fixedGridRhoFastjetAll
       jerc:                  # MC only: nominal JER smearing and the JES/JER variations
         correctionFile: /cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-22EFGSep23-Summer22EE-NanoAODv12/latest/fatJet_jerc.json.gz
         jesKey: Summer22EE_22Sep2023_V4_MC_Total_AK8PFPuppi
@@ -545,7 +552,7 @@ observables:
     kind: e1c
     n: 1.0
     weight: Pt
-    frame: jetHelicity       # lab | jetHelicity | jetCS
+    frame: jetHelicity       # lab | jetAxis | jetHelicity | jetCS
     norm: sumPt
     output: SparseMerged
     axes:

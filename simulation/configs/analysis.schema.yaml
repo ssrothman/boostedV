@@ -255,6 +255,15 @@ definitions:
           rho: {$ref: '#/definitions/str'}
           genJets: {$ref: '#/definitions/str'}
           jerSeedSalt: {$ref: '#/definitions/uint'}
+      jec:
+        type: object
+        additionalProperties: false
+        required: [correctionFile, mcKey, dataKey, rho]
+        properties:
+          correctionFile: {$ref: '#/definitions/str'}
+          mcKey: {$ref: '#/definitions/str'}
+          dataKey: {$ref: '#/definitions/str'}
+          rho: {$ref: '#/definitions/str'}
       variations:
         type: object
         additionalProperties: {$ref: '#/definitions/variation'}
@@ -281,7 +290,7 @@ definitions:
           kind: {const: e1c}
           n: {$ref: '#/definitions/num'}
           weight: {enum: [Energy, Pt]}
-          frame: {enum: [lab, jetHelicity, jetCS]}
+          frame: {enum: [lab, jetAxis, jetHelicity, jetCS]}
           norm: {enum: [sumE, sumPt, jetE, jetPt, unity]}
           output: {enum: [Dense, SparseMerged, SparseUnmerged, Unbinned]}
           axes: {type: array, items: {$ref: '#/definitions/axis'}, minItems: 2, maxItems: 2}

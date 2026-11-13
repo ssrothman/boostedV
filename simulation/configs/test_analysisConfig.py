@@ -102,6 +102,12 @@ class LoaderRejects(unittest.TestCase):
             Tight={'type': 'cuts', 'jetCuts': dict(jc(c, 'Reco'), minConstituents=1),
                    'constituentCuts': c['jets']['collections']['Reco']['constituentCuts']}), 'variations/Tight: jetCuts minConstituents must be >= 2')
 
+    def test_jec_only_on_reco_pat_jets(self):
+        self.assertRejected(lambda c: c['jets']['collections']['Reco'].pop('jec'),
+                            'a jec block is needed exactly for reco MiniAOD jets')
+        self.assertRejected(lambda c: c['jets']['collections']['Gen'].update(jec=c['jets']['collections']['Reco']['jec']),
+                            'jets/collections/Gen: a jec block is needed exactly for reco MiniAOD jets')
+
     def test_default_is_valid(self):
         analysisConfig.load(DEFAULT)
 
@@ -473,16 +479,16 @@ class BuiltProcess(unittest.TestCase):
         p = buildProcess()
         t = p.jetsRecoExtTable
         self.assertEqual((t.type_(), t.src.getModuleLabel(), t.jets.getModuleLabel(), t.name.value()),
-                         ('EECJetExtensionTableProducer', 'jetsReco', 'slimmedJetsAK8', 'RecoJet'))
+                         ('EECJetExtensionTableProducer', 'jetsReco', 'jetsRecoJEC', 'RecoJet'))
         names = [v.name.value() for v in t.variables]
-        self.assertEqual(len(names), 42)
+        self.assertEqual(len(names), 43)
         for n in ('jecPt', 'area', 'msoftdrop', 'tau2', 'particleNetWithMass_WvsQCD', 'hadronFlavour'):
             self.assertIn(n, names)
         self.assertIn('jetsRecoExtTable', p.outPath.moduleNames())
         self.assertEqual([l for l in p.producers_() if l.startswith('jets') and l.endswith('ExtTable')], ['jetsRecoExtTable'])
         d = buildProcess(isMC=0)
         dn = [v.name.value() for v in d.jetsRecoExtTable.variables]
-        self.assertEqual(len(dn), 38)
+        self.assertEqual(len(dn), 39)
         self.assertNotIn('hadronFlavour', dn)
 
     def test_object_extension_tables(self):
@@ -523,6 +529,16 @@ class BuiltProcess(unittest.TestCase):
         self.assertNotIn('jesUncTotal', buildProcess(cfg).ak4JetTable.variables.parameterNames_())
         cfg['output']['ak4Jets']['enabled'] = False
         self.assertFalse(hasattr(buildProcess(cfg), 'ak4JetTable'))
+
+    def test_ak8_jec(self):
+        p = buildProcess()
+        c = p.jetsRecoJEC
+        self.assertEqual((c.type_(), c.src.getModuleLabel(), c.key.value(), c.uncKey.value(), c.sortByPt.value()),
+                         ('PATJetJECProducer', 'slimmedJetsAK8', 'Summer22EE_22Sep2023_V4_MC_L1L2L3Res_AK8PFPuppi', '', False))
+        self.assertEqual(p.jetsRecoRaw.src.getModuleLabel(), 'jetsRecoJEC')
+        self.assertFalse(hasattr(p, 'jetsGenJEC'))
+        self.assertEqual(p.ak4JetsCorrected.sortByPt.value(), True)
+        self.assertEqual(buildProcess(isMC=0).jetsRecoJEC.key.value(), 'Summer22EE_22Sep2023_V4_DATA_L1L2L3Res_AK8PFPuppi')
 
     def test_lhe_tables(self):
         p = buildProcess()

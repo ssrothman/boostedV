@@ -36,7 +36,7 @@ cmsRun eecNano_cfg.py config=default.yaml globalTag=<GT> inputFiles=file:in.root
   - A channel type is `dilepton`, `leptonMET` or `singleObject`; a new channel needs only a YAML entry.
 - **`jets`:**
   - which channels' selected objects flag the jets (`veto<ch>` columns; jets are kept; channel ch's aggregated histograms skip its vetoed jets; reco jets use the reco objects, gen jets the gen objects);
-  - the jet collections: reco/gen, MiniAOD jets or reclustering, the translator, jet and constituent cuts, the table name, JME correctionlib keys (`jerc`), and variations (MC only).
+  - the jet collections: reco/gen, MiniAOD jets or reclustering, the translator, jet and constituent cuts, the table name, the JEC re-applied from raw (`jec`, reco MiniAOD jets; data keys take the run), JME correctionlib keys (`jerc`), and variations (MC only).
   - A collection with `mcOnly: true` is skipped in data. The constituent-variation sizes are placeholders.
 - **`observables`:** E2C/E3C (`penc`) and E1C (`e1c`) specs. They are computed for every jet collection and variation; tables are named `<Collection><Variation><observable>`.
 - **`aggregation`:** channels, observables and the covariance memory guard. For each enabled level it writes `<channel>_<level>_eec<Collection><Variation><observable>` directories in `histFile`, filled from events passing that channel at that level, for every jet collection (e.g. reco observables in gen-selected events).
