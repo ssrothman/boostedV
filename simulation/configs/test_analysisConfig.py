@@ -94,6 +94,14 @@ class LoaderRejects(unittest.TestCase):
         self.assertRejected(lambda c: ak4(c).update(name='ak4'), 'output/ak4Jets')
         self.assertRejected(lambda c: ak4(c)['jec'].pop('dataKey'), 'output/ak4Jets/jec', 'dataKey')
 
+    def test_min_constituents(self):
+        jc = lambda c, n: c['jets']['collections'][n]['jetCuts']
+        self.assertRejected(lambda c: jc(c, 'Reco').update(minConstituents=1), 'jets/collections/Reco/jetCuts')
+        self.assertRejected(lambda c: jc(c, 'Gen').update(minConstituents=0), 'jets/collections/Gen/jetCuts')
+        self.assertRejected(lambda c: c['jets']['collections']['Reco']['variations'].update(
+            Tight={'type': 'cuts', 'jetCuts': dict(jc(c, 'Reco'), minConstituents=1),
+                   'constituentCuts': c['jets']['collections']['Reco']['constituentCuts']}), 'variations/Tight: jetCuts minConstituents must be >= 2')
+
     def test_default_is_valid(self):
         analysisConfig.load(DEFAULT)
 

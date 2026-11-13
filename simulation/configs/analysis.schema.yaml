@@ -137,7 +137,7 @@ definitions:
       ptMin: {$ref: '#/definitions/num'}
       absEtaMax: {$ref: '#/definitions/num'}
       idMask: {$ref: '#/definitions/uint'}
-      minConstituents: {$ref: '#/definitions/uint'}
+      minConstituents: {type: integer, minimum: 2}   # after constituentCuts
 
   constituentCuts:
     type: object

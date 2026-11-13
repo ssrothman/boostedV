@@ -105,23 +105,21 @@ for level in ('Reco', 'Gen'):
             ref = [penc(pt, eta, phi, 2), penc(pt, eta, phi, 3),
                    # float64 jet kinematics: in float32 the rest frame of a light, boosted jet is badly conditioned.
                    e1c(pt, eta, phi, E, *(float(ev[jt + v][e][j]) for v in ('_pt', '_eta', '_phi', '_mass')))]
-            single += len(pt) == 1
+            single += len(pt) < 2
             for k, r in zip(obs, ref):
-                # A one-particle jet has no E1C frame (the particle is at rest in the jet frame): angles are arbitrary.
-                if k.endswith('E1C') and len(pt) == 1:
-                    continue
                 s = stored(k, e, j, len(r))
                 d = s - r
                 if k.endswith('E1C') and not singleMigration(d, pt / pt.sum()):
                     unexplained[k] += 1
                 worst[k] = max(worst[k], np.abs(d).sum())
                 sums[k].append(s.sum())
+    report('%s jets have >= 2 constituents' % level, single == 0, '%d with fewer' % single)
     for k in obs:
         if k.endswith('E1C'):
             # Float-stored inputs may move one particle into an adjacent bin; anything else is a failure.
             report('%s vs brute force' % k, nj >= 20 and unexplained[k] == 0,
-                   'jets %d (%d one-particle jets not compared), not explained by a single-particle edge migration %d, '
-                   'max sum|diff| %.2e' % (nj, single, unexplained[k], worst[k]))
+                   'jets %d, not explained by a single-particle edge migration %d, max sum|diff| %.2e'
+                   % (nj, unexplained[k], worst[k]))
         else:
             # Float-stored inputs can move a tuple across a bin edge; allow 1e-3 of the total weight.
             report('%s vs brute force' % k, nj >= 20 and worst[k] < 1e-3,

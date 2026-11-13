@@ -280,3 +280,7 @@
   - Unit tests: 4/4 mutations caught (mask inverted/ignored, channel mix-up, ΔR threshold).
 - Exposed: a one-electron gen jet whose E1C angles are undefined (rest-frame direction of a single particle). The check
   skips one-particle jets for E1C; question in `OPEN_QUESTIONS.md`.
+- Answered (user): every jet needs >= 2 constituents. `jetCuts.minConstituents` is 2 in `default.yaml`; the schema
+  minimum is 2 and `analysisConfig` rejects `cuts` variations below 2 (test fails without that check).
+  `checkEndToEnd` again compares E1C for every jet and reports any jet with < 2 constituents. Per the user, the full
+  regression was not rerun for this configuration change; only the config tests were (33 OK).

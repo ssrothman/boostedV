@@ -345,8 +345,9 @@ Measured on 300 events of `DYto2L-4Jets_MLL-50_PTLL-400to600` (Summer22EE MC, 22
   `Pileup_weight` into the MC weights yourself; the aggregated histograms include the muon SF but not the pileup weight.
 - `MET` is the PF MET, as in standard NanoAOD; the MET the W selections use is `SelectionMET` (PUPPI in `default.yaml`).
 - Jets overlapping leptons or photons are in the jet and EEC tables. To reproduce what the aggregated histograms of
-  channel X use, drop the jets with `veto<X>`. They include, for example, a gen jet made of a single electron, whose E1C
-  angles are undefined (the particle is at rest in the jet frame).
+  channel X use, drop the jets with `veto<X>`.
+- Every jet has at least two constituents after `constituentCuts` (`jetCuts.minConstituents >= 2`, enforced by the
+  config check): a one-particle jet has no E1C frame.
 - The AK8 `RecoJet` pt includes the JER smearing (MC); `jecPt` does not. The AK4 `AK4Jet` pt has the re-applied V4 JEC
   and no JER; the AK8 jets keep the MiniAOD JEC.
 - Table and column names follow the configuration. Code reading these files should take the names from the YAML used

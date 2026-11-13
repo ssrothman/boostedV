@@ -340,7 +340,8 @@ jets:
         applyPuppiWeights: true
         puppiValueMap: ''    # '' = pat::PackedCandidate::puppiWeight()
         jetIdVersion: RUN3PUPPIruns2022FGruns2023CD
-      jetCuts: {ptMin: 200.0, absEtaMax: 2.4, idMask: 1, minConstituents: 1}   # idMask bit 0 tight, bit 1 tightLepVeto
+      jetCuts: {ptMin: 200.0, absEtaMax: 2.4, idMask: 1, minConstituents: 2}   # idMask bit 0 tight, bit 1 tightLepVeto;
+                               # minConstituents >= 2 (schema): a one-particle jet has no E1C frame
       constituentCuts: {ptMin: 0.0, chargedOnly: false, keepAbsPdgIds: [], dropAbsPdgIds: [], minPuppiWeight: 0.0}
       cleaningDR: 0.8
       retag:                   # taggers not stored in this MiniAOD, run on a copy of src
@@ -513,7 +514,7 @@ jets:
       src: slimmedGenJetsAK8
       R: 0.8
       translator: {ptMin: 180.0}
-      jetCuts: {ptMin: 200.0, absEtaMax: 2.4, idMask: 0, minConstituents: 1}
+      jetCuts: {ptMin: 200.0, absEtaMax: 2.4, idMask: 0, minConstituents: 2}
       constituentCuts: {ptMin: 0.0, chargedOnly: false, keepAbsPdgIds: [], dropAbsPdgIds: [], minPuppiWeight: 0.0}
       cleaningDR: 0.8
       table: {name: GenJet, precision: -1, extraVariables: []}

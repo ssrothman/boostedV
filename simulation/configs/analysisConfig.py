@@ -164,6 +164,8 @@ def crossCheck(cfg):
                 bad = (set(spec.get('jetCuts', {})) - jetCutKeys) | (set(spec.get('constituentCuts', {})) - constCutKeys)
                 if bad:
                     p.append('%s/variations/%s: unknown cut keys %s' % (where, v, sorted(bad)))
+                if spec.get('jetCuts', {}).get('minConstituents', 2) < 2:
+                    p.append('%s/variations/%s: jetCuts minConstituents must be >= 2' % (where, v))
         names = [c['table']['name'] + v for v in [''] + list(c.get('variations', {}))]
         for n in names:
             if n in tables:
