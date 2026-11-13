@@ -540,10 +540,25 @@ class BuiltProcess(unittest.TestCase):
 
     def test_jets_cleaned_against_own_level(self):
         p = buildProcess()
-        reco = labels(p.jetsReco.vetoSrcs)
-        gen = labels(p.jetsGen.vetoSrcs)
-        self.assertEqual(reco, ['ZmumuSel', 'ZeeSel', 'WmunuSel', 'WenuSel', 'GammaJetsSel'])
-        self.assertEqual(gen, ['genZmumuSel', 'genZeeSel', 'genWmunuSel', 'genWenuSel', 'genGammaJetsSel'])
+        chans = ['Zmumu', 'Zee', 'Wmunu', 'Wenu', 'GammaJets']
+        # Jets are not removed; every jet table (nominal and variations) gets per-channel veto flags.
+        self.assertEqual(list(p.jetsReco.vetoSrcs), [])
+        for jets, prefix, table in (('jetsReco', '', 'RecoJet'), ('jetsRecoJESUp', '', 'RecoJetJESUp'), ('jetsGen', 'gen', 'GenJet')):
+            v = getattr(p, jets + 'VetoTable')
+            self.assertEqual((v.src.getModuleLabel(), list(v.channels), v.name.value(), v.vetoDR.value()), (jets, chans, table, 0.8))
+            self.assertEqual(labels(v.vetoSrcs), [prefix + c + 'Sel' for c in chans])
+            self.assertIn(jets + 'VetoTable', p.outPath.moduleNames())
+        # Channel X's aggregators skip the jets vetoed by X only.
+        for ch in ('Zmumu', 'Zee'):
+            for level in ('reco', 'gen'):
+                for obs, jets in (('RecoE2C', 'jetsReco'), ('RecoJESUpE3C', 'jetsRecoJESUp'), ('GenE1C', 'jetsGen')):
+                    m = getattr(p, '%s_%s_eec%s' % (ch, level, obs)).jetMask
+                    self.assertEqual((m.getModuleLabel(), m.getProductInstanceLabel()), (jets + 'VetoTable', ch))
+        cfg = loadDefault()
+        cfg['jets']['cleaning']['channels'] = ['GammaJets']
+        p2 = buildProcess(cfg)
+        self.assertEqual(p2.Zmumu_reco_eecRecoE2C.jetMask.getModuleLabel(), '')
+        self.assertEqual(list(p2.jetsRecoVetoTable.channels), ['GammaJets'])
         self.assertEqual(p.genWmunuSel.met.getModuleLabel(), 'genParticleLevel')
         self.assertEqual(p.genWmunuSel.met.getProductInstanceLabel(), 'mets')
         self.assertEqual(p.WmunuSel.met.getModuleLabel(), 'slimmedMETsPuppi')

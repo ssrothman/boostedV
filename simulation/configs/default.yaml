@@ -325,7 +325,8 @@ selection:
         nMax: 1
 
 jets:
-  cleaning:                  # jets within cleaningDR of these channels' selected objects are removed;
+  cleaning:                  # jets are kept; each jet table gets veto<ch> (within cleaningDR of channel ch's selected
+                             # objects) for these channels, and channel ch's aggregated histograms skip its vetoed jets
     channels: [Zmumu, Zee, Wmunu, Wenu, GammaJets]   # reco jets use the reco objects, gen jets the gen objects
   collections:
     Reco:

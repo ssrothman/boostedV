@@ -35,7 +35,7 @@ cmsRun eecNano_cfg.py config=default.yaml globalTag=<GT> inputFiles=file:in.root
   - `gen` (MC): Rivet particle-level settings, objects (cuts on dressed leptons or isolated photons), and channels without triggers. The default kinematic cuts mirror the reco ones.
   - A channel type is `dilepton`, `leptonMET` or `singleObject`; a new channel needs only a YAML entry.
 - **`jets`:**
-  - which channels' selected objects clean the jets (reco jets use the reco objects, gen jets the gen objects);
+  - which channels' selected objects flag the jets (`veto<ch>` columns; jets are kept; channel ch's aggregated histograms skip its vetoed jets; reco jets use the reco objects, gen jets the gen objects);
   - the jet collections: reco/gen, MiniAOD jets or reclustering, the translator, jet and constituent cuts, the table name, JME correctionlib keys (`jerc`), and variations (MC only).
   - A collection with `mcOnly: true` is skipped in data. The constituent-variation sizes are placeholders.
 - **`observables`:** E2C/E3C (`penc`) and E1C (`e1c`) specs. They are computed for every jet collection and variation; tables are named `<Collection><Variation><observable>`.

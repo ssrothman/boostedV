@@ -77,7 +77,7 @@ for name, spec in cfg['jets']['collections'].items():
     if spec['mcOnly'] and not isMC:
         continue
     # Each level's jets are cleaned against that level's selected objects.
-    vetoes = selectedObjects(sel[spec['level']], spec['level'], cleaning)
+    vetoes = dict(zip(cleaning, selectedObjects(sel[spec['level']], spec['level'], cleaning)))
     labels = setupJets(process, 'jets' + name, spec, isMC, vetoSrcs=vetoes,
                        writeConstituents=bool(opts.writeConstituents), task=task)
     collections += [(name + v, label) for v, label in labels.items()]
@@ -94,11 +94,13 @@ for level in levels:
         seq = getattr(process, label(level, ch) + 'Filter')
         # Reco-level MC histograms carry the channel's muon efficiency scale factors.
         weights = [muonSFLabel(ch)] if isMC and level == 'reco' and ch in sel['reco']['muonScaleFactors'] else []
-        for prefix, _ in collections:
+        for prefix, jets in collections:
+            # Jets overlapping this channel's selected objects are skipped (other channels' vetoes are not applied).
+            mask = '%sVetoTable:%s' % (jets, ch) if ch in cleaning else ''
             for obs in agg['observables']:
                 lab = 'eec%s%s' % (prefix, obs)
                 seq = seq + addAggregator(process, '%s_%s_%s' % (ch, level, lab), lab, cfg['observables'][obs],
-                                          genInfo, agg['maxBins'], weights)
+                                          genInfo, agg['maxBins'], weights, mask)
         setattr(process, '%s_%s_AggPath' % (ch, level), cms.Path(seq, task))
 
 # ---- event-level tables ----

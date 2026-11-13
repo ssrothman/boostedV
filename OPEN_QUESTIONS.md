@@ -30,9 +30,13 @@ Details: `simulation/EventSelection/README.md` § "Muon corrections: points to c
 
 ## Analysis decisions (us)
 1. **Default muon recipe.** `default.yaml` uses the medium recipe (`momentum: pf`, Tight ID, Tight PF iso, IsoMu24 SFs). Yet about half the muons in PTLL-400to600 have pT > 200 GeV, and the wiki recommends the high-pT recipe (or both) for such samples. A worked hybrid recipe exists: `simulation/EventSelection/test/validation/muonRecipes.py`.
-2. **Constituent-variation sizes** (`JetSetup` `CONSTITUENT_VARIATIONS`) are invented placeholders: charged-hadron drop 2%; charged, neutral and photon scales ±1%, ±5% and ±2%.
-3. **Coupling conventions.** Get a stated conversion between CMS g′_q, ATLAS axial-vector g_q and the flavour-universal g_q before quoting any comparison (`literature/checkin.md` §6.2).
-4. **Literature ranges and the `plan.tex` step-4 edit.** Decide on the proposal in `literature/checkin.md` §4 and §6.6.
+2. **E1C of one-particle jets.** Jets are no longer removed near leptons, so the jet and EEC tables contain, for
+   example, gen jets made of a single electron. Their E1C angles are undefined (the particle is at rest in the jet
+   frame), and the stored bin is arbitrary. Should E1C need ≥ 2 constituents, or a stated convention? Channel X's
+   histograms skip X's vetoed jets, but not other channels' (1 such gen jet in 1000 PTLL events).
+3. **Constituent-variation sizes** (`JetSetup` `CONSTITUENT_VARIATIONS`) are invented placeholders: charged-hadron drop 2%; charged, neutral and photon scales ±1%, ±5% and ±2%.
+4. **Coupling conventions.** Get a stated conversion between CMS g′_q, ATLAS axial-vector g_q and the flavour-universal g_q before quoting any comparison (`literature/checkin.md` §6.2).
+5. **Literature ranges and the `plan.tex` step-4 edit.** Decide on the proposal in `literature/checkin.md` §4 and §6.6.
 
 ## Not yet verified
 1. CRAB grid sites reading the `/cvmfs/cms-griddata.cern.ch` correction files (only LPC condor workers are checked).

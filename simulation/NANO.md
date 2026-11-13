@@ -55,6 +55,7 @@ MC-only families.
 | AK4 jets | Events | `output.ak4Jets.enabled` | `output.ak4Jets.name` | `output.ak4Jets`: `src`, `cut`, `jec` keys (MC or data), `jetIdVersion`, `variables` |
 | Muon SFs | Events | MC, one per key of `selection.reco.muonScaleFactors` | `<ch>MuonSF` | the channel's term list: column names come from the term `name`s |
 | Jets | Events | one per jet collection and variation | `<table.name><variation>` | `jets.collections.<C>`: `src`, `mode`, cuts, `cleaningDR`, `table.precision`; `jets.cleaning.channels`; `variations` (MC only); `mcOnly` collections are skipped in data |
+| Jet veto flags | Events | every jet table, if `jets.cleaning.channels` is not empty | extends the jet table: `veto<ch>` | `jets.cleaning.channels`, the collection's `cleaningDR`; the channel's selected objects at the jet's level |
 | Jet extension columns | Events | nominal table of a reco `pat` collection with `table.extraVariables` or `retag` | same table | `table.extraVariables` (PAT expressions on the MiniAOD jet; `mcOnly` ones skipped in data); `retag.variables` (on the re-tagged copy; taggers `retag.taggers`) |
 | Jet constituents | Events | cmsRun `writeConstituents=1` | `<jet table>Constituents` | `constituentCuts`, `translator` |
 | EEC per-jet and entries | Events | one per jet collection × variation × observable | `<C><variation><obs>`, `<C><variation><obs>Entries` | `observables.<obs>`: `kind`, `N`, `n`, `weight`, `angle`/`frame`, `norm`, `output`, `axes`, `table` |
@@ -156,7 +157,12 @@ Singleton `<ch>MuonSF` for each channel listed in `selection.reco.muonScaleFacto
 
 ### 4.5 Jets and constituents
 One jet table per collection and per variation: `<table.name>` for the nominal, `<table.name><variation>` otherwise.
-The rows are the selected jets (after `jetCuts`, cleaning and constituent selection), in the order of the source collection.
+The rows are the selected jets (after `jetCuts` and constituent selection), in the order of the source collection.
+Jets near leptons or photons are **not removed**. Every jet table (nominal and variations) carries one bool column
+`veto<ch>` per channel in `jets.cleaning.channels`: true if the jet is within the collection's `cleaningDR` of a selected
+object of channel `<ch>` (reco jets: reco objects; gen jets: gen objects). The EEC tables keep the same rows, so the
+flags apply to them through `iJet`. The aggregated histograms of channel `<ch>` skip the jets with `veto<ch>`, and only
+those; other channels' vetoes are not applied.
 
 | Column | Type | Meaning |
 |---|---|---|
@@ -338,6 +344,9 @@ Measured on 300 events of `DYto2L-4Jets_MLL-50_PTLL-400to600` (Summer22EE MC, 22
 - The muon SF and the pileup weights are not applied to anything in the NANO. Multiply `<ch>MuonSF_nominal` and
   `Pileup_weight` into the MC weights yourself; the aggregated histograms include the muon SF but not the pileup weight.
 - `MET` is the PF MET, as in standard NanoAOD; the MET the W selections use is `SelectionMET` (PUPPI in `default.yaml`).
+- Jets overlapping leptons or photons are in the jet and EEC tables. To reproduce what the aggregated histograms of
+  channel X use, drop the jets with `veto<X>`. They include, for example, a gen jet made of a single electron, whose E1C
+  angles are undefined (the particle is at rest in the jet frame).
 - The AK8 `RecoJet` pt includes the JER smearing (MC); `jecPt` does not. The AK4 `AK4Jet` pt has the re-applied V4 JEC
   and no JER; the AK8 jets keep the MiniAOD JEC.
 - Table and column names follow the configuration. Code reading these files should take the names from the YAML used

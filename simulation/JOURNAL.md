@@ -15,6 +15,7 @@
 - 2026-11-12 Selected leptons and MET in the NANO
 - 2026-11-12 NANO documentation
 - 2026-11-13 NANO additions: event tables, AK8/AK4 jets, lepton details, GloParT
+- 2026-11-13 Jets flagged, not removed, near selected objects
 
 ## 2026-11-11 A.2 setup and DataFormats
 - Plan: `stepA2_plan.md`. New local repos (remotes pending): `EECDataFormats` (pkg `SRothman/DataFormats`),
@@ -266,3 +267,16 @@
   - Singleton tables take no `cut`.
 - GloParT class scores do not sum to 1 per jet (NanoAOD's are identical).
 - Not covered on real events: the photon columns (no GammaJets events in the DY file) and gen-level W leptons.
+
+## 2026-11-13 Jets flagged, not removed, near selected objects
+- User decisions: one bool column per cleaning channel; channel X's aggregators skip X's vetoed jets only.
+- `EECJetOverlapProducer` (JetSetup) gives a `veto<ch>` extension on every jet table and a per-channel `vector<bool>`.
+  `EECAggregator` has a `jetMask`. `EECJetSelector` no longer gets veto sources from `setupJets`.
+- 1000 PTLL events:
+  - `RecoJet` rows 1056 → 1283 and `GenJet` 1011 → 1510; e.g. 111 reco jets with `vetoZmumu`.
+  - `checkEndToEnd` (updated to apply `veto<ch>`) 36/36 for default and hybrid, with 109 (reco) / 248 (gen) Zmumu-vetoed
+    jets skipped in the recomputation.
+  - Data: 11 jets (was 10), one with `vetoWmunu`.
+  - Unit tests: 4/4 mutations caught (mask inverted/ignored, channel mix-up, ΔR threshold).
+- Exposed: a one-electron gen jet whose E1C angles are undefined (rest-frame direction of a single particle). The check
+  skips one-particle jets for E1C; question in `OPEN_QUESTIONS.md`.

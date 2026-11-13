@@ -3,7 +3,8 @@ Usage: python3 checkEndToEnd.py nano.root hists.root
  (i)   E2C/E3C/E1C entries vs a brute-force numpy computation from the constituent table
  (ii)  sum rule: every jet's weights sum to 1 (Pt weights, sumPt norm, n = 1)
  (iii) aggregator H and C vs a recomputation from the NANO entries and Generator_weight (times ZmumuMuonSF_nominal
-       at reco level, if stored), for Zmumu events at each selection level in the histogram file
+       at reco level, if stored), for Zmumu events at each selection level in the histogram file, skipping the jets
+       with <jet table>_vetoZmumu (if stored)
 """
 import sys
 import numpy as np
@@ -93,6 +94,7 @@ for level in ('Reco', 'Gen'):
     sums = {k: [] for k in obs}
     nj = skipped = 0
     unexplained = {k: 0 for k in obs}
+    single = 0
     for e in range(len(ev[jt + '_pt'])):
         for j in range(len(ev[jt + '_pt'][e])):
             pt, eta, phi, E = constituents(jt, e, j)
@@ -103,7 +105,11 @@ for level in ('Reco', 'Gen'):
             ref = [penc(pt, eta, phi, 2), penc(pt, eta, phi, 3),
                    # float64 jet kinematics: in float32 the rest frame of a light, boosted jet is badly conditioned.
                    e1c(pt, eta, phi, E, *(float(ev[jt + v][e][j]) for v in ('_pt', '_eta', '_phi', '_mass')))]
+            single += len(pt) == 1
             for k, r in zip(obs, ref):
+                # A one-particle jet has no E1C frame (the particle is at rest in the jet frame): angles are arbitrary.
+                if k.endswith('E1C') and len(pt) == 1:
+                    continue
                 s = stored(k, e, j, len(r))
                 d = s - r
                 if k.endswith('E1C') and not singleMigration(d, pt / pt.sum()):
@@ -114,8 +120,8 @@ for level in ('Reco', 'Gen'):
         if k.endswith('E1C'):
             # Float-stored inputs may move one particle into an adjacent bin; anything else is a failure.
             report('%s vs brute force' % k, nj >= 20 and unexplained[k] == 0,
-                   'jets %d, not explained by a single-particle edge migration %d, max sum|diff| %.2e'
-                   % (nj, unexplained[k], worst[k]))
+                   'jets %d (%d one-particle jets not compared), not explained by a single-particle edge migration %d, '
+                   'max sum|diff| %.2e' % (nj, single, unexplained[k], worst[k]))
         else:
             # Float-stored inputs can move a tuple across a bin edge; allow 1e-3 of the total weight.
             report('%s vs brute force' % k, nj >= 20 and worst[k] < 1e-3,
@@ -130,8 +136,14 @@ for level, flag in (('reco', 'Selection_Zmumu'), ('gen', 'GenSelection_Zmumu')):
         H = np.zeros(nb)
         C = np.zeros((nb, nb))
         sw = 0.0
+        veto = ('RecoJet' if obs.startswith('Reco') else 'GenJet') + '_vetoZmumu'
+        nVetoed = 0
         for e in np.nonzero(ev[flag])[0]:
-            h = np.bincount(ev[obs + 'Entries_bin'][e], weights=ev[obs + 'Entries_weight'][e], minlength=nb)
+            keep = np.ones(len(ev[obs + 'Entries_bin'][e]), bool)
+            if veto in ev:
+                keep = ~ev[veto][e][ev[obs + 'Entries_iJet'][e]]
+                nVetoed += int(ev[veto][e].sum())
+            h = np.bincount(ev[obs + 'Entries_bin'][e][keep], weights=ev[obs + 'Entries_weight'][e][keep], minlength=nb)
             w = float(ev['Generator_weight'][e])
             if level == 'reco' and 'ZmumuMuonSF_nominal' in ev:
                 w *= float(ev['ZmumuMuonSF_nominal'][e])
@@ -146,5 +158,5 @@ for level, flag in (('reco', 'Selection_Zmumu'), ('gen', 'GenSelection_Zmumu')):
         report(tag + ' H', np.allclose(hv, H, rtol=1e-4, atol=1e-6 * scale), 'max|diff| %.2e (max H %.2e)' % (np.abs(hv - H).max(), scale))
         report(tag + ' C', np.allclose(hc, C, rtol=1e-4, atol=1e-6 * max(np.abs(C).max(), 1e-30)), 'max|diff| %.2e' % np.abs(hc - C).max())
         report(tag + ' sumW', np.isclose(d['sumW'].member('fVal'), sw, rtol=1e-4),
-               'aggregator %.6g vs nano %.6g' % (d['sumW'].member('fVal'), sw))
+               'aggregator %.6g vs nano %.6g; Zmumu-vetoed jets skipped %d' % (d['sumW'].member('fVal'), sw, nVetoed))
 sys.exit(0 if ok else 1)
