@@ -21,9 +21,9 @@ NON-NEGOTIABLE If you are working in a repository that has skills defined: searc
 When code is added:
 
 1. **Write the minimal program or edit** that achieves the goal.
-2. **Add unit tests** to ensure the behavior is correct.
+2. **Add unit tests** only for behavior that is nontrivial, complex, or easy to get wrong (a configuration value, a rename, or a one-line wiring change needs none).
 3. **Carefully review the written code** (including the unit tests!) WITHOUT running it for logical correctness, efficiency, and bugs.
-4. **Run the code and the unit tests**, and validate the behavior. Also run any pre-existing unit tests to ensure that the new changes have not broken any previous behavior.
+4. **Run the code and the tests that could plausibly fail** because of the change, and validate the behavior. Run a pre-existing test only if the change could plausibly break it; do not rerun the full suite for a minor or configuration-only change.
 5. **IF THERE ARE ANY BUGS**: return to step one and loop
 6. **Return to me only if**:
    - There are no known issues with the new code.
@@ -45,7 +45,7 @@ If you catch yourself arguing in a comment that a hazard is tolerable, stop: say
 - Ensure that it is completely clear what the desired behavior should be. If it is unclear or ambiguous, ask additional questions.
 - For large tasks write a clear plan and confer with the human about whether the plan is correct. The plan should be in a dedicated markdown file to avoid context creep.
 - Make only the SMALLEST change that achieves the clear objective. Do not touch any code that is not related to the task at hand.
-- All new behavior should be documented and covered by unit tests.
+- All new behavior should be documented; nontrivial behavior should also be covered by unit tests.
 
 ## Research documentation
 
@@ -74,7 +74,7 @@ Prefix PR descriptions and comments on PRs with the line `:robot: AI text below 
 
 ## Code review and testing
 
-NON-NEGOTIABLE Tests that you write for code shall always be provably non-vacuous and discriminating. Provide evidence of these properties in your reports. A report leads with the verdict and carries evidence only for the claims its reader must act on.
+NON-NEGOTIABLE Tests that you do write shall always be provably non-vacuous and discriminating. Provide evidence of these properties in your reports. A report leads with the verdict and carries evidence only for the claims its reader must act on.
 
 NON-NEGOTIABLE When reviewing code: verify findings adversarially. A single finding is not enough to conclude a fix is correct—ensure the fix actually addresses the root cause and doesn't introduce new issues.
 
