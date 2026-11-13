@@ -20,10 +20,11 @@ Details: `simulation/EventSelection/README.md` § "Muon corrections: points to c
    - High: smearing seeded per (run, lumi, event, muon index), applied only for TuneP pT ≥ 200 GeV and |η| < 2.4.
 2. **High-pT κ_b formula, sign, units and target sample.** Meanwhile κ_b is in c/TeV, and q/pT → q/pT + κ_b on MC (`kappaTarget: mc`).
 3. **Medium scale above 200 GeV.** The POG C++ corrects it, while the Python and the stated validity do not. Meanwhile `highPtThreshold: 200`.
-4. **PUPPI MET with TuneP muons (Wmunu).** The wiki asks for PF MET to be corrected by the TuneP − PF muon pT difference. Does this also apply to PUPPI MET, and how? Not implemented.
-5. **Trigger SF with more than one muon.** The trigger SF uses only HLT-matched muons. What should be done when several muons match? Meanwhile only the highest-pT matched muon gets the trigger SF.
-6. **Trigger fired but no selected muon matches an HLT object.** This happens when the trigger was fired by another object, e.g. a muon failing the Tight PF iso: 2 of about 730 single-tight-muon test events, both rejected by the Wmunu veto. What should the trigger SF be? Meanwhile a warning is emitted and the event gets no trigger SF (factor 1).
-7. **Out of scope until asked:** the impact-parameter (dxy/dz) pileup-loss systematic for the Tight and HighPt IDs (the wiki leaves it to the analysis); the >500 GeV manual scale-shift sanity check; and the 2024/2025 high-pT κ_b tables, which are only in an SSO-protected PDF.
+4. **Medium-regime lower pT bound.** What is the correct lower bound for the MuonScaRe scale and smearing? Our selections accept muons down to 15 GeV (Zmumu sublead, `tightMuons`), so muons at 15–26 GeV stay uncorrected. Meanwhile `lowPtThreshold: 26`, the default of the POG reference code.
+5. **PUPPI MET with TuneP muons (Wmunu).** The wiki asks for PF MET to be corrected by the TuneP − PF muon pT difference. Does this also apply to PUPPI MET, and how? Not implemented.
+6. **Trigger SF with more than one muon.** The trigger SF uses only HLT-matched muons. What should be done when several muons match? Meanwhile only the highest-pT matched muon gets the trigger SF.
+7. **Trigger fired but no selected muon matches an HLT object.** This happens when the trigger was fired by another object, e.g. a muon failing the Tight PF iso: 2 of about 730 single-tight-muon test events, both rejected by the Wmunu veto. What should the trigger SF be? Meanwhile a warning is emitted and the event gets no trigger SF (factor 1).
+8. **Out of scope until asked:** the impact-parameter (dxy/dz) pileup-loss systematic for the Tight and HighPt IDs (the wiki leaves it to the analysis); the >500 GeV manual scale-shift sanity check; and the 2024/2025 high-pT κ_b tables, which are only in an SSO-protected PDF.
 
 ## Ask JME
 1. **JRV2 JER SF uncertainty.** The stored `unc` matches JRV1's absolute shift (up − nom), but the reference code applies SF·(1 ± unc). Meanwhile we follow the reference. Details: `simulation/JME_JRV2_SFUncertainty.md` (to report).
