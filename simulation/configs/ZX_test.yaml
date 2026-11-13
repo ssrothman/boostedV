@@ -1,0 +1,546 @@
+# Z+X test configuration: default.yaml restricted to the Zmumu and Zee channels, without jet variations, with a
+# loose reco selection (kinematic cuts only, Z mass +- 30 GeV) for studying ID, isolation and trigger cuts offline.
+# Validated against analysis.schema.yaml by analysisConfig.py: unknown or missing keys are errors.
+# Per-job settings (input/output files, maxEvents, isMC, writeConstituents) are cmsRun arguments instead.
+# Values marked "placeholder" are invented for development and are not CMS recommendations.
+
+inputs:                      # MiniAOD collection labels
+  muons: slimmedMuons
+  electrons: slimmedElectrons
+  photons: slimmedPhotons
+  pfCandidates: packedPFCandidates   # photons for reco lepton dressing
+  met: slimmedMETsPuppi
+  vertices: offlineSlimmedPrimaryVertices
+  secondaryVertices: slimmedSecondaryVertices   # SV table
+  genEventInfo: generator    # MC only; event weights for the aggregators
+  lheInfo: [externalLHEProducer, source]   # MC only; LHEEventProduct labels, the first present is used
+  genVertex: genParticles    # MC only; module of the xyz0 / t0 gen-vertex products
+  pileupInfo: slimmedAddPileupInfo   # MC only; input of the pileup weights
+  hltProcess: HLT
+  triggerObjects: slimmedPatTrigger   # HLT objects (muon trigger SFs, triggerMatched columns)
+  metFilterProcess: PAT      # process holding the Flag_* MET-filter paths
+  prunedGenParticles: prunedGenParticles     # MC only; input to the Rivet particle level
+  packedGenParticles: packedGenParticles
+
+selection:
+  # Levels whose selections define a selected event: [reco], [gen] or [reco, gen] (the OR). Events passing any
+  # enabled level are written, with all observables. In MC both levels are always evaluated and their flags
+  # stored; in data only reco exists.
+  levels: [reco, gen]
+
+  reco:
+    vertex: {ndofMin: 4.0, absZMax: 24.0, rhoMax: 2.0}   # first PV must pass
+    metFilters:                # all must pass (Run-3 list)
+      - Flag_goodVertices
+      - Flag_globalSuperTightHalo2016Filter
+      - Flag_EcalDeadCellTriggerPrimitiveFilter
+      - Flag_BadPFMuonFilter
+      - Flag_BadPFMuonDzFilter
+      - Flag_hfNoisyHitsFilter
+      - Flag_eeBadScFilter
+      - Flag_ecalBadCalibFilter
+
+    # Reco lepton dressing (photons added to muon and electron momenta):
+    #   none  no dressing (the `objects` cut is the whole selection; every dressedCut must be "")
+    #   fsr   CMSSW LeptonFSRProducer (as for NanoAOD FsrPhoton): at most one isolated PF photon per lepton,
+    #         outside electron footprints, with dR/ET^2 below deltaROverEt2Max
+    #   cone  Rivet-like: every PF photon within coneSize of the nearest lepton, outside electron footprints
+    # With dressing, `cut` selects the leptons before dressing and `dressedCut` (a candidate cut on the dressed
+    # four-vector) after it; move the pt/eta cuts to dressedCut to mirror the gen level. Isolation is not
+    # recomputed: PFIso still counts the dressing photons.
+    # Muon momentum assignment and MUO POG Run-3 corrections, applied before every muon selection.
+    # momentum: pf (PF pt; "medium-pT" regime), tuneP (TuneP pt; "high-pT" regime), or hybrid (per muon: TuneP if the
+    # PF pt >= regimeThreshold). Each muon carries userInt('highPtRegime') (0 or 1) for the object cuts.
+    # With apply:
+    #  - medium regime: "MuonScaRe" (Z-peak method, CMS-DP-2024-065), scale in data and MC, resolution smearing in MC,
+    #    for lowPtThreshold <= pt <= highPtThreshold. Its random number depends only on the event number, as in the POG code.
+    #  - high regime, TuneP pt >= highPt.ptMin: Generalized-Endpoint kappa_b (MUO POG wiki tables for highPt.era),
+    #    q/pt -> q/pt + kappa_b on MC (kappaTarget mc) or q/pt - kappa_b on data (kappaTarget data), then the wiki's
+    #    MC smearing p -> p (1 + N(0, sigma(p, eta) f)).
+    #    TODO confirm with the MUO POG: the kappa_b formula, its sign and which sample it corrects.
+    #    TODO ask the MUO POG: the smearing and its systematics in every mode (medium, high, hybrid);
+    #    the PUPPI MET correction for TuneP muons (Wmunu, not implemented).
+    muonCorrections:
+      apply: true
+      momentum: hybrid
+      regimeThreshold: 200.0
+      correctionFile: /cvmfs/cms-griddata.cern.ch/cat/metadata/MUO/Run3-22EFGSep23-Summer22EE-NanoAODv12/latest/muon_scalesmearing.json.gz
+      lowPtThreshold: 26.0
+      highPtThreshold: 200.0   # stated validity; the POG C++ example corrects the scale at all pt above lowPtThreshold
+      # MC only: nominal | scaleUp | scaleDown | resolutionUp | resolutionDown (medium regime);
+      # highPtScaleUp | highPtScaleDown (kappa_b uncertainty) | highPtResolution (extra smearing, f = 0.46) (high regime)
+      variation: nominal
+      # TODO clarify with the MUO POG: the k in the resolution variation differs between the POG references
+      # (cpp: sqrt(k_data^2 - k_mc^2) as in MuonScaRe.cc; python: k_mc as in MuonScaRe.py).
+      resolutionVariationK: cpp
+      highPt: {era: 2022postEE, ptMin: 200.0, kappaTarget: mc}
+
+    # MC only: muon efficiency scale factors per channel, as an event weight applied to the channel's reco aggregated
+    # histograms and stored in the <channel>MuonSF NanoAOD table (nominal, <name>_{stat,syst}{Up,Down}). Each term
+    # applies to the selected muons of its regime (see muonCorrections.momentum). Trigger terms (one per possible regime,
+    # or none; `paths` among the channel's triggers) apply only to the triggering muon: the highest-pt selected muon
+    # matched (dR < 0.1) to an HLT object of the last filter of a fired path in `paths`. If a path fired but no muon
+    # matches, a warning is emitted and there is no trigger SF.
+    # TODO ask the MUO POG: the trigger SF when several muons match (provisional: highest-pt matched muon only), and
+    # when none matches (provisional: no trigger SF).
+    # outOfRange: error, or skip (SF 1).
+    # High-pT example (momentum hybrid or tuneP; channel triggers IsoMu24 || Mu50 || CascadeMu100 || HighPtTkMu100,
+    # objects with passed('CutBasedIdGlobalHighPt') && passed('TkIsoLoose') for userInt('highPtRegime') == 1):
+    #   - {name: highReco, regime: high, file: <MUO dir>/muon_HighPt.json.gz, key: NUM_GlobalMuons_DEN_TrackerMuonProbes, trigger: false, paths: [], outOfRange: error}
+    #   - {name: highId, regime: high, file: <MUO dir>/muon_HighPt.json.gz, key: NUM_HighPtID_DEN_GlobalMuonProbes, trigger: false, paths: [], outOfRange: error}
+    #   - {name: highIso, regime: high, file: <MUO dir>/muon_HighPt.json.gz, key: NUM_probe_LooseRelTkIso_DEN_HighPtProbes, trigger: false, paths: [], outOfRange: error}
+    #   - {name: highTrig, regime: high, file: <MUO dir>/muon_Z.json.gz, key: NUM_IsoMu24_or_Mu50_or_CascadeMu100_or_HighPtTkMu100_DEN_CutBasedIdGlobalHighPt_and_TkIsoLoose, trigger: true, paths: <the four channel triggers>, outOfRange: skip}
+    # with, for the medium regime, the trigger key NUM_IsoMu24_or_Mu50_or_CascadeMu100_or_HighPtTkMu100_DEN_CutBasedIdTight_and_PFIsoTight.
+    muonScaleFactors: {}       # none: the default SFs are for Tight ID and PF iso
+
+    objectTables:              # columns added to the reco <ch>Leptons / <ch>Objects tables, from the matched PAT object
+                               # (built in: undressedPt, triggerMatched against the channel triggers)
+      muons:
+        - {name: dxy, type: float, precision: -1, doc: 'transverse impact parameter w.r.t. the first PV (cm)',
+           expr: 'dB(''PV2D'')'}
+        - {name: dz, type: float, precision: -1, doc: 'longitudinal impact parameter w.r.t. the first PV (cm)',
+           expr: 'dB(''PVDZ'')'}
+        - {name: highPtRegime, type: int16, precision: -1, doc: 'muon momentum regime (0 medium, 1 high; -1: no momentum assignment)',
+           expr: '?hasUserInt(''highPtRegime'')?userInt(''highPtRegime''):-1'}
+        - {name: tunePPt, type: float, precision: -1, doc: 'TuneP pt (uncorrected)',
+           expr: 'tunePMuonBestTrack().pt()'}
+        - {name: originalPt, type: float, precision: -1, doc: 'pt of the input MiniAOD muon, before the momentum assignment and corrections',
+           expr: 'userFloat(''originalPt'')'}
+        - {name: pfRelIso04, type: float, precision: -1, doc: 'PF relative isolation, dR 0.4, delta-beta corrected',
+           expr: '(pfIsolationR04().sumChargedHadronPt + max(pfIsolationR04().sumNeutralHadronEt + pfIsolationR04().sumPhotonEt - pfIsolationR04().sumPUPt/2, 0.0))/pt'}
+        - {name: tkRelIso, type: float, precision: -1, doc: 'tracker relative isolation, dR 0.3, w.r.t. the TuneP pt',
+           expr: 'isolationR03().sumPt/tunePMuonBestTrack().pt()'}
+        - {name: looseId, type: bool, precision: -1, doc: 'muon CutBasedIdLoose',
+           expr: 'passed(''CutBasedIdLoose'')'}
+        - {name: mediumId, type: bool, precision: -1, doc: 'muon CutBasedIdMedium',
+           expr: 'passed(''CutBasedIdMedium'')'}
+        - {name: tightId, type: bool, precision: -1, doc: 'muon CutBasedIdTight',
+           expr: 'passed(''CutBasedIdTight'')'}
+        - {name: highPtId, type: bool, precision: -1, doc: 'muon CutBasedIdGlobalHighPt',
+           expr: 'passed(''CutBasedIdGlobalHighPt'')'}
+        - {name: trkHighPtId, type: bool, precision: -1, doc: 'muon CutBasedIdTrkHighPt',
+           expr: 'passed(''CutBasedIdTrkHighPt'')'}
+        - {name: pfIsoId, type: uint8, precision: -1, doc: 'PF isolation WP from the MiniAOD selectors (1 VeryLoose, 2 Loose, 3 Medium, 4 Tight, 5 VeryTight, 6 VeryVeryTight)',
+           expr: 'passed(''PFIsoVeryLoose'')+passed(''PFIsoLoose'')+passed(''PFIsoMedium'')+passed(''PFIsoTight'')+passed(''PFIsoVeryTight'')+passed(''PFIsoVeryVeryTight'')'}
+        - {name: tkIsoId, type: uint8, precision: -1, doc: 'tracker isolation WP from the MiniAOD selectors (1 Loose, 2 Tight)',
+           expr: 'passed(''TkIsoLoose'')+passed(''TkIsoTight'')'}
+      electrons:
+        - {name: dxy, type: float, precision: -1, doc: 'transverse impact parameter w.r.t. the first PV (cm)',
+           expr: 'dB(''PV2D'')'}
+        - {name: dz, type: float, precision: -1, doc: 'longitudinal impact parameter w.r.t. the first PV (cm)',
+           expr: 'dB(''PVDZ'')'}
+        - {name: scEta, type: float, precision: -1, doc: 'supercluster eta',
+           expr: 'superCluster().eta()'}
+        - {name: cutBased, type: uint8, precision: -1, doc: 'cut-based ID RunIIIWinter22 V1 (0 fail, 1 veto, 2 loose, 3 medium, 4 tight)',
+           expr: 'electronID(''cutBasedElectronID-RunIIIWinter22-V1-veto'')+electronID(''cutBasedElectronID-RunIIIWinter22-V1-loose'')+electronID(''cutBasedElectronID-RunIIIWinter22-V1-medium'')+electronID(''cutBasedElectronID-RunIIIWinter22-V1-tight'')'}
+        - {name: pfRelIso03, type: float, precision: -1, doc: 'PF relative isolation, dR 0.3, delta-beta corrected',
+           expr: '(pfIsolationVariables().sumChargedHadronPt + max(pfIsolationVariables().sumNeutralHadronEt + pfIsolationVariables().sumPhotonEt - 0.5*pfIsolationVariables().sumPUPt, 0.0))/pt'}
+        - {name: r9, type: float, precision: -1, doc: 'R9 (full 5x5)',
+           expr: 'full5x5_r9()'}
+        - {name: heepId, type: bool, precision: -1, doc: 'electron HEEP V7.1 ID',
+           expr: 'electronID(''heepElectronID-HEEPV71'') > 0.5'}
+        - {name: mvaIsoWP80, type: bool, precision: -1, doc: 'electron MVA ID with isolation RunIIIWinter22 V1, WP80',
+           expr: 'electronID(''mvaEleID-RunIIIWinter22-iso-V1-wp80'') > 0.5'}
+        - {name: mvaIsoWP90, type: bool, precision: -1, doc: 'electron MVA ID with isolation RunIIIWinter22 V1, WP90',
+           expr: 'electronID(''mvaEleID-RunIIIWinter22-iso-V1-wp90'') > 0.5'}
+        - {name: mvaNoIsoWP80, type: bool, precision: -1, doc: 'electron MVA ID without isolation RunIIIWinter22 V1, WP80',
+           expr: 'electronID(''mvaEleID-RunIIIWinter22-noIso-V1-wp80'') > 0.5'}
+        - {name: mvaNoIsoWP90, type: bool, precision: -1, doc: 'electron MVA ID without isolation RunIIIWinter22 V1, WP90',
+           expr: 'electronID(''mvaEleID-RunIIIWinter22-noIso-V1-wp90'') > 0.5'}
+      photons:
+        - {name: scEta, type: float, precision: -1, doc: 'supercluster eta',
+           expr: 'superCluster().eta()'}
+        - {name: cutBased, type: uint8, precision: -1, doc: 'cut-based ID RunIIIWinter22 122X V1 (0 fail, 1 loose, 2 medium, 3 tight)',
+           expr: 'photonID(''cutBasedPhotonID-RunIIIWinter22-122X-V1-loose'')+photonID(''cutBasedPhotonID-RunIIIWinter22-122X-V1-medium'')+photonID(''cutBasedPhotonID-RunIIIWinter22-122X-V1-tight'')'}
+        - {name: pixelSeed, type: bool, precision: -1, doc: 'has a pixel seed',
+           expr: 'hasPixelSeed()'}
+        - {name: electronVeto, type: bool, precision: -1, doc: 'passes the conversion-safe electron veto',
+           expr: 'passElectronVeto()'}
+        - {name: pfRelIso03, type: float, precision: -1, doc: 'PF relative isolation, dR 0.3',
+           expr: '(chargedHadronIso()+neutralHadronIso()+photonIso())/pt'}
+        - {name: r9, type: float, precision: -1, doc: 'R9 (full 5x5)',
+           expr: 'full5x5_r9()'}
+        - {name: sieie, type: float, precision: -1, doc: 'sigma ieta ieta (full 5x5)',
+           expr: 'full5x5_sigmaIetaIeta()'}
+        - {name: hoe, type: float, precision: -1, doc: 'H/E',
+           expr: 'hadronicOverEm()'}
+
+    dressing:
+      mode: none
+      fsr: {muonPtMin: 3.0, muonEtaMax: 2.4, elePtMin: 5.0, eleEtaMax: 2.5, photonPtMin: 2.0,
+            deltaROverEt2Max: 0.05, isolation: 2.0}
+      cone: {coneSize: 0.1, photonPtMin: 0.0, applyPuppiWeights: true}
+
+    objects:                   # PAT string cuts; source is one of muons, electrons, photons
+      looseMuons:
+        source: muons
+        cut: "pt > 15 && abs(eta) < 2.4"
+        dressedCut: ""
+      looseElectrons:
+        source: electrons
+        cut: "pt > 15 && abs(superCluster().eta()) < 2.5 && (abs(superCluster().eta()) < 1.4442 || abs(superCluster().eta()) > 1.566)"
+        dressedCut: ""
+
+    # Channel types:
+    #   dilepton      OS pair from `objects` closest to targetMass within [massMin, massMax]
+    #   leptonMET     exactly one `objects` lepton above ptMin, no other lepton in `vetoes`, MET and mT cuts
+    #   singleObject  nMin <= N(objects) <= nMax and all `vetoes` empty
+    channels:
+      Zmumu:
+        type: dilepton
+        triggers: ['HLT_IsoMu24_v*', 'HLT_Mu50_v*', 'HLT_CascadeMu100_v*', 'HLT_HighPtTkMu100_v*']
+        allowMissingTriggers: false
+        objects: looseMuons
+        leadPtMin: 26.0
+        subleadPtMin: 15.0
+        massMin: 61.1876
+        massMax: 121.1876
+        oppositeCharge: true
+        targetMass: 91.1876
+      Zee:
+        type: dilepton
+        triggers: ['HLT_Ele32_WPTight_Gsf_v*', 'HLT_Ele115_CaloIdVT_GsfTrkIdT_v*', 'HLT_Photon200_v*']
+        allowMissingTriggers: false
+        objects: looseElectrons
+        leadPtMin: 35.0
+        subleadPtMin: 15.0
+        massMin: 61.1876
+        massMax: 121.1876
+        oppositeCharge: true
+        targetMass: 91.1876
+
+  # Generator level (MC only): Rivet particle-level objects, i.e. prompt final-state leptons dressed with photons,
+  # isolated prompt photons, and MET from prompt neutrinos. There are no trigger, vertex, MET-filter, ID or isolation
+  # requirements; the kinematic cuts mirror the reco ones.
+  gen:
+    particleLevel:           # ParticleLevelProducer settings, as in NanoAOD's particle level
+      usePromptFinalStates: true
+      particleMinPt: 0.0
+      particleMaxEta: 5.0
+      lepConeSize: 0.1       # photon dressing cone
+      lepMinPt: 1.0
+      lepMaxEta: 2.5
+      phoIsoConeSize: 0.4
+      phoMaxRelIso: 0.5
+      phoMinPt: 1.0
+      phoMaxEta: 2.5
+    objects:                 # candidate string cuts; source is leptons (dressed) or photons
+      genTightMuons:
+        source: leptons
+        cut: "abs(pdgId) == 13 && pt > 15 && abs(eta) < 2.4"
+      genTightElectrons:
+        source: leptons
+        cut: "abs(pdgId) == 11 && pt > 15 && abs(eta) < 2.5 && (abs(eta) < 1.4442 || abs(eta) > 1.566)"
+    channels:                # same types as reco, without triggers
+      Zmumu:
+        type: dilepton
+        objects: genTightMuons
+        leadPtMin: 26.0
+        subleadPtMin: 15.0
+        massMin: 61.1876
+        massMax: 121.1876
+        oppositeCharge: true
+        targetMass: 91.1876
+      Zee:
+        type: dilepton
+        objects: genTightElectrons
+        leadPtMin: 35.0
+        subleadPtMin: 15.0
+        massMin: 61.1876
+        massMax: 121.1876
+        oppositeCharge: true
+        targetMass: 91.1876
+
+jets:
+  cleaning:                  # jets are kept; each jet table gets veto<ch> (within cleaningDR of channel ch's selected
+                             # objects) for these channels, and channel ch's aggregated histograms skip its vetoed jets
+    channels: [Zmumu, Zee]   # reco jets use the reco objects, gen jets the gen objects
+  collections:
+    Reco:
+      level: reco            # reco | gen
+      mode: pat              # pat (MiniAOD jets) | recluster (fastjet on candidates)
+      mcOnly: false
+      src: slimmedJetsAK8
+      R: 0.8
+      translator:
+        ptMin: 180.0         # must exceed 170: slimmedJetsAK8 has no constituents below that
+        applyPuppiWeights: true
+        puppiValueMap: ''    # '' = pat::PackedCandidate::puppiWeight()
+        jetIdVersion: RUN3PUPPIruns2022FGruns2023CD
+      jetCuts: {ptMin: 200.0, absEtaMax: 2.4, idMask: 1, minConstituents: 2}   # idMask bit 0 tight, bit 1 tightLepVeto;
+                               # minConstituents >= 2 (schema): a one-particle jet has no E1C frame
+      constituentCuts: {ptMin: 0.0, chargedOnly: false, keepAbsPdgIds: [], dropAbsPdgIds: [], minPuppiWeight: 0.0}
+      cleaningDR: 0.8
+      retag:                   # taggers not stored in this MiniAOD, run on a copy of src
+        taggers: [GlobalParT]   # GlobalParticleTransformer AK8 (GloParT 3, model V03)
+        vertices: offlineSlimmedPrimaryVertices
+        secondaryVertices: slimmedSecondaryVertices
+        jecPayload: AK8PFPuppi  # GlobalTag JECs the tagger re-applies (as NanoAOD); the EEC jets keep the MiniAOD JECs
+        variables:              # columns from the re-tagged jets (NanoAOD FatJet globalParT3_*), nominal table only
+          - {name: globalParT3_Xbb, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 X->bb score. Note: For sig vs bkg (e.g. bkg=QCD) tagging, use sig/(sig+bkg) to construct the discriminator',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probXbb'')'}
+          - {name: globalParT3_Xcc, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 X->cc score',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probXcc'')'}
+          - {name: globalParT3_Xcs, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 X->cs score',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probXcs'')'}
+          - {name: globalParT3_Xqq, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 X->qq (ss/dd/uu) score',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probXqq'')'}
+          - {name: globalParT3_Xtauhtaue, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 X->tauhtaue score',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probXtauhtaue'')'}
+          - {name: globalParT3_Xtauhtaum, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 X->tauhtaum score',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probXtauhtaum'')'}
+          - {name: globalParT3_Xtauhtauh, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 X->tauhtauh score',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probXtauhtauh'')'}
+          - {name: globalParT3_XWW4q, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 X->WW4q score',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probXWW4q'')'}
+          - {name: globalParT3_XWW3q, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 X->WW3q score',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probXWW3q'')'}
+          - {name: globalParT3_XWWqqev, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 X->WWqqev score',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probXWWqqev'')'}
+          - {name: globalParT3_XWWqqmv, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 X->WWqqmv score',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probXWWqqmv'')'}
+          - {name: globalParT3_TopbWqq, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 Top->bWqq score',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probTopbWqq'')'}
+          - {name: globalParT3_TopbWq, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 Top->bWq score',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probTopbWq'')'}
+          - {name: globalParT3_TopbWev, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 Top->bWev score',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probTopbWev'')'}
+          - {name: globalParT3_TopbWmv, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 Top->bWmv score',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probTopbWmv'')'}
+          - {name: globalParT3_TopbWtauhv, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 Top->bWtauhv score',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probTopbWtauhv'')'}
+          - {name: globalParT3_QCD, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 QCD score.',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probQCD'')'}
+          - {name: globalParT3_WvsQCD, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 (Xqq+Xcs/Xqq+Xcs+QCD) binarized score.',
+             expr: '?bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probXqq'')+bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probXcs'')+bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probQCD'')>0?(bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probXqq'')+bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probXcs''))/(bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probXqq'')+bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probXcs'')+bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probQCD'')):-1'}
+          - {name: globalParT3_massCorrX2p, type: float, precision: 10, mcOnly: false, doc: 'GlobalParT-3 mass regression corrector with respect to the original jet mass, optimised for resonance 2-prong (bb/cc/cs/ss/qq) jets. Use (massCorrX2p * mass * (1 - rawFactor)) to get the regressed mass',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:massCorrX2p'')'}
+          - {name: globalParT3_massCorrGeneric, type: float, precision: 10, mcOnly: false, doc: 'GlobalParT-3 mass regression corrector with respect to the original jet mass, optimised for generic jet cases. Use (massCorrGeneric * mass * (1 - rawFactor)) to get the regressed mass',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:massCorrGeneric'')'}
+          - {name: globalParT3_withMassTopvsQCD, type: float, precision: 10, mcOnly: false, doc: 'GlobalParT-3 tagger (w/mass) Top vs QCD discriminator',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probWithMassTopvsQCD'')'}
+          - {name: globalParT3_withMassWvsQCD, type: float, precision: 10, mcOnly: false, doc: 'GlobalParT-3 tagger (w/mass) W vs QCD discriminator',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probWithMassWvsQCD'')'}
+          - {name: globalParT3_withMassZvsQCD, type: float, precision: 10, mcOnly: false, doc: 'GlobalParT-3 tagger (w/mass) Z vs QCD discriminator',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probWithMassZvsQCD'')'}
+      table:
+        name: RecoJet
+        precision: -1
+        extraVariables:          # nominal table only, pat-mode reco jets: columns from the source pat::Jet (NanoAODv12 FatJet set)
+          - {name: jecPt, type: float, precision: -1, mcOnly: false, doc: 'pt with the MiniAOD JEC, before JER smearing',
+             expr: 'pt'}
+          - {name: area, type: float, precision: 10, mcOnly: false, doc: 'jet catchment area',
+             expr: 'jetArea()'}
+          - {name: rawFactor, type: float, precision: 10, mcOnly: false, doc: '1 - factor to get back to raw pt',
+             expr: '1.-jecFactor(''Uncorrected'')'}
+          - {name: tau1, type: float, precision: 10, mcOnly: false, doc: 'N-subjettiness (1 axis)',
+             expr: 'userFloat(''NjettinessAK8Puppi:tau1'')'}
+          - {name: tau2, type: float, precision: 10, mcOnly: false, doc: 'N-subjettiness (2 axis)',
+             expr: 'userFloat(''NjettinessAK8Puppi:tau2'')'}
+          - {name: tau3, type: float, precision: 10, mcOnly: false, doc: 'N-subjettiness (3 axis)',
+             expr: 'userFloat(''NjettinessAK8Puppi:tau3'')'}
+          - {name: tau4, type: float, precision: 10, mcOnly: false, doc: 'N-subjettiness (4 axis)',
+             expr: 'userFloat(''NjettinessAK8Puppi:tau4'')'}
+          - {name: n2b1, type: float, precision: 10, mcOnly: false, doc: 'N2 with beta=1 (raw pt > 250)',
+             expr: '?hasUserFloat(''nb1AK8PuppiSoftDrop:ecfN2'')?userFloat(''nb1AK8PuppiSoftDrop:ecfN2''):-99999.'}
+          - {name: n3b1, type: float, precision: 10, mcOnly: false, doc: 'N3 with beta=1 (raw pt > 250)',
+             expr: '?hasUserFloat(''nb1AK8PuppiSoftDrop:ecfN3'')?userFloat(''nb1AK8PuppiSoftDrop:ecfN3''):-99999.'}
+          - {name: msoftdrop, type: float, precision: 10, mcOnly: false, doc: 'corrected soft-drop mass (PUPPI)',
+             expr: 'groomedMass(''SoftDropPuppi'')'}
+          - {name: particleNetWithMass_QCD, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet (w/ mass) QCD sum',
+             expr: 'bDiscriminator(''pfParticleNetJetTags:probQCDbb'')+bDiscriminator(''pfParticleNetJetTags:probQCDcc'')+bDiscriminator(''pfParticleNetJetTags:probQCDb'')+bDiscriminator(''pfParticleNetJetTags:probQCDc'')+bDiscriminator(''pfParticleNetJetTags:probQCDothers'')'}
+          - {name: particleNetWithMass_TvsQCD, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet (w/ mass) TvsQCD',
+             expr: 'bDiscriminator(''pfParticleNetDiscriminatorsJetTags:TvsQCD'')'}
+          - {name: particleNetWithMass_WvsQCD, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet (w/ mass) WvsQCD',
+             expr: 'bDiscriminator(''pfParticleNetDiscriminatorsJetTags:WvsQCD'')'}
+          - {name: particleNetWithMass_ZvsQCD, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet (w/ mass) ZvsQCD',
+             expr: 'bDiscriminator(''pfParticleNetDiscriminatorsJetTags:ZvsQCD'')'}
+          - {name: particleNetWithMass_H4qvsQCD, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet (w/ mass) H4qvsQCD',
+             expr: 'bDiscriminator(''pfParticleNetDiscriminatorsJetTags:H4qvsQCD'')'}
+          - {name: particleNetWithMass_HbbvsQCD, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet (w/ mass) HbbvsQCD',
+             expr: 'bDiscriminator(''pfParticleNetDiscriminatorsJetTags:HbbvsQCD'')'}
+          - {name: particleNetWithMass_HccvsQCD, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet (w/ mass) HccvsQCD',
+             expr: 'bDiscriminator(''pfParticleNetDiscriminatorsJetTags:HccvsQCD'')'}
+          - {name: particleNet_QCD, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet QCD (0+1+2 HF) sum',
+             expr: 'bDiscriminator(''pfParticleNetFromMiniAODAK8JetTags:probQCD2hf'')+bDiscriminator(''pfParticleNetFromMiniAODAK8JetTags:probQCD1hf'')+bDiscriminator(''pfParticleNetFromMiniAODAK8JetTags:probQCD0hf'')'}
+          - {name: particleNet_QCD2HF, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet QCD 2HF score',
+             expr: 'bDiscriminator(''pfParticleNetFromMiniAODAK8JetTags:probQCD2hf'')'}
+          - {name: particleNet_QCD1HF, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet QCD 1HF score',
+             expr: 'bDiscriminator(''pfParticleNetFromMiniAODAK8JetTags:probQCD1hf'')'}
+          - {name: particleNet_QCD0HF, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet QCD 0HF score',
+             expr: 'bDiscriminator(''pfParticleNetFromMiniAODAK8JetTags:probQCD0hf'')'}
+          - {name: particleNet_massCorr, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet mass regression, relative to the JEC-corrected mass',
+             expr: 'bDiscriminator(''pfParticleNetFromMiniAODAK8JetTags:masscorr'')'}
+          - {name: particleNet_XbbVsQCD, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet Xbb vs QCD',
+             expr: 'bDiscriminator(''pfParticleNetFromMiniAODAK8DiscriminatorsJetTags:HbbvsQCD'')'}
+          - {name: particleNet_XccVsQCD, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet Xcc vs QCD',
+             expr: 'bDiscriminator(''pfParticleNetFromMiniAODAK8DiscriminatorsJetTags:HccvsQCD'')'}
+          - {name: particleNet_XqqVsQCD, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet Xqq vs QCD',
+             expr: 'bDiscriminator(''pfParticleNetFromMiniAODAK8DiscriminatorsJetTags:HqqvsQCD'')'}
+          - {name: particleNet_XggVsQCD, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet Xgg vs QCD',
+             expr: 'bDiscriminator(''pfParticleNetFromMiniAODAK8DiscriminatorsJetTags:HggvsQCD'')'}
+          - {name: particleNet_XttVsQCD, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet Xtt vs QCD',
+             expr: 'bDiscriminator(''pfParticleNetFromMiniAODAK8DiscriminatorsJetTags:HttvsQCD'')'}
+          - {name: particleNet_XtmVsQCD, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet Xtm vs QCD',
+             expr: 'bDiscriminator(''pfParticleNetFromMiniAODAK8DiscriminatorsJetTags:HtmvsQCD'')'}
+          - {name: particleNet_XteVsQCD, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet Xte vs QCD',
+             expr: 'bDiscriminator(''pfParticleNetFromMiniAODAK8DiscriminatorsJetTags:HtevsQCD'')'}
+          - {name: chHEF, type: float, precision: 10, mcOnly: false, doc: 'charged hadron energy fraction',
+             expr: '?isPFJet()?chargedHadronEnergyFraction():-1'}
+          - {name: neHEF, type: float, precision: 10, mcOnly: false, doc: 'neutral hadron energy fraction',
+             expr: '?isPFJet()?neutralHadronEnergyFraction():-1'}
+          - {name: chEmEF, type: float, precision: 10, mcOnly: false, doc: 'charged EM energy fraction',
+             expr: '?isPFJet()?chargedEmEnergyFraction():-1'}
+          - {name: neEmEF, type: float, precision: 10, mcOnly: false, doc: 'neutral EM energy fraction',
+             expr: '?isPFJet()?neutralEmEnergyFraction():-1'}
+          - {name: muEF, type: float, precision: 10, mcOnly: false, doc: 'muon energy fraction',
+             expr: '?isPFJet()?muonEnergyFraction():-1'}
+          - {name: chMultiplicity, type: int16, precision: -1, mcOnly: false, doc: '(PUPPI-weighted) charged multiplicity',
+             expr: '?isPFJet()?chargedMultiplicity():-1'}
+          - {name: neMultiplicity, type: int16, precision: -1, mcOnly: false, doc: '(PUPPI-weighted) neutral multiplicity',
+             expr: '?isPFJet()?neutralMultiplicity():-1'}
+          - {name: subJetIdx1, type: int16, precision: -1, mcOnly: false, doc: 'index of the first soft-drop subjet in the MiniAOD subjet collection',
+             expr: '?nSubjetCollections()>0 && subjets(''SoftDropPuppi'').size()>0?subjets(''SoftDropPuppi'')[0].key():-1'}
+          - {name: subJetIdx2, type: int16, precision: -1, mcOnly: false, doc: 'index of the second soft-drop subjet in the MiniAOD subjet collection',
+             expr: '?nSubjetCollections()>0 && subjets(''SoftDropPuppi'').size()>1?subjets(''SoftDropPuppi'')[1].key():-1'}
+          - {name: hadronFlavour, type: uint8, precision: -1, mcOnly: true, doc: 'hadron flavour (ghost tagging)',
+             expr: 'hadronFlavour()'}
+          - {name: partonFlavour, type: int16, precision: -1, mcOnly: true, doc: 'parton flavour',
+             expr: 'partonFlavour()'}
+          - {name: nBHadrons, type: uint8, precision: -1, mcOnly: true, doc: 'number of b-hadrons clustered in the jet',
+             expr: 'jetFlavourInfo().getbHadrons().size()'}
+          - {name: nCHadrons, type: uint8, precision: -1, mcOnly: true, doc: 'number of c-hadrons clustered in the jet',
+             expr: 'jetFlavourInfo().getcHadrons().size()'}
+      jerc:                  # MC only: nominal JER smearing and the JES/JER variations
+        correctionFile: /cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-22EFGSep23-Summer22EE-NanoAODv12/latest/fatJet_jerc.json.gz
+        jesKey: Summer22EE_22Sep2023_V4_MC_Total_AK8PFPuppi
+        jerScaleFactorKey: Summer22EE_22Sep2023_JRV2_MC_ScaleFactor_AK8PFPuppi
+        jerScaleFactorUncertaintyKey: Summer22EE_22Sep2023_JRV2_MC_SFUncertainty_AK8PFPuppi   # up/down: SF * (1 +- unc)
+        jerResolutionKey: Summer22EE_22Sep2023_JRV2_MC_PtResolution_AK8PFPuppi
+        rho: fixedGridRhoFastjetAll
+        genJets: slimmedGenJetsAK8
+        jerSeedSalt: 0
+      variations: {}         # MC only; none for this test
+    Gen:
+      level: gen
+      mode: pat
+      mcOnly: true
+      src: slimmedGenJetsAK8
+      R: 0.8
+      translator: {ptMin: 180.0}
+      jetCuts: {ptMin: 200.0, absEtaMax: 2.4, idMask: 0, minConstituents: 2}
+      constituentCuts: {ptMin: 0.0, chargedOnly: false, keepAbsPdgIds: [], dropAbsPdgIds: [], minPuppiWeight: 0.0}
+      cleaningDR: 0.8
+      table: {name: GenJet, precision: -1, extraVariables: []}
+
+# Computed for every jet collection and variation; NANO tables are named <Collection><Variation><observable>.
+observables:
+  E2C:
+    kind: penc
+    N: 2
+    n: 1.0
+    weight: Pt               # Energy | Pt
+    angle: DeltaR            # DeltaR | Angle3D
+    norm: sumPt              # sumE | sumPt | jetE | jetPt | unity
+    output: SparseMerged     # Dense | SparseMerged | SparseUnmerged | Unbinned
+    axes: [{type: log, nbins: 50, lo: 0.001, hi: 1.0}]
+    table: {weightPrecision: -1}
+  E3C:
+    kind: penc
+    N: 3
+    n: 1.0
+    weight: Pt
+    angle: DeltaR
+    norm: sumPt
+    output: SparseMerged
+    axes: [{type: log, nbins: 50, lo: 0.001, hi: 1.0}]
+    table: {weightPrecision: -1}
+  E1C:
+    kind: e1c
+    n: 1.0
+    weight: Pt
+    frame: jetHelicity       # lab | jetHelicity | jetCS
+    norm: sumPt
+    output: SparseMerged
+    axes:
+      - {type: regular, nbins: 20, lo: 0.0, hi: 3.141592653589793}
+      - {type: regular, nbins: 20, lo: -3.141592653589793, hi: 3.141592653589793}
+    table: {weightPrecision: -1}
+
+aggregation:                 # histograms with covariance, written to histFile
+  channels: [Zmumu, Zee]     # one set per channel and enabled level, filled from events passing that channel at that
+                             # level, for every jet collection: <channel>_<level>_eec<Collection><Variation><observable>
+  observables: [E2C, E3C, E1C]
+  maxBins: 5000              # memory guard for the covariance
+
+output:
+  keepHLTBits: true
+  mcEventTables: true        # genWeights (Runs-tree sums), Pileup, Generator
+  lheTables: true            # MC only: LHE (HT, Njets, Vpt, ...) and LHEPart (LHE particles), as in standard NanoAOD
+  metTables:                 # table name: pat::MET label; each also gives Raw<name>; in MC also GenMET (from the first)
+    MET: slimmedMETs           # type-1 PF MET (standard NanoAOD v12 name)
+    PuppiMET: slimmedMETsPuppi
+  vertexTables: true         # PV, OtherPV, SV; in MC also GenVtx
+  rhoTable: [fixedGridRhoAll, fixedGridRhoFastjetAll, fixedGridRhoFastjetCentralNeutral, fixedGridRhoFastjetCentralCalo,
+             fixedGridRhoFastjetCentral, fixedGridRhoFastjetCentralChargedPileUp]   # Rho table; [] disables
+  genParticles: true         # MC only: GenPart with the standard NanoAOD pruning
+  pileupWeights:             # MC only, needs mcEventTables: Pileup_weight{,Up,Down}; file '' disables
+    file: /cvmfs/cms-griddata.cern.ch/cat/metadata/LUM/Run3-22EFGSep23-Summer22EE-NanoAODv12/latest/puWeights.json.gz
+    key: Collisions2022_359022_362760_eraEFG_GoldenJson
+  ak4Jets:                   # AK4 PUPPI jets, JECs re-applied in-job; not used by the selection or the EECs
+    enabled: true
+    name: AK4Jet
+    src: slimmedJetsPuppi
+    rho: fixedGridRhoFastjetAll
+    cut: 'pt > 20 && abs(eta) < 4.7'   # on the re-corrected jets
+    jetIdVersion: RUN3PUPPIruns2022FGruns2023CD
+    jec:
+      correctionFile: /cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-22EFGSep23-Summer22EE-NanoAODv12/latest/jet_jerc.json.gz
+      mcKey: Summer22EE_22Sep2023_V4_MC_L1L2L3Res_AK4PFPuppi
+      dataKey: Summer22EE_22Sep2023_V4_DATA_L1L2L3Res_AK4PFPuppi
+      uncKey: Summer22EE_22Sep2023_V4_MC_Total_AK4PFPuppi   # '' = no jesUncTotal column
+    variables:                 # built in: pt, eta, phi, mass, rawPt, jecFactor, jetId, srcIdx, jesUncTotal
+      - {name: area, type: float, precision: 10, mcOnly: false, doc: 'jet catchment area',
+         expr: 'jetArea()'}
+      - {name: btagDeepFlavB, type: float, precision: 10, mcOnly: false, doc: 'DeepJet b+bb+lepb',
+         expr: 'bDiscriminator(''pfDeepFlavourJetTags:probb'')+bDiscriminator(''pfDeepFlavourJetTags:probbb'')+bDiscriminator(''pfDeepFlavourJetTags:problepb'')'}
+      - {name: btagDeepFlavCvL, type: float, precision: 10, mcOnly: false, doc: 'DeepJet c vs uds+g',
+         expr: '?(bDiscriminator(''pfDeepFlavourJetTags:probc'')+bDiscriminator(''pfDeepFlavourJetTags:probuds'')+bDiscriminator(''pfDeepFlavourJetTags:probg''))>0?bDiscriminator(''pfDeepFlavourJetTags:probc'')/(bDiscriminator(''pfDeepFlavourJetTags:probc'')+bDiscriminator(''pfDeepFlavourJetTags:probuds'')+bDiscriminator(''pfDeepFlavourJetTags:probg'')):-1'}
+      - {name: btagDeepFlavCvB, type: float, precision: 10, mcOnly: false, doc: 'DeepJet c vs b+bb+lepb',
+         expr: '?(bDiscriminator(''pfDeepFlavourJetTags:probc'')+bDiscriminator(''pfDeepFlavourJetTags:probb'')+bDiscriminator(''pfDeepFlavourJetTags:probbb'')+bDiscriminator(''pfDeepFlavourJetTags:problepb''))>0?bDiscriminator(''pfDeepFlavourJetTags:probc'')/(bDiscriminator(''pfDeepFlavourJetTags:probc'')+bDiscriminator(''pfDeepFlavourJetTags:probb'')+bDiscriminator(''pfDeepFlavourJetTags:probbb'')+bDiscriminator(''pfDeepFlavourJetTags:problepb'')):-1'}
+      - {name: btagDeepFlavQG, type: float, precision: 10, mcOnly: false, doc: 'DeepJet g vs uds',
+         expr: '?(bDiscriminator(''pfDeepFlavourJetTags:probg'')+bDiscriminator(''pfDeepFlavourJetTags:probuds''))>0?bDiscriminator(''pfDeepFlavourJetTags:probg'')/(bDiscriminator(''pfDeepFlavourJetTags:probg'')+bDiscriminator(''pfDeepFlavourJetTags:probuds'')):-1'}
+      - {name: btagPNetB, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet b vs udscg',
+         expr: '?bDiscriminator(''pfParticleNetFromMiniAODAK4PuppiCentralDiscriminatorsJetTags:BvsAll'')>0?bDiscriminator(''pfParticleNetFromMiniAODAK4PuppiCentralDiscriminatorsJetTags:BvsAll''):-1'}
+      - {name: btagPNetCvL, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet c vs udsg',
+         expr: '?bDiscriminator(''pfParticleNetFromMiniAODAK4PuppiCentralDiscriminatorsJetTags:CvsL'')>0?bDiscriminator(''pfParticleNetFromMiniAODAK4PuppiCentralDiscriminatorsJetTags:CvsL''):-1'}
+      - {name: btagPNetCvB, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet c vs b',
+         expr: '?bDiscriminator(''pfParticleNetFromMiniAODAK4PuppiCentralDiscriminatorsJetTags:CvsB'')>0?bDiscriminator(''pfParticleNetFromMiniAODAK4PuppiCentralDiscriminatorsJetTags:CvsB''):-1'}
+      - {name: btagPNetTauVJet, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet tau vs jet',
+         expr: '?bDiscriminator(''pfParticleNetFromMiniAODAK4PuppiCentralDiscriminatorsJetTags:TauVsJet'')>0?bDiscriminator(''pfParticleNetFromMiniAODAK4PuppiCentralDiscriminatorsJetTags:TauVsJet''):-1'}
+      - {name: btagPNetQvG, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet q vs g',
+         expr: '?abs(eta())<2.5?bDiscriminator(''pfParticleNetFromMiniAODAK4PuppiCentralDiscriminatorsJetTags:QvsG''):bDiscriminator(''pfParticleNetFromMiniAODAK4PuppiForwardDiscriminatorsJetTags:QvsG'')'}
+      - {name: btagRobustParTAK4B, type: float, precision: 10, mcOnly: false, doc: 'RobustParT b vs udscg',
+         expr: '?bDiscriminator(''pfParticleTransformerAK4DiscriminatorsJetTags:BvsAll'')>0?bDiscriminator(''pfParticleTransformerAK4DiscriminatorsJetTags:BvsAll''):-1'}
+      - {name: btagRobustParTAK4CvL, type: float, precision: 10, mcOnly: false, doc: 'RobustParT c vs udsg',
+         expr: '?bDiscriminator(''pfParticleTransformerAK4DiscriminatorsJetTags:CvsL'')>0?bDiscriminator(''pfParticleTransformerAK4DiscriminatorsJetTags:CvsL''):-1'}
+      - {name: btagRobustParTAK4CvB, type: float, precision: 10, mcOnly: false, doc: 'RobustParT c vs b',
+         expr: '?bDiscriminator(''pfParticleTransformerAK4DiscriminatorsJetTags:CvsB'')>0?bDiscriminator(''pfParticleTransformerAK4DiscriminatorsJetTags:CvsB''):-1'}
+      - {name: btagRobustParTAK4QG, type: float, precision: 10, mcOnly: false, doc: 'RobustParT q vs g',
+         expr: '?bDiscriminator(''pfParticleTransformerAK4DiscriminatorsJetTags:QvsG'')>0?bDiscriminator(''pfParticleTransformerAK4DiscriminatorsJetTags:QvsG''):-1'}
+      - {name: chHEF, type: float, precision: 10, mcOnly: false, doc: 'charged hadron energy fraction',
+         expr: 'chargedHadronEnergyFraction()'}
+      - {name: neHEF, type: float, precision: 10, mcOnly: false, doc: 'neutral hadron energy fraction',
+         expr: 'neutralHadronEnergyFraction()'}
+      - {name: chEmEF, type: float, precision: 10, mcOnly: false, doc: 'charged EM energy fraction',
+         expr: 'chargedEmEnergyFraction()'}
+      - {name: neEmEF, type: float, precision: 10, mcOnly: false, doc: 'neutral EM energy fraction',
+         expr: 'neutralEmEnergyFraction()'}
+      - {name: muEF, type: float, precision: 10, mcOnly: false, doc: 'muon energy fraction',
+         expr: 'muonEnergyFraction()'}
+      - {name: nConstituents, type: uint8, precision: -1, mcOnly: false, doc: 'number of constituents',
+         expr: 'numberOfDaughters()'}
+      - {name: hadronFlavour, type: uint8, precision: -1, mcOnly: true, doc: 'hadron flavour (ghost tagging)',
+         expr: 'hadronFlavour()'}
+      - {name: partonFlavour, type: int16, precision: -1, mcOnly: true, doc: 'parton flavour',
+         expr: 'partonFlavour()'}
