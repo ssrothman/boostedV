@@ -13,6 +13,29 @@ definitions:
   num: {type: number}
   uint: {type: integer, minimum: 0}
 
+  objectVariable:            # one column from a PAT string expression on a matched lepton or photon
+    type: object
+    additionalProperties: false
+    required: [name, expr, type, doc, precision]
+    properties:
+      name: {type: string, pattern: '^[A-Za-z][A-Za-z0-9_]*$', not: {enum: [undressedPt, triggerMatched]}}
+      expr: {$ref: '#/definitions/str'}
+      type: {enum: [float, int, int16, uint8, bool]}
+      doc: {type: string}
+      precision: {type: integer}
+
+  tableVariable:             # one column from a PAT string expression on the source object
+    type: object
+    additionalProperties: false
+    required: [name, expr, type, doc, precision, mcOnly]
+    properties:
+      name: {type: string, pattern: '^[A-Za-z][A-Za-z0-9_]*$'}
+      expr: {$ref: '#/definitions/str'}
+      type: {enum: [float, int, int16, uint8, bool]}
+      doc: {type: string}
+      precision: {type: integer}
+      mcOnly: {type: boolean}
+
   axis:
     oneOf:
       - type: object
@@ -200,13 +223,24 @@ definitions:
       jetCuts: {$ref: '#/definitions/jetCuts'}
       constituentCuts: {$ref: '#/definitions/constituentCuts'}
       cleaningDR: {$ref: '#/definitions/num'}
+      retag:
+        type: object
+        additionalProperties: false
+        required: [taggers, vertices, secondaryVertices, jecPayload, variables]
+        properties:
+          taggers: {type: array, uniqueItems: true, items: {enum: [GlobalParT]}}
+          vertices: {$ref: '#/definitions/str'}
+          secondaryVertices: {$ref: '#/definitions/str'}
+          jecPayload: {$ref: '#/definitions/str'}
+          variables: {type: array, items: {$ref: '#/definitions/tableVariable'}}
       table:
         type: object
         additionalProperties: false
-        required: [name, precision]
+        required: [name, precision, extraVariables]
         properties:
           name: {$ref: '#/definitions/str'}
           precision: {type: integer}
+          extraVariables: {type: array, items: {$ref: '#/definitions/tableVariable'}}
       jerc:
         type: object
         additionalProperties: false
@@ -266,7 +300,8 @@ properties:
   inputs:
     type: object
     additionalProperties: false
-    required: [muons, electrons, photons, pfCandidates, met, vertices, genEventInfo, lheInfo, hltProcess, triggerObjects,
+    required: [muons, electrons, photons, pfCandidates, met, vertices, secondaryVertices, genEventInfo, lheInfo, genVertex,
+               pileupInfo, hltProcess, triggerObjects,
                metFilterProcess, prunedGenParticles, packedGenParticles]
     properties:
       muons: {$ref: '#/definitions/str'}
@@ -276,6 +311,9 @@ properties:
       met: {$ref: '#/definitions/str'}
       vertices: {$ref: '#/definitions/str'}
       genEventInfo: {$ref: '#/definitions/str'}
+      secondaryVertices: {$ref: '#/definitions/str'}
+      genVertex: {$ref: '#/definitions/str'}
+      pileupInfo: {$ref: '#/definitions/str'}
       lheInfo: {$ref: '#/definitions/strList'}
       hltProcess: {$ref: '#/definitions/str'}
       triggerObjects: {$ref: '#/definitions/str'}
@@ -295,7 +333,7 @@ properties:
       reco:
         type: object
         additionalProperties: false
-        required: [vertex, metFilters, muonCorrections, muonScaleFactors, dressing, objects, channels]
+        required: [vertex, metFilters, muonCorrections, muonScaleFactors, objectTables, dressing, objects, channels]
         properties:
           muonCorrections:
             type: object
@@ -320,6 +358,14 @@ properties:
                   era: {enum: [2022preEE, 2022postEE, 2023preBPix, 2023postBPix]}
                   ptMin: {$ref: '#/definitions/num'}
                   kappaTarget: {enum: [mc, data]}
+          objectTables:
+            type: object
+            additionalProperties: false
+            required: [muons, electrons, photons]
+            properties:
+              muons: {type: array, items: {$ref: '#/definitions/objectVariable'}}
+              electrons: {type: array, items: {$ref: '#/definitions/objectVariable'}}
+              photons: {type: array, items: {$ref: '#/definitions/objectVariable'}}
           muonScaleFactors:
             type: object
             additionalProperties:
@@ -452,8 +498,45 @@ properties:
   output:
     type: object
     additionalProperties: false
-    required: [keepHLTBits, mcEventTables, lheTables]
+    required: [keepHLTBits, mcEventTables, lheTables, metTables, vertexTables, rhoTable, genParticles, pileupWeights, ak4Jets]
     properties:
       keepHLTBits: {type: boolean}
       mcEventTables: {type: boolean}
       lheTables: {type: boolean}
+      metTables:
+        type: object
+        propertyNames: {pattern: '^[A-Z][A-Za-z0-9]*$'}
+        additionalProperties: {$ref: '#/definitions/str'}
+      vertexTables: {type: boolean}
+      rhoTable: {type: array, items: {enum: [fixedGridRhoAll, fixedGridRhoFastjetAll, fixedGridRhoFastjetCentralNeutral,
+                                             fixedGridRhoFastjetCentralCalo, fixedGridRhoFastjetCentral,
+                                             fixedGridRhoFastjetCentralChargedPileUp]}, uniqueItems: true}
+      genParticles: {type: boolean}
+      pileupWeights:
+        type: object
+        additionalProperties: false
+        required: [file, key]
+        properties:
+          file: {type: string}
+          key: {type: string}
+      ak4Jets:
+        type: object
+        additionalProperties: false
+        required: [enabled, name, src, rho, cut, jetIdVersion, jec, variables]
+        properties:
+          enabled: {type: boolean}
+          name: {type: string, pattern: '^[A-Z][A-Za-z0-9]*$'}
+          src: {$ref: '#/definitions/str'}
+          rho: {$ref: '#/definitions/str'}
+          cut: {type: string}
+          jetIdVersion: {$ref: '#/definitions/str'}
+          jec:
+            type: object
+            additionalProperties: false
+            required: [correctionFile, mcKey, dataKey, uncKey]
+            properties:
+              correctionFile: {$ref: '#/definitions/str'}
+              mcKey: {$ref: '#/definitions/str'}
+              dataKey: {$ref: '#/definitions/str'}
+              uncKey: {type: string}
+          variables: {type: array, items: {$ref: '#/definitions/tableVariable'}}

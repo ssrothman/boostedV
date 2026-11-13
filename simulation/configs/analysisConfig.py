@@ -91,6 +91,23 @@ def crossCheck(cfg):
                 if o not in objects:
                     p.append('selection/%s/channels/%s: unknown object collection %s' % (level, name, o))
     p += _muonChecks(sel['reco'])
+    base = {'pt', 'eta', 'phi', 'mass', 'rawPt', 'srcIdx', 'jetId', 'nConstituents', 'jerFactor'}
+    for name, c in cfg['jets']['collections'].items():
+        extra = [v['name'] for v in c['table']['extraVariables'] + c.get('retag', {'variables': []})['variables']]
+        where = 'jets/collections/%s/table/extraVariables' % name
+        if extra and not (c['level'] == 'reco' and c['mode'] == 'pat'):
+            p.append('%s: only for reco pat jets' % where)
+        if len(set(extra)) != len(extra) or base & set(extra):
+            p.append('%s: duplicate or reserved column names %s' % (where, sorted(base & set(extra))))
+    out = cfg['output']
+    ak4 = [v['name'] for v in out['ak4Jets']['variables']]
+    reserved = {'pt', 'eta', 'phi', 'mass', 'rawPt', 'jecFactor', 'jetId', 'srcIdx', 'jesUncTotal'}
+    if len(set(ak4)) != len(ak4) or reserved & set(ak4):
+        p.append('output/ak4Jets/variables: duplicate or reserved column names %s' % sorted(reserved & set(ak4)))
+    if out['pileupWeights']['file'] and not out['mcEventTables']:
+        p.append('output/pileupWeights: needs mcEventTables (the weights extend the Pileup table)')
+    if bool(out['pileupWeights']['file']) != bool(out['pileupWeights']['key']):
+        p.append('output/pileupWeights: file and key are set together or not at all')
     dressing = sel['reco']['dressing']['mode']
     for name, o in sel['reco']['objects'].items():
         if o['dressedCut'] and (dressing == 'none' or o['source'] == 'photons'):

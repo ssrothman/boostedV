@@ -15,3 +15,6 @@ testdata/
 
 # Python bytecode
 __pycache__/
+
+# Claude Code worktrees
+.claude/worktrees/

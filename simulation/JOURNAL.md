@@ -14,6 +14,7 @@
 - 2026-11-12 LHE tables in the NANO
 - 2026-11-12 Selected leptons and MET in the NANO
 - 2026-11-12 NANO documentation
+- 2026-11-13 NANO additions: event tables, AK8/AK4 jets, lepton details, GloParT
 
 ## 2026-11-11 A.2 setup and DataFormats
 - Plan: `stepA2_plan.md`. New local repos (remotes pending): `EECDataFormats` (pkg `SRothman/DataFormats`),
@@ -234,3 +235,34 @@
 - Checked on the file: EEC per-jet rows = jet rows (nominal, variation, gen); `nEntries` sums to the Entries count;
   `iJet` sorted; bins below the flow-inclusive extent; dilepton leptons leading first; jets in source order; gen jetId 0;
   LHE incoming pt 0; every written event passes some channel flag.
+
+## 2026-11-13 NANO additions: event tables, AK8/AK4 jets, lepton details, GloParT
+- Plan and user decisions: `nanoAdditions_plan.md`; reference: `NANO.md` §4.3, 4.5, 4.10–4.13.
+- Added (all YAML-controlled):
+  - `SelectionMET` (renamed from `MET`); `MET`/`RawMET` (PF), `PuppiMET`/`RawPuppiMET` (with the JES/JER/unclustered
+    shifts), `GenMET`;
+  - `PV`, `OtherPV`, `SV`, `Rho`, `GenVtx`, `GenPart` (standard pruning), and `Pileup_weight{,Up,Down}` (LUM
+    correctionlib);
+  - AK8: 42 NanoAODv12-style columns from `slimmedJetsAK8[srcIdx]`, `jerFactor` (new `EECJet` field), and the 23
+    GloParT columns from an in-job re-tag;
+  - lepton/photon detail columns with `undressedPt` and `triggerMatched`;
+  - `AK4Jet` with the V4 JEC re-applied from raw (MC and run-dependent data keys) and `jesUncTotal`.
+- Validation:
+  - Unit tests: 16 mutations caught (pileup 2, jet extension and jerFactor 5, object extension 4, JEC 3, re-tagged
+    columns 2). The JEC mutation that corrects the MiniAOD-corrected p4 survives the unit test (bare jets) and is caught
+    by the real-MiniAOD check.
+  - Every table against FWLite/correctionlib in Python on MC and data, within the storage precision. AK4: 1100 MC and
+    546 data jets, including the selected set and order.
+  - GloParT equals the standard NanoAOD `nanoAOD_addDeepInfoAK8` result exactly (1056 jets × 23 columns). All 1703 MC
+    and 963 data pre-existing branches are bit-identical with re-tagging on.
+  - `checkEndToEnd` 36/36 for default and hybrid; production and merge tests pass. Wall time 81 s / 1000 MC events.
+- Traps:
+  - The data JEC compound key has a `run` input.
+  - `reco::Muon::Selector` values are bit indices: in PyROOT `passed(enum)` resolves to `passed(uint64_t)`, so use
+    `selectors() & (1 << enum)`. My first ID check was wrong because of this.
+  - `updateJetCollection` refuses `jetCorrections=None` with taggers.
+  - The GloParT tag infos need GeometryRecoDB, MagneticField and TransientTrackBuilder.
+  - `PFJetIDSelectionFunctor::operator()` is not const, so stream modules only.
+  - Singleton tables take no `cut`.
+- GloParT class scores do not sum to 1 per jet (NanoAOD's are identical).
+- Not covered on real events: the photon columns (no GammaJets events in the DY file) and gen-level W leptons.

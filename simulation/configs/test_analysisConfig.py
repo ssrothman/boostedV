@@ -71,6 +71,29 @@ class LoaderRejects(unittest.TestCase):
         for frag in fragments:
             self.assertIn(frag, str(ctx.exception))
 
+    def test_event_table_checks(self):
+        out = lambda c: c['output']
+        self.assertRejected(lambda c: out(c).update(mcEventTables=False), 'output/pileupWeights: needs mcEventTables')
+        self.assertRejected(lambda c: out(c)['pileupWeights'].update(key=''), 'file and key are set together')
+        self.assertRejected(lambda c: out(c).update(rhoTable=['fixedGridRhoNope']), 'output/rhoTable')
+        self.assertRejected(lambda c: out(c)['metTables'].update(met='slimmedMETs'), 'output/metTables')
+        self.assertRejected(lambda c: c['inputs'].pop('pileupInfo'), 'inputs', 'pileupInfo')
+
+    def test_jet_extension_checks(self):
+        tab = lambda c, n: c['jets']['collections'][n]['table']
+        extra = lambda c: tab(c, 'Reco')['extraVariables']
+        self.assertRejected(lambda c: tab(c, 'Gen').update(extraVariables=[dict(extra(c)[0])]),
+                            'jets/collections/Gen/table/extraVariables: only for reco pat jets')
+        self.assertRejected(lambda c: extra(c)[1].update(name='jecPt'), 'duplicate or reserved column names')
+        self.assertRejected(lambda c: extra(c)[1].update(name='jerFactor'), "reserved column names ['jerFactor']")
+        self.assertRejected(lambda c: extra(c)[1].update(type='double'), 'jets/collections/Reco/table/extraVariables/1')
+
+    def test_ak4_checks(self):
+        ak4 = lambda c: c['output']['ak4Jets']
+        self.assertRejected(lambda c: ak4(c)['variables'][0].update(name='jecFactor'), 'output/ak4Jets/variables: duplicate or reserved')
+        self.assertRejected(lambda c: ak4(c).update(name='ak4'), 'output/ak4Jets')
+        self.assertRejected(lambda c: ak4(c)['jec'].pop('dataKey'), 'output/ak4Jets/jec', 'dataKey')
+
     def test_default_is_valid(self):
         analysisConfig.load(DEFAULT)
 
@@ -390,8 +413,8 @@ class BuiltProcess(unittest.TestCase):
                 self.assertIn(lab(ch) + 'LeptonsTable', p.outPath.moduleNames())
             for ch in ('Hadronic', 'GammaJets'):
                 self.assertFalse(hasattr(p, lab(ch) + 'LeptonsTable'))
-            m = getattr(p, ('gen' if level == 'gen' else '') + ('MetTable' if level == 'gen' else 'metTable'))
-            self.assertEqual((m.src.getModuleLabel(), m.name.value(), m.singleton.value()), (met, prefix + 'MET', True))
+            m = getattr(p, 'genSelectionMetTable' if level == 'gen' else 'selectionMetTable')
+            self.assertEqual((m.src.getModuleLabel(), m.name.value(), m.singleton.value()), (met, prefix + 'SelectionMET', True))
             self.assertEqual(m.src.getModuleLabel(), getattr(p, lab('Wmunu') + 'Sel').met.getModuleLabel())
         cfg = loadDefault()
         for level in ('reco', 'gen'):
@@ -402,8 +425,96 @@ class BuiltProcess(unittest.TestCase):
         cfg['jets']['cleaning']['channels'] = ['Zmumu', 'Zee', 'GammaJets']
         cfg['jets']['cleaning']['channels'] = ['Zmumu', 'Zee', 'GammaJets']
         p = buildProcess(cfg)
-        self.assertFalse(hasattr(p, 'metTable') or hasattr(p, 'genMetTable'))
+        self.assertFalse(hasattr(p, 'selectionMetTable') or hasattr(p, 'genSelectionMetTable'))
         self.assertTrue(hasattr(p, 'ZmumuLeptonsTable'))
+
+    def test_event_tables(self):
+        p = buildProcess()
+        for name, src in (('MET', 'slimmedMETs'), ('PuppiMET', 'slimmedMETsPuppi')):
+            t, r = getattr(p, 'met%sTable' % name), getattr(p, 'met%sRawTable' % name)
+            self.assertEqual((t.src.getModuleLabel(), t.name.value(), r.name.value()), (src, name, 'Raw' + name))
+            self.assertIn('ptJESUp', t.variables.parameterNames_())
+            self.assertIn('ptUnclusteredUp', t.variables.parameterNames_())
+            self.assertEqual(r.variables.pt.expr.value(), 'uncorPt')
+        self.assertEqual(p.genMetTable.name.value(), 'GenMET')
+        self.assertEqual(p.vertexTable.goodPvCut.value(), '!isFake && ndof > 4.0 && abs(z) < 24.0 && position.Rho < 2.0')
+        self.assertEqual(p.vertexTable.svSrc.getModuleLabel(), 'slimmedSecondaryVertices')
+        self.assertEqual(p.genVertexT0Table.variables.t0.src.getProductInstanceLabel(), 't0')
+        self.assertEqual(len(p.rhoTable.variables.parameterNames_()), 6)
+        self.assertEqual(p.genParticleTable.src.getModuleLabel(), 'finalGenParticles')
+        self.assertEqual(p.finalGenParticles.src.getModuleLabel(), 'prunedGenParticles')
+        pu = p.pileupWeightTable
+        self.assertEqual((pu.name.value(), pu.extension.value(), pu.key.value()),
+                         ('Pileup', True, 'Collisions2022_359022_362760_eraEFG_GoldenJson'))
+        for m in ('metMETTable', 'metPuppiMETRawTable', 'vertexTable', 'svCandidateTable', 'genVertexTable', 'rhoTable',
+                  'genParticleTable', 'pileupWeightTable'):
+            self.assertIn(m, p.outPath.moduleNames())
+        d = buildProcess(isMC=0)
+        self.assertTrue(hasattr(d, 'metMETTable') and hasattr(d, 'vertexTable') and hasattr(d, 'rhoTable'))
+        for m in ('genMetTable', 'genVertexTable', 'genParticleTable', 'pileupWeightTable'):
+            self.assertFalse(hasattr(d, m), m)
+        cfg = loadDefault()
+        cfg['output'].update(metTables={'PuppiMET': 'slimmedMETsPuppi'}, vertexTables=False, rhoTable=['fixedGridRhoAll'],
+                             genParticles=False, pileupWeights={'file': '', 'key': ''})
+        p = buildProcess(cfg)
+        self.assertFalse(any(hasattr(p, m) for m in ('metMETTable', 'vertexTable', 'genVertexTable', 'genParticleTable',
+                                                      'pileupWeightTable')))
+        self.assertEqual(p.rhoTable.variables.parameterNames_(), ['fixedGridRhoAll'])
+
+    def test_jet_extension_table(self):
+        p = buildProcess()
+        t = p.jetsRecoExtTable
+        self.assertEqual((t.type_(), t.src.getModuleLabel(), t.jets.getModuleLabel(), t.name.value()),
+                         ('EECJetExtensionTableProducer', 'jetsReco', 'slimmedJetsAK8', 'RecoJet'))
+        names = [v.name.value() for v in t.variables]
+        self.assertEqual(len(names), 42)
+        for n in ('jecPt', 'area', 'msoftdrop', 'tau2', 'particleNetWithMass_WvsQCD', 'hadronFlavour'):
+            self.assertIn(n, names)
+        self.assertIn('jetsRecoExtTable', p.outPath.moduleNames())
+        self.assertEqual([l for l in p.producers_() if l.startswith('jets') and l.endswith('ExtTable')], ['jetsRecoExtTable'])
+        d = buildProcess(isMC=0)
+        dn = [v.name.value() for v in d.jetsRecoExtTable.variables]
+        self.assertEqual(len(dn), 38)
+        self.assertNotIn('hadronFlavour', dn)
+
+    def test_object_extension_tables(self):
+        p = buildProcess()
+        for ch, typ, objects, table, n in (('Zmumu', 'Muon', 'correctedMuons', 'ZmumuLeptons', 11),
+                                           ('Zee', 'Electron', 'slimmedElectrons', 'ZeeLeptons', 6),
+                                           ('Wmunu', 'Muon', 'correctedMuons', 'WmunuLeptons', 11),
+                                           ('GammaJets', 'Photon', 'slimmedPhotons', 'GammaJetsObjects', 8)):
+            t = getattr(p, ch + 'ObjectsExtTable')
+            self.assertEqual((t.type_(), t.objects.getModuleLabel(), t.name.value(), len(t.variables)),
+                             (typ + 'ExtensionTableProducer', objects, table, n))
+            self.assertEqual(list(t.triggerPaths), list(getattr(p, ch + 'Trigger').paths))
+            self.assertIn(ch + 'ObjectsExtTable', p.outPath.moduleNames())
+        self.assertFalse(any(l.startswith('gen') and l.endswith('ObjectsExtTable') for l in p.producers_()))
+        # Muons are matched to correctedMuons when it exists (MC: made for the SFs), otherwise to the MiniAOD muons.
+        self.assertEqual(buildProcess(isMC=0).ZmumuObjectsExtTable.objects.getModuleLabel(), 'slimmedMuons')
+        cfg = loadDefault()
+        cfg['selection']['reco']['muonCorrections'].update(apply=True)
+        self.assertEqual(buildProcess(cfg, isMC=0).ZmumuObjectsExtTable.objects.getModuleLabel(), 'correctedMuons')
+
+    def test_ak4_jets(self):
+        p = buildProcess()
+        c, t = p.ak4JetsCorrected, p.ak4JetTable
+        self.assertEqual((c.type_(), c.src.getModuleLabel(), c.key.value(), c.uncKey.value()),
+                         ('PATJetJECProducer', 'slimmedJetsPuppi', 'Summer22EE_22Sep2023_V4_MC_L1L2L3Res_AK4PFPuppi',
+                          'Summer22EE_22Sep2023_V4_MC_Total_AK4PFPuppi'))
+        self.assertEqual((t.src.getModuleLabel(), t.name.value(), t.cut.value()), ('ak4JetsCorrected', 'AK4Jet', 'pt > 20 && abs(eta) < 4.7'))
+        names = t.variables.parameterNames_()
+        for n in ('pt', 'rawPt', 'jecFactor', 'jesUncTotal', 'jetId', 'srcIdx', 'btagDeepFlavB', 'btagPNetB',
+                  'btagRobustParTAK4B', 'hadronFlavour'):
+            self.assertIn(n, names)
+        self.assertIn('ak4JetTable', p.outPath.moduleNames())
+        d = buildProcess(isMC=0)
+        self.assertEqual(d.ak4JetsCorrected.key.value(), 'Summer22EE_22Sep2023_V4_DATA_L1L2L3Res_AK4PFPuppi')
+        self.assertNotIn('hadronFlavour', d.ak4JetTable.variables.parameterNames_())
+        cfg = loadDefault()
+        cfg['output']['ak4Jets']['jec']['uncKey'] = ''
+        self.assertNotIn('jesUncTotal', buildProcess(cfg).ak4JetTable.variables.parameterNames_())
+        cfg['output']['ak4Jets']['enabled'] = False
+        self.assertFalse(hasattr(buildProcess(cfg), 'ak4JetTable'))
 
     def test_lhe_tables(self):
         p = buildProcess()

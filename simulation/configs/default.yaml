@@ -10,10 +10,13 @@ inputs:                      # MiniAOD collection labels
   pfCandidates: packedPFCandidates   # photons for reco lepton dressing
   met: slimmedMETsPuppi
   vertices: offlineSlimmedPrimaryVertices
+  secondaryVertices: slimmedSecondaryVertices   # SV table
   genEventInfo: generator    # MC only; event weights for the aggregators
   lheInfo: [externalLHEProducer, source]   # MC only; LHEEventProduct labels, the first present is used
+  genVertex: genParticles    # MC only; module of the xyz0 / t0 gen-vertex products
+  pileupInfo: slimmedAddPileupInfo   # MC only; input of the pileup weights
   hltProcess: HLT
-  triggerObjects: slimmedPatTrigger   # MC only; HLT objects for the muon trigger SFs
+  triggerObjects: slimmedPatTrigger   # HLT objects (muon trigger SFs, triggerMatched columns)
   metFilterProcess: PAT      # process holding the Flag_* MET-filter paths
   prunedGenParticles: prunedGenParticles     # MC only; input to the Rivet particle level
   packedGenParticles: packedGenParticles
@@ -97,6 +100,62 @@ selection:
            key: NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight, trigger: true, paths: ['HLT_IsoMu24_v*'],
            outOfRange: skip}
       Wmunu: *mediumMuonSFs
+
+    objectTables:              # columns added to the reco <ch>Leptons / <ch>Objects tables, from the matched PAT object
+                               # (built in: undressedPt, triggerMatched against the channel triggers)
+      muons:
+        - {name: dxy, type: float, precision: -1, doc: 'transverse impact parameter w.r.t. the first PV (cm)',
+           expr: 'dB(''PV2D'')'}
+        - {name: dz, type: float, precision: -1, doc: 'longitudinal impact parameter w.r.t. the first PV (cm)',
+           expr: 'dB(''PVDZ'')'}
+        - {name: highPtRegime, type: int16, precision: -1, doc: 'muon momentum regime (0 medium, 1 high; -1: no momentum assignment)',
+           expr: '?hasUserInt(''highPtRegime'')?userInt(''highPtRegime''):-1'}
+        - {name: tunePPt, type: float, precision: -1, doc: 'TuneP pt (uncorrected)',
+           expr: 'tunePMuonBestTrack().pt()'}
+        - {name: pfRelIso04, type: float, precision: -1, doc: 'PF relative isolation, dR 0.4, delta-beta corrected',
+           expr: '(pfIsolationR04().sumChargedHadronPt + max(pfIsolationR04().sumNeutralHadronEt + pfIsolationR04().sumPhotonEt - pfIsolationR04().sumPUPt/2, 0.0))/pt'}
+        - {name: tkRelIso, type: float, precision: -1, doc: 'tracker relative isolation, dR 0.3, w.r.t. the TuneP pt',
+           expr: 'isolationR03().sumPt/tunePMuonBestTrack().pt()'}
+        - {name: looseId, type: bool, precision: -1, doc: 'muon CutBasedIdLoose',
+           expr: 'passed(''CutBasedIdLoose'')'}
+        - {name: mediumId, type: bool, precision: -1, doc: 'muon CutBasedIdMedium',
+           expr: 'passed(''CutBasedIdMedium'')'}
+        - {name: tightId, type: bool, precision: -1, doc: 'muon CutBasedIdTight',
+           expr: 'passed(''CutBasedIdTight'')'}
+        - {name: highPtId, type: bool, precision: -1, doc: 'muon CutBasedIdGlobalHighPt',
+           expr: 'passed(''CutBasedIdGlobalHighPt'')'}
+        - {name: trkHighPtId, type: bool, precision: -1, doc: 'muon CutBasedIdTrkHighPt',
+           expr: 'passed(''CutBasedIdTrkHighPt'')'}
+      electrons:
+        - {name: dxy, type: float, precision: -1, doc: 'transverse impact parameter w.r.t. the first PV (cm)',
+           expr: 'dB(''PV2D'')'}
+        - {name: dz, type: float, precision: -1, doc: 'longitudinal impact parameter w.r.t. the first PV (cm)',
+           expr: 'dB(''PVDZ'')'}
+        - {name: scEta, type: float, precision: -1, doc: 'supercluster eta',
+           expr: 'superCluster().eta()'}
+        - {name: cutBased, type: uint8, precision: -1, doc: 'cut-based ID RunIIIWinter22 V1 (0 fail, 1 veto, 2 loose, 3 medium, 4 tight)',
+           expr: 'electronID(''cutBasedElectronID-RunIIIWinter22-V1-veto'')+electronID(''cutBasedElectronID-RunIIIWinter22-V1-loose'')+electronID(''cutBasedElectronID-RunIIIWinter22-V1-medium'')+electronID(''cutBasedElectronID-RunIIIWinter22-V1-tight'')'}
+        - {name: pfRelIso03, type: float, precision: -1, doc: 'PF relative isolation, dR 0.3, delta-beta corrected',
+           expr: '(pfIsolationVariables().sumChargedHadronPt + max(pfIsolationVariables().sumNeutralHadronEt + pfIsolationVariables().sumPhotonEt - 0.5*pfIsolationVariables().sumPUPt, 0.0))/pt'}
+        - {name: r9, type: float, precision: -1, doc: 'R9 (full 5x5)',
+           expr: 'full5x5_r9()'}
+      photons:
+        - {name: scEta, type: float, precision: -1, doc: 'supercluster eta',
+           expr: 'superCluster().eta()'}
+        - {name: cutBased, type: uint8, precision: -1, doc: 'cut-based ID RunIIIWinter22 122X V1 (0 fail, 1 loose, 2 medium, 3 tight)',
+           expr: 'photonID(''cutBasedPhotonID-RunIIIWinter22-122X-V1-loose'')+photonID(''cutBasedPhotonID-RunIIIWinter22-122X-V1-medium'')+photonID(''cutBasedPhotonID-RunIIIWinter22-122X-V1-tight'')'}
+        - {name: pixelSeed, type: bool, precision: -1, doc: 'has a pixel seed',
+           expr: 'hasPixelSeed()'}
+        - {name: electronVeto, type: bool, precision: -1, doc: 'passes the conversion-safe electron veto',
+           expr: 'passElectronVeto()'}
+        - {name: pfRelIso03, type: float, precision: -1, doc: 'PF relative isolation, dR 0.3',
+           expr: '(chargedHadronIso()+neutralHadronIso()+photonIso())/pt'}
+        - {name: r9, type: float, precision: -1, doc: 'R9 (full 5x5)',
+           expr: 'full5x5_r9()'}
+        - {name: sieie, type: float, precision: -1, doc: 'sigma ieta ieta (full 5x5)',
+           expr: 'full5x5_sigmaIetaIeta()'}
+        - {name: hoe, type: float, precision: -1, doc: 'H/E',
+           expr: 'hadronicOverEm()'}
 
     dressing:
       mode: none
@@ -283,7 +342,146 @@ jets:
       jetCuts: {ptMin: 200.0, absEtaMax: 2.4, idMask: 1, minConstituents: 1}   # idMask bit 0 tight, bit 1 tightLepVeto
       constituentCuts: {ptMin: 0.0, chargedOnly: false, keepAbsPdgIds: [], dropAbsPdgIds: [], minPuppiWeight: 0.0}
       cleaningDR: 0.8
-      table: {name: RecoJet, precision: -1}
+      retag:                   # taggers not stored in this MiniAOD, run on a copy of src
+        taggers: [GlobalParT]   # GlobalParticleTransformer AK8 (GloParT 3, model V03)
+        vertices: offlineSlimmedPrimaryVertices
+        secondaryVertices: slimmedSecondaryVertices
+        jecPayload: AK8PFPuppi  # GlobalTag JECs the tagger re-applies (as NanoAOD); the EEC jets keep the MiniAOD JECs
+        variables:              # columns from the re-tagged jets (NanoAOD FatJet globalParT3_*), nominal table only
+          - {name: globalParT3_Xbb, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 X->bb score. Note: For sig vs bkg (e.g. bkg=QCD) tagging, use sig/(sig+bkg) to construct the discriminator',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probXbb'')'}
+          - {name: globalParT3_Xcc, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 X->cc score',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probXcc'')'}
+          - {name: globalParT3_Xcs, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 X->cs score',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probXcs'')'}
+          - {name: globalParT3_Xqq, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 X->qq (ss/dd/uu) score',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probXqq'')'}
+          - {name: globalParT3_Xtauhtaue, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 X->tauhtaue score',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probXtauhtaue'')'}
+          - {name: globalParT3_Xtauhtaum, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 X->tauhtaum score',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probXtauhtaum'')'}
+          - {name: globalParT3_Xtauhtauh, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 X->tauhtauh score',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probXtauhtauh'')'}
+          - {name: globalParT3_XWW4q, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 X->WW4q score',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probXWW4q'')'}
+          - {name: globalParT3_XWW3q, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 X->WW3q score',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probXWW3q'')'}
+          - {name: globalParT3_XWWqqev, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 X->WWqqev score',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probXWWqqev'')'}
+          - {name: globalParT3_XWWqqmv, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 X->WWqqmv score',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probXWWqqmv'')'}
+          - {name: globalParT3_TopbWqq, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 Top->bWqq score',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probTopbWqq'')'}
+          - {name: globalParT3_TopbWq, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 Top->bWq score',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probTopbWq'')'}
+          - {name: globalParT3_TopbWev, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 Top->bWev score',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probTopbWev'')'}
+          - {name: globalParT3_TopbWmv, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 Top->bWmv score',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probTopbWmv'')'}
+          - {name: globalParT3_TopbWtauhv, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 Top->bWtauhv score',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probTopbWtauhv'')'}
+          - {name: globalParT3_QCD, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 QCD score.',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probQCD'')'}
+          - {name: globalParT3_WvsQCD, type: float, precision: 10, mcOnly: false, doc: 'Mass-decorrelated GlobalParT-3 (Xqq+Xcs/Xqq+Xcs+QCD) binarized score.',
+             expr: '?bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probXqq'')+bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probXcs'')+bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probQCD'')>0?(bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probXqq'')+bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probXcs''))/(bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probXqq'')+bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probXcs'')+bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probQCD'')):-1'}
+          - {name: globalParT3_massCorrX2p, type: float, precision: 10, mcOnly: false, doc: 'GlobalParT-3 mass regression corrector with respect to the original jet mass, optimised for resonance 2-prong (bb/cc/cs/ss/qq) jets. Use (massCorrX2p * mass * (1 - rawFactor)) to get the regressed mass',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:massCorrX2p'')'}
+          - {name: globalParT3_massCorrGeneric, type: float, precision: 10, mcOnly: false, doc: 'GlobalParT-3 mass regression corrector with respect to the original jet mass, optimised for generic jet cases. Use (massCorrGeneric * mass * (1 - rawFactor)) to get the regressed mass',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:massCorrGeneric'')'}
+          - {name: globalParT3_withMassTopvsQCD, type: float, precision: 10, mcOnly: false, doc: 'GlobalParT-3 tagger (w/mass) Top vs QCD discriminator',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probWithMassTopvsQCD'')'}
+          - {name: globalParT3_withMassWvsQCD, type: float, precision: 10, mcOnly: false, doc: 'GlobalParT-3 tagger (w/mass) W vs QCD discriminator',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probWithMassWvsQCD'')'}
+          - {name: globalParT3_withMassZvsQCD, type: float, precision: 10, mcOnly: false, doc: 'GlobalParT-3 tagger (w/mass) Z vs QCD discriminator',
+             expr: 'bDiscriminator(''pfGlobalParticleTransformerAK8JetTags:probWithMassZvsQCD'')'}
+      table:
+        name: RecoJet
+        precision: -1
+        extraVariables:          # nominal table only, pat-mode reco jets: columns from the source pat::Jet (NanoAODv12 FatJet set)
+          - {name: jecPt, type: float, precision: -1, mcOnly: false, doc: 'pt with the MiniAOD JEC, before JER smearing',
+             expr: 'pt'}
+          - {name: area, type: float, precision: 10, mcOnly: false, doc: 'jet catchment area',
+             expr: 'jetArea()'}
+          - {name: rawFactor, type: float, precision: 10, mcOnly: false, doc: '1 - factor to get back to raw pt',
+             expr: '1.-jecFactor(''Uncorrected'')'}
+          - {name: tau1, type: float, precision: 10, mcOnly: false, doc: 'N-subjettiness (1 axis)',
+             expr: 'userFloat(''NjettinessAK8Puppi:tau1'')'}
+          - {name: tau2, type: float, precision: 10, mcOnly: false, doc: 'N-subjettiness (2 axis)',
+             expr: 'userFloat(''NjettinessAK8Puppi:tau2'')'}
+          - {name: tau3, type: float, precision: 10, mcOnly: false, doc: 'N-subjettiness (3 axis)',
+             expr: 'userFloat(''NjettinessAK8Puppi:tau3'')'}
+          - {name: tau4, type: float, precision: 10, mcOnly: false, doc: 'N-subjettiness (4 axis)',
+             expr: 'userFloat(''NjettinessAK8Puppi:tau4'')'}
+          - {name: n2b1, type: float, precision: 10, mcOnly: false, doc: 'N2 with beta=1 (raw pt > 250)',
+             expr: '?hasUserFloat(''nb1AK8PuppiSoftDrop:ecfN2'')?userFloat(''nb1AK8PuppiSoftDrop:ecfN2''):-99999.'}
+          - {name: n3b1, type: float, precision: 10, mcOnly: false, doc: 'N3 with beta=1 (raw pt > 250)',
+             expr: '?hasUserFloat(''nb1AK8PuppiSoftDrop:ecfN3'')?userFloat(''nb1AK8PuppiSoftDrop:ecfN3''):-99999.'}
+          - {name: msoftdrop, type: float, precision: 10, mcOnly: false, doc: 'corrected soft-drop mass (PUPPI)',
+             expr: 'groomedMass(''SoftDropPuppi'')'}
+          - {name: particleNetWithMass_QCD, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet (w/ mass) QCD sum',
+             expr: 'bDiscriminator(''pfParticleNetJetTags:probQCDbb'')+bDiscriminator(''pfParticleNetJetTags:probQCDcc'')+bDiscriminator(''pfParticleNetJetTags:probQCDb'')+bDiscriminator(''pfParticleNetJetTags:probQCDc'')+bDiscriminator(''pfParticleNetJetTags:probQCDothers'')'}
+          - {name: particleNetWithMass_TvsQCD, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet (w/ mass) TvsQCD',
+             expr: 'bDiscriminator(''pfParticleNetDiscriminatorsJetTags:TvsQCD'')'}
+          - {name: particleNetWithMass_WvsQCD, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet (w/ mass) WvsQCD',
+             expr: 'bDiscriminator(''pfParticleNetDiscriminatorsJetTags:WvsQCD'')'}
+          - {name: particleNetWithMass_ZvsQCD, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet (w/ mass) ZvsQCD',
+             expr: 'bDiscriminator(''pfParticleNetDiscriminatorsJetTags:ZvsQCD'')'}
+          - {name: particleNetWithMass_H4qvsQCD, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet (w/ mass) H4qvsQCD',
+             expr: 'bDiscriminator(''pfParticleNetDiscriminatorsJetTags:H4qvsQCD'')'}
+          - {name: particleNetWithMass_HbbvsQCD, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet (w/ mass) HbbvsQCD',
+             expr: 'bDiscriminator(''pfParticleNetDiscriminatorsJetTags:HbbvsQCD'')'}
+          - {name: particleNetWithMass_HccvsQCD, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet (w/ mass) HccvsQCD',
+             expr: 'bDiscriminator(''pfParticleNetDiscriminatorsJetTags:HccvsQCD'')'}
+          - {name: particleNet_QCD, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet QCD (0+1+2 HF) sum',
+             expr: 'bDiscriminator(''pfParticleNetFromMiniAODAK8JetTags:probQCD2hf'')+bDiscriminator(''pfParticleNetFromMiniAODAK8JetTags:probQCD1hf'')+bDiscriminator(''pfParticleNetFromMiniAODAK8JetTags:probQCD0hf'')'}
+          - {name: particleNet_QCD2HF, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet QCD 2HF score',
+             expr: 'bDiscriminator(''pfParticleNetFromMiniAODAK8JetTags:probQCD2hf'')'}
+          - {name: particleNet_QCD1HF, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet QCD 1HF score',
+             expr: 'bDiscriminator(''pfParticleNetFromMiniAODAK8JetTags:probQCD1hf'')'}
+          - {name: particleNet_QCD0HF, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet QCD 0HF score',
+             expr: 'bDiscriminator(''pfParticleNetFromMiniAODAK8JetTags:probQCD0hf'')'}
+          - {name: particleNet_massCorr, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet mass regression, relative to the JEC-corrected mass',
+             expr: 'bDiscriminator(''pfParticleNetFromMiniAODAK8JetTags:masscorr'')'}
+          - {name: particleNet_XbbVsQCD, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet Xbb vs QCD',
+             expr: 'bDiscriminator(''pfParticleNetFromMiniAODAK8DiscriminatorsJetTags:HbbvsQCD'')'}
+          - {name: particleNet_XccVsQCD, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet Xcc vs QCD',
+             expr: 'bDiscriminator(''pfParticleNetFromMiniAODAK8DiscriminatorsJetTags:HccvsQCD'')'}
+          - {name: particleNet_XqqVsQCD, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet Xqq vs QCD',
+             expr: 'bDiscriminator(''pfParticleNetFromMiniAODAK8DiscriminatorsJetTags:HqqvsQCD'')'}
+          - {name: particleNet_XggVsQCD, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet Xgg vs QCD',
+             expr: 'bDiscriminator(''pfParticleNetFromMiniAODAK8DiscriminatorsJetTags:HggvsQCD'')'}
+          - {name: particleNet_XttVsQCD, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet Xtt vs QCD',
+             expr: 'bDiscriminator(''pfParticleNetFromMiniAODAK8DiscriminatorsJetTags:HttvsQCD'')'}
+          - {name: particleNet_XtmVsQCD, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet Xtm vs QCD',
+             expr: 'bDiscriminator(''pfParticleNetFromMiniAODAK8DiscriminatorsJetTags:HtmvsQCD'')'}
+          - {name: particleNet_XteVsQCD, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet Xte vs QCD',
+             expr: 'bDiscriminator(''pfParticleNetFromMiniAODAK8DiscriminatorsJetTags:HtevsQCD'')'}
+          - {name: chHEF, type: float, precision: 10, mcOnly: false, doc: 'charged hadron energy fraction',
+             expr: '?isPFJet()?chargedHadronEnergyFraction():-1'}
+          - {name: neHEF, type: float, precision: 10, mcOnly: false, doc: 'neutral hadron energy fraction',
+             expr: '?isPFJet()?neutralHadronEnergyFraction():-1'}
+          - {name: chEmEF, type: float, precision: 10, mcOnly: false, doc: 'charged EM energy fraction',
+             expr: '?isPFJet()?chargedEmEnergyFraction():-1'}
+          - {name: neEmEF, type: float, precision: 10, mcOnly: false, doc: 'neutral EM energy fraction',
+             expr: '?isPFJet()?neutralEmEnergyFraction():-1'}
+          - {name: muEF, type: float, precision: 10, mcOnly: false, doc: 'muon energy fraction',
+             expr: '?isPFJet()?muonEnergyFraction():-1'}
+          - {name: chMultiplicity, type: int16, precision: -1, mcOnly: false, doc: '(PUPPI-weighted) charged multiplicity',
+             expr: '?isPFJet()?chargedMultiplicity():-1'}
+          - {name: neMultiplicity, type: int16, precision: -1, mcOnly: false, doc: '(PUPPI-weighted) neutral multiplicity',
+             expr: '?isPFJet()?neutralMultiplicity():-1'}
+          - {name: subJetIdx1, type: int16, precision: -1, mcOnly: false, doc: 'index of the first soft-drop subjet in the MiniAOD subjet collection',
+             expr: '?nSubjetCollections()>0 && subjets(''SoftDropPuppi'').size()>0?subjets(''SoftDropPuppi'')[0].key():-1'}
+          - {name: subJetIdx2, type: int16, precision: -1, mcOnly: false, doc: 'index of the second soft-drop subjet in the MiniAOD subjet collection',
+             expr: '?nSubjetCollections()>0 && subjets(''SoftDropPuppi'').size()>1?subjets(''SoftDropPuppi'')[1].key():-1'}
+          - {name: hadronFlavour, type: uint8, precision: -1, mcOnly: true, doc: 'hadron flavour (ghost tagging)',
+             expr: 'hadronFlavour()'}
+          - {name: partonFlavour, type: int16, precision: -1, mcOnly: true, doc: 'parton flavour',
+             expr: 'partonFlavour()'}
+          - {name: nBHadrons, type: uint8, precision: -1, mcOnly: true, doc: 'number of b-hadrons clustered in the jet',
+             expr: 'jetFlavourInfo().getbHadrons().size()'}
+          - {name: nCHadrons, type: uint8, precision: -1, mcOnly: true, doc: 'number of c-hadrons clustered in the jet',
+             expr: 'jetFlavourInfo().getcHadrons().size()'}
       jerc:                  # MC only: nominal JER smearing and the JES/JER variations
         correctionFile: /cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-22EFGSep23-Summer22EE-NanoAODv12/latest/fatJet_jerc.json.gz
         jesKey: Summer22EE_22Sep2023_V4_MC_Total_AK8PFPuppi
@@ -317,7 +515,7 @@ jets:
       jetCuts: {ptMin: 200.0, absEtaMax: 2.4, idMask: 0, minConstituents: 1}
       constituentCuts: {ptMin: 0.0, chargedOnly: false, keepAbsPdgIds: [], dropAbsPdgIds: [], minPuppiWeight: 0.0}
       cleaningDR: 0.8
-      table: {name: GenJet, precision: -1}
+      table: {name: GenJet, precision: -1, extraVariables: []}
 
 # Computed for every jet collection and variation; NANO tables are named <Collection><Variation><observable>.
 observables:
@@ -363,3 +561,70 @@ output:
   keepHLTBits: true
   mcEventTables: true        # genWeights (Runs-tree sums), Pileup, Generator
   lheTables: true            # MC only: LHE (HT, Njets, Vpt, ...) and LHEPart (LHE particles), as in standard NanoAOD
+  metTables:                 # table name: pat::MET label; each also gives Raw<name>; in MC also GenMET (from the first)
+    MET: slimmedMETs           # type-1 PF MET (standard NanoAOD v12 name)
+    PuppiMET: slimmedMETsPuppi
+  vertexTables: true         # PV, OtherPV, SV; in MC also GenVtx
+  rhoTable: [fixedGridRhoAll, fixedGridRhoFastjetAll, fixedGridRhoFastjetCentralNeutral, fixedGridRhoFastjetCentralCalo,
+             fixedGridRhoFastjetCentral, fixedGridRhoFastjetCentralChargedPileUp]   # Rho table; [] disables
+  genParticles: true         # MC only: GenPart with the standard NanoAOD pruning
+  pileupWeights:             # MC only, needs mcEventTables: Pileup_weight{,Up,Down}; file '' disables
+    file: /cvmfs/cms-griddata.cern.ch/cat/metadata/LUM/Run3-22EFGSep23-Summer22EE-NanoAODv12/latest/puWeights.json.gz
+    key: Collisions2022_359022_362760_eraEFG_GoldenJson
+  ak4Jets:                   # AK4 PUPPI jets, JECs re-applied in-job; not used by the selection or the EECs
+    enabled: true
+    name: AK4Jet
+    src: slimmedJetsPuppi
+    rho: fixedGridRhoFastjetAll
+    cut: 'pt > 20 && abs(eta) < 4.7'   # on the re-corrected jets
+    jetIdVersion: RUN3PUPPIruns2022FGruns2023CD
+    jec:
+      correctionFile: /cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-22EFGSep23-Summer22EE-NanoAODv12/latest/jet_jerc.json.gz
+      mcKey: Summer22EE_22Sep2023_V4_MC_L1L2L3Res_AK4PFPuppi
+      dataKey: Summer22EE_22Sep2023_V4_DATA_L1L2L3Res_AK4PFPuppi
+      uncKey: Summer22EE_22Sep2023_V4_MC_Total_AK4PFPuppi   # '' = no jesUncTotal column
+    variables:                 # built in: pt, eta, phi, mass, rawPt, jecFactor, jetId, srcIdx, jesUncTotal
+      - {name: area, type: float, precision: 10, mcOnly: false, doc: 'jet catchment area',
+         expr: 'jetArea()'}
+      - {name: btagDeepFlavB, type: float, precision: 10, mcOnly: false, doc: 'DeepJet b+bb+lepb',
+         expr: 'bDiscriminator(''pfDeepFlavourJetTags:probb'')+bDiscriminator(''pfDeepFlavourJetTags:probbb'')+bDiscriminator(''pfDeepFlavourJetTags:problepb'')'}
+      - {name: btagDeepFlavCvL, type: float, precision: 10, mcOnly: false, doc: 'DeepJet c vs uds+g',
+         expr: '?(bDiscriminator(''pfDeepFlavourJetTags:probc'')+bDiscriminator(''pfDeepFlavourJetTags:probuds'')+bDiscriminator(''pfDeepFlavourJetTags:probg''))>0?bDiscriminator(''pfDeepFlavourJetTags:probc'')/(bDiscriminator(''pfDeepFlavourJetTags:probc'')+bDiscriminator(''pfDeepFlavourJetTags:probuds'')+bDiscriminator(''pfDeepFlavourJetTags:probg'')):-1'}
+      - {name: btagDeepFlavCvB, type: float, precision: 10, mcOnly: false, doc: 'DeepJet c vs b+bb+lepb',
+         expr: '?(bDiscriminator(''pfDeepFlavourJetTags:probc'')+bDiscriminator(''pfDeepFlavourJetTags:probb'')+bDiscriminator(''pfDeepFlavourJetTags:probbb'')+bDiscriminator(''pfDeepFlavourJetTags:problepb''))>0?bDiscriminator(''pfDeepFlavourJetTags:probc'')/(bDiscriminator(''pfDeepFlavourJetTags:probc'')+bDiscriminator(''pfDeepFlavourJetTags:probb'')+bDiscriminator(''pfDeepFlavourJetTags:probbb'')+bDiscriminator(''pfDeepFlavourJetTags:problepb'')):-1'}
+      - {name: btagDeepFlavQG, type: float, precision: 10, mcOnly: false, doc: 'DeepJet g vs uds',
+         expr: '?(bDiscriminator(''pfDeepFlavourJetTags:probg'')+bDiscriminator(''pfDeepFlavourJetTags:probuds''))>0?bDiscriminator(''pfDeepFlavourJetTags:probg'')/(bDiscriminator(''pfDeepFlavourJetTags:probg'')+bDiscriminator(''pfDeepFlavourJetTags:probuds'')):-1'}
+      - {name: btagPNetB, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet b vs udscg',
+         expr: '?bDiscriminator(''pfParticleNetFromMiniAODAK4PuppiCentralDiscriminatorsJetTags:BvsAll'')>0?bDiscriminator(''pfParticleNetFromMiniAODAK4PuppiCentralDiscriminatorsJetTags:BvsAll''):-1'}
+      - {name: btagPNetCvL, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet c vs udsg',
+         expr: '?bDiscriminator(''pfParticleNetFromMiniAODAK4PuppiCentralDiscriminatorsJetTags:CvsL'')>0?bDiscriminator(''pfParticleNetFromMiniAODAK4PuppiCentralDiscriminatorsJetTags:CvsL''):-1'}
+      - {name: btagPNetCvB, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet c vs b',
+         expr: '?bDiscriminator(''pfParticleNetFromMiniAODAK4PuppiCentralDiscriminatorsJetTags:CvsB'')>0?bDiscriminator(''pfParticleNetFromMiniAODAK4PuppiCentralDiscriminatorsJetTags:CvsB''):-1'}
+      - {name: btagPNetTauVJet, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet tau vs jet',
+         expr: '?bDiscriminator(''pfParticleNetFromMiniAODAK4PuppiCentralDiscriminatorsJetTags:TauVsJet'')>0?bDiscriminator(''pfParticleNetFromMiniAODAK4PuppiCentralDiscriminatorsJetTags:TauVsJet''):-1'}
+      - {name: btagPNetQvG, type: float, precision: 10, mcOnly: false, doc: 'ParticleNet q vs g',
+         expr: '?abs(eta())<2.5?bDiscriminator(''pfParticleNetFromMiniAODAK4PuppiCentralDiscriminatorsJetTags:QvsG''):bDiscriminator(''pfParticleNetFromMiniAODAK4PuppiForwardDiscriminatorsJetTags:QvsG'')'}
+      - {name: btagRobustParTAK4B, type: float, precision: 10, mcOnly: false, doc: 'RobustParT b vs udscg',
+         expr: '?bDiscriminator(''pfParticleTransformerAK4DiscriminatorsJetTags:BvsAll'')>0?bDiscriminator(''pfParticleTransformerAK4DiscriminatorsJetTags:BvsAll''):-1'}
+      - {name: btagRobustParTAK4CvL, type: float, precision: 10, mcOnly: false, doc: 'RobustParT c vs udsg',
+         expr: '?bDiscriminator(''pfParticleTransformerAK4DiscriminatorsJetTags:CvsL'')>0?bDiscriminator(''pfParticleTransformerAK4DiscriminatorsJetTags:CvsL''):-1'}
+      - {name: btagRobustParTAK4CvB, type: float, precision: 10, mcOnly: false, doc: 'RobustParT c vs b',
+         expr: '?bDiscriminator(''pfParticleTransformerAK4DiscriminatorsJetTags:CvsB'')>0?bDiscriminator(''pfParticleTransformerAK4DiscriminatorsJetTags:CvsB''):-1'}
+      - {name: btagRobustParTAK4QG, type: float, precision: 10, mcOnly: false, doc: 'RobustParT q vs g',
+         expr: '?bDiscriminator(''pfParticleTransformerAK4DiscriminatorsJetTags:QvsG'')>0?bDiscriminator(''pfParticleTransformerAK4DiscriminatorsJetTags:QvsG''):-1'}
+      - {name: chHEF, type: float, precision: 10, mcOnly: false, doc: 'charged hadron energy fraction',
+         expr: 'chargedHadronEnergyFraction()'}
+      - {name: neHEF, type: float, precision: 10, mcOnly: false, doc: 'neutral hadron energy fraction',
+         expr: 'neutralHadronEnergyFraction()'}
+      - {name: chEmEF, type: float, precision: 10, mcOnly: false, doc: 'charged EM energy fraction',
+         expr: 'chargedEmEnergyFraction()'}
+      - {name: neEmEF, type: float, precision: 10, mcOnly: false, doc: 'neutral EM energy fraction',
+         expr: 'neutralEmEnergyFraction()'}
+      - {name: muEF, type: float, precision: 10, mcOnly: false, doc: 'muon energy fraction',
+         expr: 'muonEnergyFraction()'}
+      - {name: nConstituents, type: uint8, precision: -1, mcOnly: false, doc: 'number of constituents',
+         expr: 'numberOfDaughters()'}
+      - {name: hadronFlavour, type: uint8, precision: -1, mcOnly: true, doc: 'hadron flavour (ghost tagging)',
+         expr: 'hadronFlavour()'}
+      - {name: partonFlavour, type: int16, precision: -1, mcOnly: true, doc: 'parton flavour',
+         expr: 'partonFlavour()'}

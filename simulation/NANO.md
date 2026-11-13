@@ -18,6 +18,10 @@ below only as a worked example.
   - [4.7 MC event tables](#47-mc-event-tables)
   - [4.8 LHE tables](#48-lhe-tables)
   - [4.9 HLT bits](#49-hlt-bits)
+  - [4.10 MET](#410-met)
+  - [4.11 Vertices, rho, gen vertex, pileup weights](#411-vertices-rho-gen-vertex-pileup-weights)
+  - [4.12 Gen particles](#412-gen-particles)
+  - [4.13 AK4 jets](#413-ak4-jets)
 - [5. Worked example: default.yaml](#5-worked-example-defaultyaml)
 - [6. Pitfalls](#6-pitfalls)
 
@@ -41,9 +45,17 @@ MC-only families.
 | Selection flags | Events | always | `Selection` (reco), `GenSelection` (gen, MC only) | channel names: `selection.<level>.channels` keys; one set of flags per channel |
 | Channel candidates | Events | one per channel | `<ch>Boson` (dilepton, leptonMET) or `<ch>Objects` (singleObject); `Gen` prefix at gen | the channel's `type`, `objects`, cuts; at reco also `muonCorrections` and `dressing` |
 | Selected leptons | Events | one per dilepton or leptonMET channel | `<ch>Leptons`, `Gen<ch>Leptons` | as above |
-| MET | Events | the level has at least one leptonMET channel | `MET` (reco), `GenMET` (gen) | reco: `inputs.met`; gen: the particle level (`selection.gen.particleLevel`) |
+| Lepton/photon details | Events | one per reco channel (extends `<ch>Leptons` or `<ch>Objects`) | same table | `selection.reco.objectTables.{muons,electrons,photons}` (by the channel's object `source`); `triggerMatched` from the channel's `triggers` |
+| Selection MET | Events | the level has at least one leptonMET channel | `SelectionMET` (reco), `GenSelectionMET` (gen) | reco: `inputs.met`; gen: the particle level (`selection.gen.particleLevel`) |
+| MET | Events | one pair per entry of `output.metTables`; `GenMET` in MC | `<name>`, `Raw<name>` (keys of `output.metTables`) | the pat::MET label of each entry |
+| Vertices | Events | `output.vertexTables` | `PV`, `OtherPV`, `SV`; MC: `GenVtx` | `inputs.vertices`, `secondaryVertices`, `pfCandidates`, `genVertex`; `npvsGood` uses `selection.reco.vertex` |
+| Rho | Events | `output.rhoTable` not empty | `Rho` | the listed `fixedGridRho*` |
+| Pileup weights | Events | MC, `output.pileupWeights.file` set (needs `mcEventTables`) | extends `Pileup` | `output.pileupWeights.{file,key}`, `inputs.pileupInfo` |
+| Gen particles | Events | MC and `output.genParticles` | `GenPart` | `inputs.prunedGenParticles`; standard NanoAOD pruning |
+| AK4 jets | Events | `output.ak4Jets.enabled` | `output.ak4Jets.name` | `output.ak4Jets`: `src`, `cut`, `jec` keys (MC or data), `jetIdVersion`, `variables` |
 | Muon SFs | Events | MC, one per key of `selection.reco.muonScaleFactors` | `<ch>MuonSF` | the channel's term list: column names come from the term `name`s |
 | Jets | Events | one per jet collection and variation | `<table.name><variation>` | `jets.collections.<C>`: `src`, `mode`, cuts, `cleaningDR`, `table.precision`; `jets.cleaning.channels`; `variations` (MC only); `mcOnly` collections are skipped in data |
+| Jet extension columns | Events | nominal table of a reco `pat` collection with `table.extraVariables` or `retag` | same table | `table.extraVariables` (PAT expressions on the MiniAOD jet; `mcOnly` ones skipped in data); `retag.variables` (on the re-tagged copy; taggers `retag.taggers`) |
 | Jet constituents | Events | cmsRun `writeConstituents=1` | `<jet table>Constituents` | `constituentCuts`, `translator` |
 | EEC per-jet and entries | Events | one per jet collection × variation × observable | `<C><variation><obs>`, `<C><variation><obs>Entries` | `observables.<obs>`: `kind`, `N`, `n`, `weight`, `angle`/`frame`, `norm`, `output`, `axes`, `table` |
 | EEC axes | Runs | binned `output` (not `Unbinned`) | `<C><variation><obs>Axis<k>`, `...AxisType` | `observables.<obs>.axes` |
@@ -61,7 +73,10 @@ cmsRun arguments that change the content (rather than the configuration): `isMC`
 
 ## 3. Conventions
 - Standard NanoAOD flat tables. A collection `X` has a counter `nX` and columns `X_<col>`, all jagged per event.
-  A singleton table (`MET`, `GenMET`, `<ch>MuonSF`, `LHE`, `Generator`, `Pileup`) has one value per event and no counter.
+  A singleton table (`SelectionMET`, `MET`, `PuppiMET`, `PV`, `Rho`, `GenVtx`, `<ch>MuonSF`, `LHE`, `Generator`, `Pileup`) has
+  one value per event and no counter.
+- Extension tables add columns to an existing table with the same name and rows (the jet, lepton and pileup-weight
+  columns below); in the file they are ordinary branches of that table.
 - Units: GeV for momenta, masses and MET; radians for angles.
 - Float precision: `-1` means full float. Otherwise the value is the number of mantissa bits kept. Our tables use full
   float except where a configuration key says otherwise: `jets.collections.<C>.table.precision` (jets and
@@ -101,7 +116,7 @@ are empty otherwise.
 | `<ch>Boson` (leptonMET) | 1: lepton + MET with MET p_z = 0, E = MET pt | `pt`, `eta`, `phi`, `mass`, `charge` (the lepton's) |
 | `<ch>Objects` (singleObject) | the selected objects (for example photons) | `pt`, `eta`, `phi`, `mass`, `charge` |
 | `<ch>Leptons` (dilepton, leptonMET) | 2 (leading first) or 1 | `pt`, `eta`, `phi`, `mass`, `charge`, `pdgId` |
-| `MET`, `GenMET` | singleton | `pt`, `phi` of the MET the leptonMET selectors use |
+| `SelectionMET`, `GenSelectionMET` | singleton | `pt`, `phi` of the MET the leptonMET selectors use |
 
 The channel types, with the YAML keys of each:
 - `dilepton` (`objects`, `leadPtMin`, `subleadPtMin`, `massMin`, `massMax`, `oppositeCharge`, `targetMass`): the pair
@@ -111,6 +126,18 @@ The channel types, with the YAML keys of each:
 - `singleObject` (`objects`, `vetoes`, `nMin`, `nMax`): between `nMin` and `nMax` objects, no vetoed object.
 
 The `<ch>Boson` mass of a leptonMET channel is the invariant mass of that four-vector, not m_T.
+
+**Lepton and photon details (reco).** Each row of `<ch>Leptons` / `<ch>Objects` is matched to the nearest same-charge
+PAT object (ΔR < 0.1; `correctedMuons` for muons when it exists, otherwise the MiniAOD collection), and these columns are
+added:
+- `undressedPt`: the matched object's pt (for muons after the momentum assignment and corrections, before dressing).
+- `triggerMatched`: within ΔR < 0.1 of an HLT object from the last filter of a fired path among the channel's `triggers`.
+- The `selection.reco.objectTables` columns for the object type. `default.yaml`:
+  - muons: `dxy`, `dz`, `highPtRegime` (−1 without a momentum assignment), `tunePPt` (uncorrected), `pfRelIso04`,
+    `tkRelIso`, and the bools `looseId`, `mediumId`, `tightId`, `highPtId`, `trkHighPtId`;
+  - electrons: `dxy`, `dz`, `scEta`, `cutBased` (0–4: fail, veto, loose, medium, tight; RunIIIWinter22 V1), `pfRelIso03`, `r9`;
+  - photons: `scEta`, `cutBased` (0–3; RunIIIWinter22 122X V1), `pixelSeed`, `electronVeto`, `pfRelIso03`, `r9`,
+    `sieie`, `hoe`.
 
 ### 4.4 Muon scale factors
 Singleton `<ch>MuonSF` for each channel listed in `selection.reco.muonScaleFactors` (MC only).
@@ -139,6 +166,34 @@ The rows are the selected jets (after `jetCuts`, cleaning and constituent select
 | `jetId` | uint8 | bit 0 tight, bit 1 tightLepVeto (`translator.jetIdVersion`; 0 for gen and reclustered jets) |
 | `nConstituents` | uint32 | constituents after `constituentCuts` |
 | `srcIdx` | uint32 | index in the source collection |
+
+**Extension columns (nominal table only).** For a reco `pat` collection, `table.extraVariables` adds columns evaluated
+on the MiniAOD jet `src[srcIdx]`, plus the built-in `jerFactor` (the JER smearing factor applied, 1 in data). The
+variation tables have no extension columns: match them to the nominal through `srcIdx`. `default.yaml` (`RecoJet`):
+- corrections: `jecPt` (MiniAOD-JEC pt, before JER; `pt = jecPt × jerFactor`), `area`, `rawFactor`;
+- substructure: `msoftdrop`, `tau1`–`tau4`, `n2b1`, `n3b1`, `subJetIdx1`, `subJetIdx2` (MiniAOD soft-drop subjets, not stored);
+- ParticleNet with mass: `particleNetWithMass_{QCD,TvsQCD,WvsQCD,ZvsQCD,H4qvsQCD,HbbvsQCD,HccvsQCD}`;
+- ParticleNet from MiniAOD: `particleNet_{QCD,QCD2HF,QCD1HF,QCD0HF,massCorr}`, `particleNet_{Xbb,Xcc,Xqq,Xgg,Xtt,Xtm,Xte}VsQCD`;
+- energy fractions and multiplicities: `chHEF`, `neHEF`, `chEmEF`, `neEmEF`, `muEF`, `chMultiplicity`, `neMultiplicity`;
+- MC only: `hadronFlavour`, `partonFlavour`, `nBHadrons`, `nCHadrons`.
+
+The names follow the NanoAODv12 `FatJet` table where it has them.
+
+**Re-tagged columns (GloParT).** Taggers that the MiniAOD does not store are run in the job when the collection has a
+`retag` block (`taggers: [GlobalParT]` in `default.yaml`).
+- **How:** the standard NanoAOD recipe, `updateJetCollection` with the GlobalTag JECs of `retag.jecPayload`. The
+  re-tagged copy of `src` only provides the `retag.variables` columns, read at the same index (a jet that differs in
+  η/φ is an error).
+- **Unchanged:** the EEC jets, the selection and every other column keep the MiniAOD jets and their JECs.
+- **`default.yaml` columns:** the 23 NanoAOD `globalParT3_*` columns (GlobalParticleTransformer AK8, model V03):
+  - the class scores `Xbb`, `Xcc`, `Xcs`, `Xqq`, `Xtauhtau{e,m,h}`, `XWW4q`, `XWW3q`, `XWWqq{e,m}v`, `TopbWqq`, `TopbWq`,
+    `TopbW{e,m,tauh}v`, `QCD`;
+  - `WvsQCD` = (Xqq + Xcs)/(Xqq + Xcs + QCD);
+  - the mass regressions `massCorrX2p`, `massCorrGeneric` (multiply by mass × (1 − rawFactor));
+  - `withMass{Top,W,Z}vsQCD`.
+- **Class scores do not sum to 1** per jet (0.0–1.5 on the test file). NanoAOD's own `globalParT3_*` values are
+  identical per jet, so this comes from how CMSSW stores the model outputs, not from this job. Build discriminants as
+  sig/(sig + bkg), as the NanoAOD docs say.
 
 - Variations exist in MC only. JES and JER variations change only the jet four-momentum; constituent variations
   (`constScale`, `constDrop`) change the constituents and so the EECs. See `JetSetup/README.md`.
@@ -206,29 +261,84 @@ menu, with the `_v<N>` suffix removed.
   `Dataset_ScoutingPF*`, `DST_*Scouting*` and `MC_*Scouting*` appear but other `Dataset_*`, `DST_*` and `MC_*` paths do not.
 - The branch set depends on the menu of the input sample. The channel triggers the analysis uses are in `Selection_<ch>Trigger`.
 
+### 4.10 MET
+- `SelectionMET` / `GenSelectionMET` (§4.3): the MET the W selections use.
+- One table per entry of `output.metTables` (`name: pat::MET label`), with the standard NanoAOD `PuppiMET` columns: `pt`,
+  `phi`, `sumEt`, `significance`, `covXX`, `covXY`, `covYY`, `sumPtUnclustered`, `pt`/`phi` `UnclusteredUp`/`Down`, plus
+  `ptJESUp`/`Down`, `phiJESUp`/`Down`, `ptJERUp`/`Down`, `phiJERUp`/`Down`.
+  - The shifts are the ones stored in MiniAOD, made with the MiniAOD-era JECs, not the in-job V4 JECs.
+- `Raw<name>`: `pt`, `phi`, `sumEt` without the type-1 corrections.
+- MC: `GenMET` (`pt`, `phi`) from the first `metTables` entry's `genMET()`.
+- `default.yaml`: `MET` = `slimmedMETs` (type-1 PF MET, the NanoAOD v12 name) and `PuppiMET` = `slimmedMETsPuppi`,
+  with `RawMET` and `RawPuppiMET`.
+
+### 4.11 Vertices, rho, gen vertex, pileup weights
+- `PV` (singleton, standard `vertexTable`): `npvs`, `npvsGood`, `x`, `y`, `z`, `chi2`, `ndof`, `score`, `sumpt2`,
+  `sumpx`, `sumpy`. `npvsGood` uses the `selection.reco.vertex` cuts, so it counts vertices the way
+  `Selection_goodVertex` judges the first one. `OtherPV`: `z`, `score` of the other vertices.
+- `SV`: the standard secondary-vertex table (from `inputs.secondaryVertices`).
+- `Rho`: the `output.rhoTable` values, for example `fixedGridRhoFastjetAll` (the JEC rho).
+- MC: `GenVtx` (singleton): `x`, `y`, `z`, `t0` of the generated primary vertex.
+- MC: the `Pileup` table gains `weight`, `weightUp`, `weightDown`: the LUM correctionlib weights at the in-time
+  `nTrueInt`. They are not applied to the aggregated histograms.
+
+### 4.12 Gen particles
+MC and `output.genParticles`: `GenPart`, the standard NanoAOD table, with the standard pruning (`finalGenParticles`):
+hard process, W/Z/H, leptons, neutrinos, heavy-flavour hadrons, prompt photons, top quarks, high-pt partons before
+hadronisation.
+- Columns: `pt`, `eta`, `phi`, `mass`, `pdgId`, `status`, `statusFlags` (bitwise, see the branch title), `genPartIdxMother`.
+- Precision: 8 bits for the momenta, as in standard NanoAOD.
+- Not written: the standard `iso` column, which needs a module not run here.
+
+### 4.13 AK4 jets
+`output.ak4Jets` (enabled in `default.yaml`, table `AK4Jet`): the `src` jets (`slimmedJetsPuppi`) with the JECs
+**re-applied in the job**.
+- **Correction:** p4 = raw p4 × C, where C is the correctionlib compound correction (`jec.mcKey` in MC, `jec.dataKey` in
+  data; V4 L1L2L3Res AK4 PUPPI) at the raw pt and η, the jet area and `rho`. The jets are then cut with `cut` (on the
+  corrected jets) and sorted by corrected pt.
+- **Built-in columns:** `pt`, `eta`, `phi`, `mass` (corrected), `rawPt`, `jecFactor` (C), `jetId` (bit 0 tight, bit 1
+  tightLepVeto, `jetIdVersion`), `srcIdx` (index in `src`), and with `jec.uncKey` `jesUncTotal` (the relative Total JES
+  uncertainty at the corrected pt; shift with pt × (1 ± jesUncTotal)).
+- **Not applied:** JER smearing.
+- **`variables` in `default.yaml`:**
+  - `area`;
+  - DeepJet: `btagDeepFlavB`, `CvL`, `CvB`, `QG`;
+  - ParticleNet: `btagPNetB`, `CvL`, `CvB`, `QvG`, `TauVJet`;
+  - RobustParT: `btagRobustParTAK4B`, `CvL`, `CvB`, `QG`;
+  - energy fractions and `nConstituents`;
+  - MC only: `hadronFlavour`, `partonFlavour`.
+- The AK4 jets are not cleaned against leptons, and they are not used by the selection or the EECs.
+
 ## 5. Worked example: default.yaml
 Measured on 300 events of `DYto2L-4Jets_MLL-50_PTLL-400to600` (Summer22EE MC, 222 written) and on Run2022F Muon data.
 
 - **Channels:**
   - reco and gen: `Zmumu`, `Zee` (dilepton), `Wmunu`, `Wenu` (leptonMET), `Hadronic`, `GammaJets` (singleObject).
-  - So: 6 candidate tables per level, 4 `Leptons` tables per level, `MET` and `GenMET`.
+  - So: 6 candidate tables per level, 4 `Leptons` tables per level, `SelectionMET` and `GenSelectionMET`.
+  - Reco lepton/photon detail columns: muons 11 + 2 built-in, electrons 6 + 2, photons 8 + 2.
   - `Selection` has 20 columns, `GenSelection` 12.
 - **Muon SFs:** `ZmumuMuonSF` and `WmunuMuonSF`, with 13 columns each (`nominal` + {id, iso, trig} × 4).
 - **Jets:**
   - `Reco` (AK8 PUPPI, `slimmedJetsAK8`) with 11 MC variations (JES ±, JER ±, TrkDrop, Charged/Neutral/Photon scale ±):
     the tables `RecoJet` and `RecoJet<variation>`.
+  - `RecoJet` has 42 extension columns in MC (38 in data), 23 GloParT columns and `jerFactor`.
   - `Gen` (MC only): `GenJet`.
 - **EECs:** `E2C`, `E3C`, `E1C`, all `SparseMerged`, for every collection and variation. That is 39 per-jet + 39
   Entries tables in MC (12 Reco chains × 3 + Gen × 3) and 3 + 3 in data, plus their axis tables in `Runs`.
-- **Other tables:** MC event tables and LHE tables in MC; about 620 HLT bits.
+- **Event tables:** `MET`, `RawMET`, `PuppiMET`, `RawPuppiMET`, `PV`, `OtherPV`, `SV`, `Rho` (6 values), `AK4Jet`; in MC
+  also `GenMET`, `GenVtx`, `GenPart`, `Pileup` with weights, the MC event tables and the LHE tables. About 620 HLT bits.
 - **Data:** the same minus everything marked MC: no `Gen*`, no jet variations, no muon SFs, no LHE, no generator or
-  pileup tables, and no Runs-tree sums.
+  pileup tables, no Runs-tree sums, and no flavour columns. The AK4 jets use the data JEC key.
 
 ## 6. Pitfalls
 - `<ch>Sel` does not include the trigger. To select events, use `Selection_<ch>` (reco) or `GenSelection_<ch>` (gen).
 - A written event may have been selected by a different channel or level. Always cut on the flag of the channel you analyse.
 - The candidate and lepton tables of a reco channel are filled even if its trigger failed (they follow `<ch>Sel`).
 - MC normalisation: use `Runs` `genEventSumw` (all processed events), not a sum over the written events.
-- The muon SF is not applied to anything in the NANO; multiply `<ch>MuonSF_nominal` into reco-level MC weights.
+- The muon SF and the pileup weights are not applied to anything in the NANO. Multiply `<ch>MuonSF_nominal` and
+  `Pileup_weight` into the MC weights yourself; the aggregated histograms include the muon SF but not the pileup weight.
+- `MET` is the PF MET, as in standard NanoAOD; the MET the W selections use is `SelectionMET` (PUPPI in `default.yaml`).
+- The AK8 `RecoJet` pt includes the JER smearing (MC); `jecPt` does not. The AK4 `AK4Jet` pt has the re-applied V4 JEC
+  and no JER; the AK8 jets keep the MiniAOD JEC.
 - Table and column names follow the configuration. Code reading these files should take the names from the YAML used
   (kept in the job provenance) rather than hard-coding the `default.yaml` names.

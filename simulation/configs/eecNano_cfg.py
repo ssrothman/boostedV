@@ -14,6 +14,7 @@ import FWCore.ParameterSet.Config as cms
 from FWCore.ParameterSet.VarParsing import VarParsing
 from SRothman.EECs.eecTools import addAggregator, addObservable
 from SRothman.EventSelection.eventSelection_cff import addSelection, label, muonSFLabel, selectedObjects
+from SRothman.EventSelection.eventTables_cff import addAK4Jets, addEventTables
 from SRothman.JetSetup.eecJets_cff import setupJets
 
 # edmConfigDump does not define __file__; the code object's filename is set by every loader.
@@ -115,6 +116,8 @@ if isMC and cfg['output']['lheTables']:
     process.lheInfoTable = cms.EDProducer('LHETablesProducer', lheInfo=cms.VInputTag(*inputs['lheInfo']),
                                           precision=cms.int32(14), storeLHEParticles=cms.bool(True))
     task.add(process.lheInfoTable)
+addEventTables(process, cfg['output'], inputs, sel['reco']['vertex'], isMC, task)
+addAK4Jets(process, cfg['output']['ak4Jets'], isMC, task)
 
 keep = ['drop *', 'keep nanoaodFlatTable_*Table_*_*', 'keep nanoaodMergeableCounterTable_*Table_*_*',
         'keep nanoaodUniqueString_nanoMetadata_*_*']
