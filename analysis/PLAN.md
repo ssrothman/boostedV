@@ -6,7 +6,7 @@
 - [Example configuration](#example-configuration)
 - [Files](#files)
 - [Tests](#tests)
-- [Open questions](#open-questions)
+- [Decisions (user, 2026-11-13)](#decisions-user-2026-11-13)
 
 ## Goal
 Kinematic and EEC plots from the boostedV NANO with selections, cuts and binnings declared in YAML, so a new
@@ -68,7 +68,11 @@ histograms:
 - Binning: each spec type gives the expected edges.
 - Plot smoke tests (files written, per-bin-width normalisation integrates back to the total).
 
-## Open questions
-1. Cut syntax: free expressions (above), or a restricted `variable op value` form?
-2. Outputs: one `.coffea` file per run, plus optional export of histograms to ROOT/`.pkl`?
-3. Plot style: CMS label text ("Simulation Preliminary"?), luminosity label.
+## Decisions (user, 2026-11-13)
+1. Cuts and variables: a restricted but flexible expression language, not free Python. Parsed with `ast` and
+   evaluated from a whitelist: object fields (`jets.pt`, `event.PV.npvsGood`), numbers and booleans, arithmetic,
+   comparisons (chains allowed: `200 < boson.pt < 400`), `and`/`or`/`not`, and the functions `abs`, `sqrt`, `log`,
+   `log10`, `exp`, `num`, `sum`, `any`, `all`, `max`, `min`, `lead` (first object), `deltaR(a, b)`. Derived variables
+   can be named in the YAML (`variables:`) and reused. Anything else is a configuration error.
+2. Output: one `.coffea` per run; optional export to ROOT (uproot) or pickle.
+3. Plot label: "CMS Simulation Work in progress".
