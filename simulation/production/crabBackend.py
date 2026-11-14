@@ -19,7 +19,7 @@ def makeConfig(sample, name, tag, man, workArea):
     # The cfg is evaluated here at submission, so the YAML is read locally; CRAB applies Data.lumiMask itself.
     c.JobType.pyCfgParams = ['config=' + sample['config'], 'globalTag=' + sample['globalTag'],
                              'isMC=%d' % sample['isMC'], 'outputFile=nano.root', 'histFile=hists.root']
-    c.JobType.maxMemoryMB = 2500
+    c.JobType.maxMemoryMB = 3000
     c.Data.inputDataset = sample['input']['dataset']
     c.Data.splitting = SPLITTING[sample['splitting']['mode']]
     c.Data.unitsPerJob = sample['splitting']['unitsPerJob']

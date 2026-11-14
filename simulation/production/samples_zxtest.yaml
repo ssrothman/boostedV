@@ -1,0 +1,44 @@
+# First ZX_test production (plan: ../zxTestProduction_plan.md). Splitting from local tests (2026-11-13): CPU about
+# 14 ms/event (DY) to 18 ms/event (ttbar) plus about 13 s start-up, at the DAS mean events per file.
+outputBase: /store/user/srothman/boostedV
+storageSite: T3_US_FNALLPC
+eosRedirector: root://cmseos.fnal.gov
+inputRedirector: root://cmsxrootd.fnal.gov
+
+samples:
+  DYto2L-4Jets_MLL-50_MLM:        # 264.4M events, 6114 files (43k/file): ~100 min/job
+    input: {dataset: /DYto2L-4Jets_MLL-50_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer22EEMiniAODv4-130X_mcRun3_2022_realistic_postEE_v6-v3/MINIAODSIM}
+    isMC: true
+    globalTag: 130X_mcRun3_2022_realistic_postEE_v6
+    config: ../configs/ZX_test.yaml
+    lumiMask: ''
+    backend: crab
+    splitting: {mode: files, unitsPerJob: 10}
+    maxJobs: -1
+  ZZ_pythia8:                     # 4.04M events, 82 files (49k/file): ~75 min/job
+    input: {dataset: /ZZ_TuneCP5_13p6TeV_pythia8/Run3Summer22EEMiniAODv4-130X_mcRun3_2022_realistic_postEE_v6-v2/MINIAODSIM}
+    isMC: true
+    globalTag: 130X_mcRun3_2022_realistic_postEE_v6
+    config: ../configs/ZX_test.yaml
+    lumiMask: ''
+    backend: crab
+    splitting: {mode: files, unitsPerJob: 5}
+    maxJobs: -1
+  WZ_pythia8:                     # 26.7M events, 391 files (68k/file): ~85 min/job
+    input: {dataset: /WZ_TuneCP5_13p6TeV_pythia8/Run3Summer22EEMiniAODv4-130X_mcRun3_2022_realistic_postEE_v6-v2/MINIAODSIM}
+    isMC: true
+    globalTag: 130X_mcRun3_2022_realistic_postEE_v6
+    config: ../configs/ZX_test.yaml
+    lumiMask: ''
+    backend: crab
+    splitting: {mode: files, unitsPerJob: 5}
+    maxJobs: -1
+  TTto2L2Nu_powheg:               # 74.3M events, 1388 files (54k/file): ~95 min/job
+    input: {dataset: /TTto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EEMiniAODv4-130X_mcRun3_2022_realistic_postEE_v6-v2/MINIAODSIM}
+    isMC: true
+    globalTag: 130X_mcRun3_2022_realistic_postEE_v6
+    config: ../configs/ZX_test.yaml
+    lumiMask: ''
+    backend: crab
+    splitting: {mode: files, unitsPerJob: 6}
+    maxJobs: -1

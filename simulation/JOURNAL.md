@@ -17,6 +17,7 @@
 - 2026-11-13 NANO additions: event tables, AK8/AK4 jets, lepton details, GloParT
 - 2026-11-13 Jets flagged, not removed, near selected objects
 - 2026-11-13 V4 JEC on the AK8 EEC jets; jet-axis E1C frame; ZX_test config
+- 2026-11-13 First ZX_test production: unbinned EECs, four MC samples
 
 ## 2026-11-11 A.2 setup and DataFormats
 - Plan: `stepA2_plan.md`. New local repos (remotes pending): `EECDataFormats` (pkg `SRothman/DataFormats`),
@@ -298,3 +299,16 @@
 - `frame: jetAxis` (EECs): lab frame, z = jet, x toward +z beam. Unit test vs lab-built (θ, φ); mutations (x flipped,
   boost added) caught.
 - Unit/config tests: EECs 55, EECsPlugins 12, JetSetupModules 15 (sortByPt mutation caught), config 35 OK.
+
+## 2026-11-13 First ZX_test production: unbinned EECs, four MC samples
+- Plan and samples: `zxTestProduction_plan.md`; manifest `production/samples_zxtest.yaml`, tag `20261113_zxtest`.
+- ZX_test: five observables `Unbinned` (coords `dR` / `theta, phi`), `aggregation.observables: []` (hist files empty;
+  `hadd` of them works).
+- Local, 4000 events per sample (one DAS file each, `writeConstituents=1`): written 1007 (DY), 309 (ZZ), 147 (WZ),
+  390 (TT); reco AK8 jets 11, 18, 14, 65. CPU 14 ms/event (DY), 18 ms/event (TT) after 13 s start-up; max RSS 2.34 GB
+  (CRAB `maxMemoryMB` raised to 3000). NANO about 1 kB per input event with constituents.
+- `configs/checkUnbinned.py`: every unbinned entry (reco and gen, 5 observables, 4 samples) matches a numpy
+  recomputation from the constituents (max |dcoord| 9e-5, |dw/w| 3e-7); `--mutate` fails every table.
+- CRAB dry run: splitting as planned (613/17/79/232 jobs). Its runtime estimates (e.g. 8542 min per TT job) come from
+  an 11-event test (16.5 s CPU, mostly start-up) and are not meaningful.
+- Columnar framework moved to top-level `analysis/` (coffea; plan `analysis/PLAN.md`).

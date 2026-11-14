@@ -1,0 +1,6 @@
+# Cross sections in pb per production sample name (production manifest keys). Fill from a cited source (XSDB entry,
+# GenXSecAnalyzer run, or a paper) and record it in `source`; null means "not yet known" and blocks normalisation.
+DYto2L-4Jets_MLL-50_MLM: {xsec: null, source: ''}
+ZZ_pythia8: {xsec: null, source: ''}
+WZ_pythia8: {xsec: null, source: ''}
+TTto2L2Nu_powheg: {xsec: null, source: ''}
