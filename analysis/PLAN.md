@@ -1,5 +1,8 @@
 # Plan: columnar analysis framework (`analysis/`)
 
+Status 2026-11-13: first version implemented (package `bvana/`, `run.py`, `plot.py`, `configs/zxtest.yaml`; see
+`README.md`).
+
 ## Contents
 - [Goal](#goal)
 - [Design](#design)

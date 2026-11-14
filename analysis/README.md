@@ -1,0 +1,57 @@
+# Columnar analysis of the boostedV NANO (`bvana`)
+
+coffea-based kinematic and EEC histograms with regions, cuts and binnings declared in YAML. Design and decisions:
+`PLAN.md`. NANO contents: `../simulation/NANO.md`.
+
+## Environment
+```
+source /uscms/home/srothman/nobackup/mambaforge/bin/activate dev     # coffea 2026.11, awkward 2.14, hist, mplhep
+cd analysis
+```
+
+## Run and plot
+```
+python3 run.py configs/zxtest.yaml --tag 20261113_zxtest [--samples NAME ...] [--lumi PB] -o out.coffea [--export out.root]
+python3 run.py configs/zxtest.yaml --files DY=nano_dy.root TT=nano_tt.root -o out.coffea
+python3 plot.py out.coffea --hist bosonPt --region ZmumuReco --norm area --logy -o zpt.pdf
+python3 plot.py out.coffea --hist E2Cn1 --region ZmumuReco --samples DY --split jetpt --project dR \
+                --norm area --width log --logx -o e2c.pdf
+python3 plot.py out.coffea --hist E1CHelicity --region ZmumuReco --samples TT -o e1c.pdf
+```
+- `--tag` reads the merged samples (`simulation/production/merge.py` → `merged/sample.json`). `--lumi` normalises MC to
+  xsec × lumi / genEventSumw and needs every cross section in `xsec.yaml`; none is filled yet.
+- `run.py` output: `hists[hist][region][sample]` (`hist.Hist`), `cutflow[region][sample][cut]` (`n`, `sumw`, `jets`),
+  `sumw[sample]`.
+- `plot.py`: overlay samples (default), regions (`--regions`), or the bins of an axis (`--split`); `--slice AXIS=LO:HI`
+  (bin edges), `--project`, `--norm area`, `--width linear|log`, `--stack`, `--ratio LEGEND`, log axes. Two remaining
+  axes give a map. Label: "CMS Simulation Work in progress".
+
+## Configuration (`configs/zxtest.yaml`)
+- `variables`: named expressions, e.g. `tau21: jets.tau2 / jets.tau1`.
+- `binning`: `{regular: [n, lo, hi]}`, `{log: [n, lo, hi]}`, `{edges: [...]}`, `{integer: [lo, hi]}`, optional `label`.
+- `regions`: `level` (reco | gen), `channel`, `cuts` (in order; each is a cutflow step), optional `weights`
+  (event-level factors).
+- `histograms`: `granularity` (event | jet | lepton | `eec:<observable>`), `axes` (`var`, `bins`, optional `name`),
+  optional `cuts` (e.g. `eec.dR > 0`), `weight`, `renormalise` (EEC: weights × (E_jet/E′)^(nN)), `regions`.
+
+**Expressions** are a restricted Python subset (`bvana/expr.py`): the objects `boson`, `leptons`, `jets`, `met`,
+`event`, `eec` and their fields; numbers and booleans; `+ - * / ** %`; comparisons, chained or not; `and`, `or`, `not`;
+`abs sqrt log log10 exp cos sin`; the reductions `num sum any all max min lead`; `deltaR(a, b)`.
+Each expression has a level, which decides what a cut does:
+
+| Level | Examples | As a region cut |
+|---|---|---|
+| event | `boson.pt > 200`, `num(jets) >= 1`, `met.pt < 50` | drops events |
+| jet | `jets.pt > 300`, `deltaR(jets, boson) > 2` | drops jets, with their EEC entries |
+| lepton | `leptons.mediumId` | drops events in which any selected lepton fails |
+| eec | `eec.dR > 0` | histogram cuts only |
+
+- The jets of a region are the level's jet table minus the jets vetoed for its channel (`veto<channel>`).
+- A missing value, such as `max()` over no jets, fails a cut and goes to the overflow bin of an axis.
+- EEC entries are filled with event weight × `weight` × `symfactor`.
+- Columns present only at reco level (`msoftdrop`, taggers) need `regions:` limited to reco regions.
+
+## Tests
+```
+python3 -m unittest discover -s tests            # ANALYSIS_TEST_NANO=<ZX_test NANO> adds the real-file comparison
+```

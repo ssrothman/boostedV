@@ -1,0 +1,199 @@
+"""Tests of the expression language, regions, histograms and plotting helpers (run from analysis/:
+python3 -m unittest discover -s tests). ANALYSIS_TEST_NANO=<ZX_test NANO> adds a comparison with uproot on a real file.
+"""
+import os
+import unittest
+
+import awkward as ak
+import numpy as np
+
+from bvana import plotting
+from bvana.config import Config, ConfigError
+from bvana.expr import Expr, ExprError, compileVariables
+from bvana.histograms import makeAxis
+
+
+def syntheticEvents():
+    """Three events, reco level, channel Zmumu; jets with a veto flag (first jet of event 0, so kept and full jet
+    positions differ) and an EEC observable 'X' (2 entries per jet)."""
+    jets = [[(350, 1.0, True, 0.3), (400, 0.5, False, 0.1), (250, 2.2, False, 0.7)],
+            [(500, -0.3, False, 0.9), (320, 0.1, False, 0.2)],
+            [(210, 0.0, False, 0.5)]]
+    jet = ak.Array([[{'pt': float(p), 'eta': e, 'vetoZmumu': v, 'tau': t} for p, e, v, t in ev] for ev in jets])
+    nEnt = [[2] * len(ev) for ev in jets]
+    entries = []
+    for ev in jets:
+        row = []
+        for k in range(len(ev)):
+            row += [{'iJet': k, 'dR': 0.0, 'weight': 0.01 * (k + 1), 'symfactor': 1},
+                    {'iJet': k, 'dR': 0.1 * (k + 1), 'weight': 0.1 * (k + 1), 'symfactor': 2}]
+        entries.append(row)
+    per = ak.Array([[{'nEntries': n, 'E_jet': 100.0, 'n': 1.0, 'N': 2} for n in ev] for ev in nEnt])
+    boson = ak.Array([[{'pt': 250.0, 'mass': 91.0}], [{'pt': 150.0, 'mass': 90.0}], [{'pt': 300.0, 'mass': 92.0}]])
+    leptons = ak.Array([[{'pt': 120.0, 'tight': True}, {'pt': 60.0, 'tight': True}],
+                        [{'pt': 80.0, 'tight': True}, {'pt': 50.0, 'tight': False}],
+                        [{'pt': 200.0, 'tight': True}, {'pt': 100.0, 'tight': True}]])
+    return ak.zip({'RecoJet': jet, 'RecoX': per, 'RecoXEntries': ak.Array(entries), 'ZmumuBoson': boson,
+                   'ZmumuLeptons': leptons, 'Selection': ak.zip({'Zmumu': np.array([True, True, True])}),
+                   'PuppiMET': ak.zip({'pt': np.array([10.0, 20.0, 30.0])}),
+                   'genWeight': np.array([1.0, 2.0, 3.0])}, depth_limit=1)
+
+
+def config(cuts, hist=None):
+    return Config({'regions': {'R': {'level': 'reco', 'channel': 'Zmumu', 'cuts': cuts}},
+                   'binning': {'b': {'regular': [10, 0, 1]}},
+                   'histograms': hist or {'h': {'granularity': 'eec:X', 'axes': [{'var': 'eec.dR', 'bins': 'b'}]}}})
+
+
+class Expressions(unittest.TestCase):
+    def test_rejected(self):
+        for text in ('__import__("os")', 'jets.pt[0]', '"a" == jets.pt', 'foo(jets.pt)', 'lambda: 1', 'x.pt',
+                     'abs(jets.pt, 2)', 'max(jets.pt, axis=1)', 'jets.pt if True else 1', 'num(boson.pt)',
+                     'jets.pt + leptons.pt', 'eec.dR < leptons.pt'):
+            with self.assertRaises(ExprError, msg=text):
+                Expr(text)
+
+    def test_levels(self):
+        for text, level in (('jets.pt', 'jet'), ('num(jets)', 'event'), ('jets.pt / boson.pt', 'jet'),
+                            ('sum(eec.weight)', 'jet'), ('max(sum(eec.weight))', 'event'), ('all(leptons.tight)', 'event'),
+                            ('event.PV.npvsGood > 3', 'event'), ('200 < boson.pt < 400', 'event'), ('eec.dR * jets.pt', 'eec')):
+            self.assertEqual(Expr(text).level, level, text)
+
+    def test_evaluation(self):
+        ns = {'jets': ak.Array([[{'pt': 1.0}, {'pt': 5.0}], []]), 'boson': ak.Array([{'pt': 2.0}, {'pt': 9.0}])}
+        self.assertEqual(Expr('0 < jets.pt < 4')(ns).tolist(), [[True, False], []])
+        self.assertEqual(Expr('not (jets.pt > 2) or jets.pt == 5').__call__(ns).tolist(), [[True, True], []])
+        from bvana.expr import asBool
+        self.assertEqual(asBool(Expr('max(jets.pt) > 3')(ns)).tolist(), [True, False])  # no jets: None -> False
+        v = compileVariables({'r': 'jets.pt / boson.pt', 'r2': 'r * 2'})
+        self.assertEqual(Expr('r2', v)(ns).tolist(), [[1.0, 5.0], []])
+
+
+class Regions(unittest.TestCase):
+    def test_chained_jet_cuts_and_eec_entries(self):
+        cfg = config(['jets.pt > 300', 'abs(jets.eta) < 0.8'])
+        view, flow = cfg.regions['R'].select(syntheticEvents(), ak.Array([1.0, 2.0, 3.0]))
+        # The vetoed jet (event 0, jet 0) is never seen; pt > 300 keeps ev0 j1 and ev1 j0, j1, which all pass the eta cut.
+        self.assertEqual(view.jetIdx.tolist(), [[1], [0, 1], []])
+        self.assertEqual([v['jets'] for v in flow.values()], [5, 3, 3])
+        nested, perJet = view.entries('X')
+        self.assertEqual(nested.dR.tolist(), [[[0.0, 0.2]], [[0.0, 0.1], [0.0, 0.2]], []])
+
+    def test_second_jet_cut_is_relative_to_kept_jets(self):
+        cfg = config(['jets.pt > 300', 'jets.tau > 0.5'])
+        view, _ = cfg.regions['R'].select(syntheticEvents(), ak.Array([1.0, 2.0, 3.0]))
+        self.assertEqual(view.jetIdx.tolist(), [[], [0], []])
+
+    def test_event_and_lepton_cuts(self):
+        cfg = config(['all(leptons.tight)', 'boson.pt > 200', 'num(jets) >= 1'])
+        view, flow = cfg.regions['R'].select(syntheticEvents(), ak.Array([1.0, 2.0, 3.0]))
+        self.assertEqual([v['n'] for v in flow.values()], [3, 2, 2, 2])
+        self.assertEqual([v['sumw'] for v in flow.values()], [6.0, 4.0, 4.0, 4.0])
+        self.assertEqual(ak.to_list(view.weight), [1.0, 3.0])
+
+    def test_misaligned_jet_mask_is_rejected(self):
+        view, _ = config([]).regions['R'].select(syntheticEvents(), ak.Array([1.0, 2.0, 3.0]))
+        with self.assertRaises(ValueError):
+            view.keepJets(ak.Array([[True], [True, True], [True]]))  # event 0 has two kept jets
+
+    def test_lepton_level_cut_requires_every_lepton(self):
+        view, flow = config(['leptons.tight']).regions['R'].select(syntheticEvents(), ak.Array([1.0, 2.0, 3.0]))
+        self.assertEqual(ak.to_list(view.weight), [1.0, 3.0])
+
+    def test_config_errors(self):
+        with self.assertRaises(ConfigError):
+            config(['eec.dR > 0'])  # per-entry cuts belong to histograms
+        with self.assertRaises(ConfigError):
+            config([], {'h': {'granularity': 'jet', 'axes': [{'var': 'eec.dR', 'bins': 'b'}]}})
+        with self.assertRaises(ConfigError):
+            config([], {'h': {'granularity': 'jet', 'axes': [{'var': 'jets.pt', 'bins': 'nope'}]}})
+        with self.assertRaises(ConfigError):
+            config([], {'h': {'granularity': 'jet', 'axs': []}})
+
+
+class Histograms(unittest.TestCase):
+    def test_binnings(self):
+        np.testing.assert_allclose(makeAxis({'log': [3, 1e-3, 1]}, 'a', '').edges, [1e-3, 1e-2, 1e-1, 1])
+        np.testing.assert_allclose(makeAxis({'regular': [2, 0, 1]}, 'a', '').edges, [0, 0.5, 1])
+        np.testing.assert_allclose(makeAxis({'edges': [0, 1, 5]}, 'a', '').edges, [0, 1, 5])
+        self.assertEqual(len(makeAxis({'integer': [0, 4]}, 'a', '').edges), 5)
+
+    def test_eec_fill_weights(self):
+        hist = {'h': {'granularity': 'eec:X', 'cuts': ['eec.dR > 0'], 'axes': [{'var': 'eec.dR', 'bins': 'b'}]},
+                'r': {'granularity': 'eec:X', 'renormalise': 'jets.pt', 'axes': [{'var': 'eec.dR', 'bins': 'b'}]}}
+        cfg = config(['jets.pt > 300'], hist)
+        view, _ = cfg.regions['R'].select(syntheticEvents(), ak.Array([1.0, 2.0, 3.0]))
+        h = cfg.histograms['h'].fill(view)
+        # kept: ev0 j1 (w 1), ev1 j0 and j1 (w 2); dR > 0 entries of jet k: weight 0.1 (k+1) x symfactor 2
+        self.assertAlmostEqual(h.sum(flow=True).value, 1 * 0.4 + 2 * 0.2 + 2 * 0.4)
+        r = cfg.histograms['r'].fill(view)
+        expect = 1 * (0.02 + 0.4) * (100 / 400) ** 2 + 2 * (0.01 + 0.2) * (100 / 500) ** 2 + 2 * (0.02 + 0.4) * (100 / 320) ** 2
+        self.assertAlmostEqual(r.sum(flow=True).value, expect)
+
+    def test_mixed_granularity_axes(self):
+        hist = {'h': {'granularity': 'jet', 'axes': [{'var': 'jets.tau', 'bins': 'b'},
+                                                     {'var': 'boson.pt / 1000', 'bins': 'b', 'name': 'zpt'}]}}
+        cfg = config([], hist)
+        view, _ = cfg.regions['R'].select(syntheticEvents(), ak.Array([1.0, 2.0, 3.0]))
+        h = cfg.histograms['h'].fill(view)
+        self.assertAlmostEqual(h.sum(flow=True).value, 1 * 2 + 2 * 2 + 3 * 1)
+        # boson.pt / 1000 = 0.25, 0.15, 0.30 -> bins 2, 1, 3 with 2, 2 and 1 jets of weights 1, 2, 3
+        self.assertEqual(h[{'jets_tau': sum}].values()[:4].tolist(), [0.0, 4.0, 2.0, 3.0])
+
+
+class Plotting(unittest.TestCase):
+    def test_log_width_integrates_to_total(self):
+        import hist
+        h = hist.Hist(makeAxis({'log': [5, 1e-3, 1]}, 'x', ''), storage='weight')
+        h.fill([2e-3, 0.02, 0.3, 0.5], weight=[1, 2, 3, 4])
+        v, _ = plotting.values(h, norm='area', width='log')
+        self.assertAlmostEqual(np.sum(v * np.diff(np.log(h.axes[0].edges))), 1.0)
+
+    def test_slice(self):
+        import hist
+        h = hist.Hist(makeAxis({'edges': [0, 1, 2, 3]}, 'a', ''), makeAxis({'regular': [2, 0, 2]}, 'b', ''))
+        h.fill([0.5, 1.5, 2.5], [0.5, 1.5, 0.5])
+        r = plotting.reduce(h, [plotting.parseSlice('a=1:3')], ['b'])
+        self.assertEqual(r.values().tolist(), [1.0, 1.0])
+        with self.assertRaises(ValueError):
+            plotting.reduce(h, [plotting.parseSlice('a=1.5:3')])
+
+
+@unittest.skipUnless(os.environ.get('ANALYSIS_TEST_NANO'), 'set ANALYSIS_TEST_NANO')
+class RealFile(unittest.TestCase):
+    def test_against_uproot(self):
+        import uproot
+        from coffea.nanoevents import NanoEventsFactory
+        from bvana.processor import Processor
+        from bvana.schema import BoostedVSchema
+        f = os.environ['ANALYSIS_TEST_NANO']
+        hist = {'bosonPt': {'axes': [{'var': 'boson.pt', 'bins': {'regular': [10, 0, 2000]}}]},
+                'jetPt': {'granularity': 'jet', 'axes': [{'var': 'jets.pt', 'bins': {'regular': [10, 0, 3000]}}]},
+                'E2C': {'granularity': 'eec:E2Cn1', 'cuts': ['eec.dR > 0'], 'axes': [{'var': 'eec.dR', 'bins': 'b'}]}}
+        cfg = Config({'regions': {'R': {'level': 'reco', 'channel': 'Zmumu',
+                                        'cuts': ['jets.pt > 250', 'abs(jets.eta) < 1.5']}},
+                      'binning': {'b': {'log': [10, 1e-4, 1]}}, 'histograms': hist})
+        ev = NanoEventsFactory.from_root({f: 'Events'}, schemaclass=BoostedVSchema, mode='eager',
+                                         metadata={'sample': 'S', 'isMC': True}).events()
+        out = Processor(cfg).process(ev)
+        a = uproot.open(f)['Events'].arrays(library='np')
+        zpt = jpt = e2c = 0.0
+        nJets = 0
+        for e in np.nonzero(a['Selection_Zmumu'])[0]:
+            w = a['genWeight'][e]
+            zpt += w
+            keep = (~a['RecoJet_vetoZmumu'][e]) & (a['RecoJet_pt'][e] > 250) & (np.abs(a['RecoJet_eta'][e]) < 1.5)
+            nJets += keep.sum()
+            jpt += w * keep.sum()
+            iJ, dR = a['RecoE2Cn1Entries_iJet'][e], a['RecoE2Cn1Entries_dR'][e]
+            sel = keep[iJ] & (dR > 0)
+            e2c += w * np.sum((a['RecoE2Cn1Entries_weight'][e] * a['RecoE2Cn1Entries_symfactor'][e])[sel])
+        self.assertGreater(nJets, 0)
+        self.assertGreater(e2c, 0)
+        for name, ref in (('bosonPt', zpt), ('jetPt', jpt), ('E2C', e2c)):
+            got = out['hists'][name]['R']['S'].sum(flow=True).value
+            self.assertAlmostEqual(got, ref, delta=1e-9 * abs(ref), msg=name)
+
+
+if __name__ == '__main__':
+    unittest.main()

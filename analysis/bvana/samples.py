@@ -9,9 +9,9 @@ import os
 
 import yaml
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-WORK = os.path.join(os.path.dirname(HERE), 'simulation', 'production', 'work')
-XSEC = os.path.join(HERE, 'xsec.yaml')
+ANALYSIS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+WORK = os.path.join(os.path.dirname(ANALYSIS), 'simulation', 'production', 'work')
+XSEC = os.path.join(ANALYSIS, 'xsec.yaml')
 
 
 class Sample:

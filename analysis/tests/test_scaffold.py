@@ -1,15 +1,12 @@
-"""Tests: python3 -m unittest -v test_analysis (mambaforge dev env).
-ANALYSIS_TEST_NANO=<ZX_test NANO file> enables the processor test against an independent uproot computation."""
+"""Tests of the EEC accessors and the sample registry: python3 -m unittest discover -s tests (from analysis/)."""
 import json
 import os
 import tempfile
 import unittest
 
 import awkward as ak
-import numpy as np
 
-import eec
-import samples
+from bvana import eec, samples
 
 
 def fakeEvents(nEntries, iJet):
@@ -57,36 +54,6 @@ class Samples(unittest.TestCase):
                 s['B'].lumiScale(1000.0)
             with self.assertRaises(ValueError):
                 samples.load('tag', ['A', 'C'], work=d, xsecFile=xs)
-
-
-@unittest.skipUnless(os.environ.get('ANALYSIS_TEST_NANO'), 'set ANALYSIS_TEST_NANO')
-class Processor(unittest.TestCase):
-    def test_eec_sums_match_uproot(self):
-        import uproot
-        from coffea.nanoevents import NanoEventsFactory
-        from processor import ZXProcessor
-        from schema import BoostedVSchema
-        f = os.environ['ANALYSIS_TEST_NANO']
-        events = NanoEventsFactory.from_root({f: 'Events'}, schemaclass=BoostedVSchema, mode='eager',
-                                             metadata={'sample': 'S', 'isMC': True}).events()
-        out = ZXProcessor().process(events)
-        a = uproot.open(f)['Events'].arrays(library='np')
-        checked = 0
-        for ch in ('Zmumu', 'Zee'):
-            for obs in ('E2Cn1', 'E1CHelicity'):
-                total = 0.0
-                for e in np.nonzero(a['Selection_' + ch])[0]:
-                    good = ~a['RecoJet_veto' + ch][e]
-                    sel = good[a['Reco%sEntries_iJet' % obs][e]]
-                    if obs.startswith('E2C'):
-                        sel &= a['Reco%sEntries_dR' % obs][e] > 0
-                    total += a['genWeight'][e] * np.sum((a['Reco%sEntries_weight' % obs][e] *
-                                                         a['Reco%sEntries_symfactor' % obs][e])[sel])
-                h = out['hists']['S_%s_reco' % ch][obs]
-                got = h.sum(flow=True).value
-                self.assertAlmostEqual(got, total, delta=1e-9 * max(1.0, abs(total)))
-                checked += total != 0
-        self.assertGreater(checked, 0)
 
 
 if __name__ == '__main__':
