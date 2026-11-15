@@ -18,6 +18,7 @@
 - 2026-11-13 Jets flagged, not removed, near selected objects
 - 2026-11-13 V4 JEC on the AK8 EEC jets; jet-axis E1C frame; ZX_test config
 - 2026-11-13 First ZX_test production: unbinned EECs, four MC samples
+- 2026-11-14 ZX_test production `20261113_zxtest`: CRAB outcome, merge, sample plots
 
 ## 2026-11-11 A.2 setup and DataFormats
 - Plan: `stepA2_plan.md`. New local repos (remotes pending): `EECDataFormats` (pkg `SRothman/DataFormats`),
@@ -312,3 +313,21 @@
 - CRAB dry run: splitting as planned (613/17/79/232 jobs). Its runtime estimates (e.g. 8542 min per TT job) come from
   an 11-event test (16.5 s CPU, mostly start-up) and are not meaningful.
 - Columnar framework moved to top-level `analysis/` (coffea; plan `analysis/PLAN.md`).
+
+## 2026-11-14 ZX_test production `20261113_zxtest`: CRAB outcome, merge, sample plots
+- Merged (`merge.py`; MC sums from the Runs trees): ZZ 17/17 jobs (genEventCount 4,043,040 = DAS), WZ 79/79
+  (26,722,782 = DAS), TT 229/232 (73.3M of 74.3M), DY 589/613 (253.9M of 264.4M). TT and DY merged with
+  `--allow-missing` (user decision).
+- TT 17, 112, 223 fail deterministically: an AK8 jet with MiniAOD pt < 170 (daughters dropped) whose raw pt (326.8 in
+  two inspected events) gives V4 pt ≈ 348.45, so `PATJetToEECJetProducer` throws. Open item in `TODO.md`.
+- Grid traps seen with this task:
+  - Stage-out to T3_US_FNALLPC from T2_CH_CSCS never succeeded (FTS HTTP 500, exit 60328; 0 of 613 DY jobs finished
+    there), while 565 finished at T1_US_FNAL. Blacklisting T1_US_FNAL for an input problem pushes DY jobs to CSCS, the
+    only other disk replica, so they cannot finish.
+  - Some DY input files fail to open at FNAL (`cmsdcadisk.fnal.gov`, exit 8028) on every retry (up to 15).
+  - Jobs at T3_US_FNALLPC ran 18-21 h (about 45% CPU efficiency) and hit the wall limit (exit 50664); about 2 h at T1.
+  - CRAB caps `--maxmemory` at 5000 MB per core; TT 176 (4.7 GB peak, killed at 3000) finished at 5000.
+  - A second `crab resubmit` on a task right after one still being processed returns HTTP 500.
+- Sample plots (area-normalised, no cross sections yet): `~/nobackup/boostedV/plots/20261113_zxtest/` via its
+  `make_plots.sh` (60 plots: kinematics, E2C by jet pT, E1C θ/φ/maps in the lab, helicity and CS frames). m_SD shows the
+  W/Z peaks in WZ/ZZ and none in DY; the E2C peak moves to smaller ΔR with jet pT.
