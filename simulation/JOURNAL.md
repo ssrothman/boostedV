@@ -19,6 +19,7 @@
 - 2026-11-13 V4 JEC on the AK8 EEC jets; jet-axis E1C frame; ZX_test config
 - 2026-11-13 First ZX_test production: unbinned EECs, four MC samples
 - 2026-11-14 ZX_test production `20261113_zxtest`: CRAB outcome, merge, sample plots
+- 2026-11-14 Dilepton pT cut and back-to-back jet selection
 
 ## 2026-11-11 A.2 setup and DataFormats
 - Plan: `stepA2_plan.md`. New local repos (remotes pending): `EECDataFormats` (pkg `SRothman/DataFormats`),
@@ -331,3 +332,16 @@
 - Sample plots (area-normalised, no cross sections yet): `~/nobackup/boostedV/plots/20261113_zxtest/` via its
   `make_plots.sh` (60 plots: kinematics, E2C by jet pT, E1C θ/φ/maps in the lab, helicity and CS frames). m_SD shows the
   W/Z peaks in WZ/ZZ and none in DY; the E2C peak moves to smaller ΔR with jet pT.
+
+## 2026-11-14 Dilepton pT cut and back-to-back jet selection
+- `pairPtMin` (dilepton channels): the chosen pair (closest to m_Z) must have pt >= pairPtMin, no fallback to another
+  pair. ZX_test: 150 GeV at reco and gen. 2000 inclusive DY events: 8 written instead of 513, exactly those with a reco or
+  gen Z above 150 GeV. Expected kept fractions (from `20261113_zxtest`): DY 0.5%, TT 2.5%, WZ/ZZ about 5%.
+- `backToBack` (per channel; plan and user decisions: `backToBack_plan.md`): leading non-vetoed jet with Δφ > 2.8 and
+  pt asymmetry < 0.3 against the channel's object, else the channel fails; only selected jets are written. Nominal jets
+  only: validation rejects it with jet variations, for leptonMET channels and for singleObject with nMin 0.
+- Validation: core and module unit tests (8 mutations caught), config tests (3 wiring mutations caught); disabled gives
+  a byte-identical process dump to before (default MC and data, ZX_test). `JetSetup/test/validation/checkBackToBack.py`
+  on enabled vs disabled runs: PTLL-400to600 431/517 events kept, 809 jets and 4045 (jet, EEC table) pairs identical to
+  the recomputation, 903 other columns unchanged; inclusive DY 3/8. `--mutate` (dPhiMin + 0.1) fails it.
+- Size: the PTLL-400to600 NANO goes from 13.4 to 9.4 MB. Every NANO carries a fixed 2.5 MB ParameterSets tree.

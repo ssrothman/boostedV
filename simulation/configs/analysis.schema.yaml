@@ -13,6 +13,15 @@ definitions:
   num: {type: number}
   uint: {type: integer, minimum: 0}
 
+  backToBack:                # leading non-vetoed jet back to back with and balanced against the channel's object
+    type: object
+    additionalProperties: false
+    required: [enabled, dPhiMin, asymmetryMax]
+    properties:
+      enabled: {type: boolean}
+      dPhiMin: {type: number, minimum: 0, maximum: 3.141592653589793}
+      asymmetryMax: {type: number, exclusiveMinimum: 0, maximum: 1}
+
   objectVariable:            # one column from a PAT string expression on a matched lepton or photon
     type: object
     additionalProperties: false
@@ -58,7 +67,7 @@ definitions:
       - type: object
         additionalProperties: false
         required: [type, triggers, allowMissingTriggers, objects, leadPtMin, subleadPtMin, massMin, massMax,
-                   oppositeCharge, targetMass, pairPtMin]
+                   oppositeCharge, targetMass, pairPtMin, backToBack]
         properties:
           type: {const: dilepton}
           triggers: {$ref: '#/definitions/strList', minItems: 1}
@@ -71,9 +80,10 @@ definitions:
           oppositeCharge: {type: boolean}
           targetMass: {$ref: '#/definitions/num'}
           pairPtMin: {$ref: '#/definitions/num'}
+          backToBack: {$ref: '#/definitions/backToBack'}
       - type: object
         additionalProperties: false
-        required: [type, triggers, allowMissingTriggers, objects, vetoes, ptMin, metMin, mtMin]
+        required: [type, triggers, allowMissingTriggers, objects, vetoes, ptMin, metMin, mtMin, backToBack]
         properties:
           type: {const: leptonMET}
           triggers: {$ref: '#/definitions/strList', minItems: 1}
@@ -83,9 +93,10 @@ definitions:
           ptMin: {$ref: '#/definitions/num'}
           metMin: {$ref: '#/definitions/num'}
           mtMin: {$ref: '#/definitions/num'}
+          backToBack: {$ref: '#/definitions/backToBack'}
       - type: object
         additionalProperties: false
-        required: [type, triggers, allowMissingTriggers, objects, vetoes, nMin, nMax]
+        required: [type, triggers, allowMissingTriggers, objects, vetoes, nMin, nMax, backToBack]
         properties:
           type: {const: singleObject}
           triggers: {$ref: '#/definitions/strList', minItems: 1}
@@ -94,13 +105,14 @@ definitions:
           vetoes: {$ref: '#/definitions/strList'}
           nMin: {$ref: '#/definitions/uint'}
           nMax: {$ref: '#/definitions/uint'}
+          backToBack: {$ref: '#/definitions/backToBack'}
 
   genChannel:
     oneOf:
       - type: object
         additionalProperties: false
         required: [type, objects, leadPtMin, subleadPtMin, massMin, massMax,
-                   oppositeCharge, targetMass, pairPtMin]
+                   oppositeCharge, targetMass, pairPtMin, backToBack]
         properties:
           type: {const: dilepton}
           objects: {$ref: '#/definitions/str'}
@@ -111,9 +123,10 @@ definitions:
           oppositeCharge: {type: boolean}
           targetMass: {$ref: '#/definitions/num'}
           pairPtMin: {$ref: '#/definitions/num'}
+          backToBack: {$ref: '#/definitions/backToBack'}
       - type: object
         additionalProperties: false
-        required: [type, objects, vetoes, ptMin, metMin, mtMin]
+        required: [type, objects, vetoes, ptMin, metMin, mtMin, backToBack]
         properties:
           type: {const: leptonMET}
           objects: {$ref: '#/definitions/str'}
@@ -121,15 +134,17 @@ definitions:
           ptMin: {$ref: '#/definitions/num'}
           metMin: {$ref: '#/definitions/num'}
           mtMin: {$ref: '#/definitions/num'}
+          backToBack: {$ref: '#/definitions/backToBack'}
       - type: object
         additionalProperties: false
-        required: [type, objects, vetoes, nMin, nMax]
+        required: [type, objects, vetoes, nMin, nMax, backToBack]
         properties:
           type: {const: singleObject}
           objects: {$ref: '#/definitions/str'}
           vetoes: {$ref: '#/definitions/strList'}
           nMin: {$ref: '#/definitions/uint'}
           nMax: {$ref: '#/definitions/uint'}
+          backToBack: {$ref: '#/definitions/backToBack'}
 
   jetCuts:
     type: object

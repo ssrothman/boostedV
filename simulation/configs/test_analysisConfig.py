@@ -629,5 +629,70 @@ class BuiltProcess(unittest.TestCase):
         self.assertEqual(p.jetsRecoJER.seedSalt.value(), 0)
 
 
+def enableBackToBack(cfg, channels=('Zmumu',), levels=('reco', 'gen')):
+    for level in levels:
+        for ch in channels:
+            cfg['selection'][level]['channels'][ch]['backToBack'].update(enabled=True)
+    return cfg
+
+
+class BackToBack(unittest.TestCase):
+    """selection/<level>/channels/<ch>/backToBack (simulation/backToBack_plan.md)."""
+
+    def assertRejected(self, mutate, *fragments):
+        LoaderRejects.assertRejected(self, mutate, *fragments)
+
+    def test_checks(self):
+        noVar = lambda c: c['jets']['collections']['Reco'].update(variations={})
+        # Allowed: dilepton and single-object channels with cleaning and no jet variations.
+        cfg = enableBackToBack(loadDefault(), ['Zmumu', 'GammaJets'])
+        noVar(cfg)
+        analysisConfig.load(writeTmp(cfg))
+        self.assertRejected(lambda c: enableBackToBack(c), 'channels/Zmumu/backToBack', 'jet variations')
+        self.assertRejected(lambda c: (noVar(c), enableBackToBack(c, ['Wmunu'])), 'channels/Wmunu/backToBack',
+                            'leptonMET')
+        self.assertRejected(lambda c: (noVar(c), enableBackToBack(c, ['Hadronic'])), 'channels/Hadronic/backToBack',
+                            'nMin >= 1')
+        self.assertRejected(lambda c: (noVar(c), enableBackToBack(c, ['Zee']), c['jets']['cleaning']['channels'].remove('Zee')),
+                            'channels/Zee/backToBack', 'jets/cleaning/channels')
+        self.assertRejected(lambda c: (noVar(c), enableBackToBack(c), c['jets']['collections'].update(
+            Reco2=dict(c['jets']['collections']['Reco'], table=dict(c['jets']['collections']['Reco']['table'], name='R2')))),
+                            'needs exactly one reco jet collection')
+        self.assertRejected(lambda c: c['selection']['gen']['channels']['Zee'].pop('backToBack'),
+                            'selection/gen/channels/Zee', 'backToBack')
+        self.assertRejected(lambda c: c['selection']['reco']['channels']['Zee']['backToBack'].update(dPhiMin=4.0),
+                            'selection/reco/channels/Zee')
+
+    def test_wiring(self):
+        cfg = enableBackToBack(loadDefault(), levels=('reco',))
+        cfg['jets']['collections']['Reco'].update(variations={})
+        cfg['selection']['reco']['channels']['Zmumu']['backToBack'].update(dPhiMin=2.5, asymmetryMax=0.4)
+        p = buildProcess(cfg)
+        b = p.jetsRecoBackToBackZmumu
+        self.assertEqual((b.dPhiMin.value(), b.asymmetryMax.value()), (2.5, 0.4))
+        self.assertEqual((b.src.value(), b.flag.value(), b.objects.value(), b.vetoFlags.value()),
+                         ('jetsReco', 'Zmumu', 'ZmumuSel:boson', 'jetsRecoOverlap:Zmumu'))
+        self.assertEqual(list(p.jetsRecoOverlap.channels), ['Zmumu'])
+        self.assertEqual(p.jetsRecoB2B.src.value(), 'jetsReco')
+        # Only the reco Zmumu channel needs its back-to-back jet; Zee and the gen level are unchanged.
+        self.assertEqual(sorted(labels(p.anyChannel.srcs)), sorted(['jetsRecoBackToBackZmumu', 'Zee', 'Wmunu', 'Wenu',
+                                                                    'Hadronic', 'GammaJets']))
+        self.assertEqual(sorted(labels(p.genAnyChannel.srcs)), sorted('gen' + c for c in ('Zmumu', 'Zee', 'Wmunu', 'Wenu',
+                                                                                         'Hadronic', 'GammaJets')))
+        self.assertEqual(list(p.selectionFlagsTable.names)[-1], 'B2BZmumu')
+        self.assertEqual(labels(p.selectionFlagsTable.srcs)[-1], 'jetsRecoBackToBackZmumu')
+        self.assertFalse(hasattr(p, 'jetsGenB2B'))
+        # Reco jets after the selection feed the tables, the EECs and the aggregators; the pre-selection table is not
+        # written ('*Table' labels only).
+        for m in ('jetsRecoB2BTable', 'jetsRecoB2BExtTable', 'jetsRecoB2BVetoTable', 'jetsRecoB2BFlagTable', 'eecRecoE2C'):
+            self.assertEqual(getattr(p, m).src.value(), 'jetsRecoB2B')
+        self.assertFalse(hasattr(p, 'jetsRecoTable'))
+        self.assertEqual(p.Zmumu_reco_eecRecoE2C.jetMask.value(), 'jetsRecoB2BVetoTable:Zmumu')
+        self.assertIn('ZmumuB2BFilter', p.Zmumu_reco_AggPath.moduleNames())
+        self.assertNotIn('ZmumuFilter', p.Zmumu_reco_AggPath.moduleNames())
+        self.assertIn('ZeeFilter', p.Zee_reco_AggPath.moduleNames())
+        self.assertEqual(labels(p.ZmumuB2BFilter.srcs), ['jetsRecoBackToBackZmumu'])
+
+
 if __name__ == '__main__':
     unittest.main()

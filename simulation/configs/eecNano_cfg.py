@@ -13,9 +13,9 @@ import sys
 import FWCore.ParameterSet.Config as cms
 from FWCore.ParameterSet.VarParsing import VarParsing
 from SRothman.EECs.eecTools import addAggregator, addObservable
-from SRothman.EventSelection.eventSelection_cff import addSelection, label, muonSFLabel, selectedObjects
+from SRothman.EventSelection.eventSelection_cff import BOSON_INSTANCE, addSelection, label, muonSFLabel, selectedObjects
 from SRothman.EventSelection.eventTables_cff import addAK4Jets, addEventTables
-from SRothman.JetSetup.eecJets_cff import setupJets
+from SRothman.JetSetup.eecJets_cff import backToBackFlag, setupJets
 
 # edmConfigDump does not define __file__; the code object's filename is set by every loader.
 HERE = os.path.dirname(os.path.abspath(inspect.currentframe().f_code.co_filename))
@@ -67,20 +67,39 @@ muCorr = sel['reco']['muonCorrections']
 if not isMC and muCorr['variation'] != 'nominal':
     raise analysisConfig.ConfigError('%s: selection/reco/muonCorrections/variation %s is for MC only'
                                      % (cfgPath, muCorr['variation']))
-addSelection(process, sel, inputs, levels, isMC, task)
+selFlags = addSelection(process, sel, inputs, levels, isMC, task)
 process.anySelectedPath = cms.Path(process.anySelectedFilter, task)
 
 # ---- jets ----
 cleaning = cfg['jets']['cleaning']['channels']
 collections = []  # (EEC name prefix, jet collection label)
+b2bFlags = {}  # (level, channel) -> flag: channel passes and has a back-to-back jet
 for name, spec in cfg['jets']['collections'].items():
     if spec['mcOnly'] and not isMC:
         continue
+    lev = spec['level']
     # Each level's jets are cleaned against that level's selected objects.
-    vetoes = dict(zip(cleaning, selectedObjects(sel[spec['level']], spec['level'], cleaning)))
+    vetoes = dict(zip(cleaning, selectedObjects(sel[lev], lev, cleaning)))
+    b2b = {ch: dict(flag=selFlags[lev][ch], objects='%sSel:%s' % (label(lev, ch), BOSON_INSTANCE[c['type']]),
+                    dPhiMin=c['backToBack']['dPhiMin'], asymmetryMax=c['backToBack']['asymmetryMax'])
+           for ch, c in sel[lev]['channels'].items() if c['backToBack']['enabled']}
     labels = setupJets(process, 'jets' + name, spec, isMC, vetoSrcs=vetoes,
-                       writeConstituents=bool(opts.writeConstituents), task=task)
-    collections += [(name + v, label) for v, label in labels.items()]
+                       writeConstituents=bool(opts.writeConstituents), task=task, backToBack=b2b)
+    collections += [(name + v, lab) for v, lab in labels.items()]
+    b2bFlags.update({(lev, ch): backToBackFlag('jets' + name, ch) for ch in b2b})
+
+# A back-to-back channel passes only with its jet: in the event filter (through anyChannel) and the aggregators.
+for lev, chans in selFlags.items():
+    mine = [ch for ch in chans if (lev, ch) in b2bFlags]
+    if not mine:
+        continue
+    getattr(process, label(lev, 'anyChannel')).srcs = cms.VInputTag(*[b2bFlags.get((lev, ch), f) for ch, f in chans.items()])
+    flagTable = getattr(process, label(lev, 'selectionFlags') + 'Table')
+    for ch in mine:
+        flagTable.names.append('B2B' + ch)
+        flagTable.srcs.append(b2bFlags[(lev, ch)])
+        setattr(process, label(lev, ch) + 'B2BFilter',
+                cms.EDFilter('EventFlagFilter', srcs=cms.VInputTag(b2bFlags[(lev, ch)]), mode=cms.string('and')))
 
 # ---- EECs ----
 for prefix, jets in collections:
@@ -91,7 +110,7 @@ agg = cfg['aggregation']
 genInfo = inputs['genEventInfo'] if isMC else ''
 for level in levels:
     for ch in agg['channels']:
-        seq = getattr(process, label(level, ch) + 'Filter')
+        seq = getattr(process, label(level, ch) + ('B2BFilter' if (level, ch) in b2bFlags else 'Filter'))
         # Reco-level MC histograms carry the channel's muon efficiency scale factors.
         weights = [muonSFLabel(ch)] if isMC and level == 'reco' and ch in sel['reco']['muonScaleFactors'] else []
         for prefix, jets in collections:

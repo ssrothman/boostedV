@@ -129,6 +129,18 @@ The channel types, with the YAML keys of each:
 
 The `<ch>Boson` mass of a leptonMET channel is the invariant mass of that four-vector, not m_T.
 
+**Back-to-back jet** (every channel, key `backToBack: {enabled, dPhiMin, asymmetryMax}`; enabled in `ZX_test.yaml`
+with 2.8 and 0.3, disabled in `default.yaml`). For an enabled channel, the highest-pt jet of the level's collection that
+passes `jetCuts` and is not `veto<ch>` must have Δφ > `dPhiMin` to the channel's highest-pt `<ch>Boson`/`<ch>Objects`
+candidate and |pt_jet − pt_V| / (pt_jet + pt_V) < `asymmetryMax`; a failing leading jet is not replaced by the next one.
+- The channel then counts for the event filter only with such a jet; `Selection_<ch>` / `GenSelection_<ch>` keep the
+  channel's own selection, and `Selection_B2B<ch>` / `GenSelection_B2B<ch>` record the combined result.
+- The jet table and its EECs hold only the jets selected by some enabled channel (normally one); `b2b<ch>` marks the
+  channel(s) that selected each jet. Aggregated histograms of the channel need the same jet.
+- Validation rejects it for `leptonMET` channels (W selection to be refined), `singleObject` channels with `nMin` 0,
+  channels missing from `jets.cleaning.channels`, more than one jet collection at the level, and jet variations
+  (per-variation selection deferred: `backToBack_plan.md`).
+
 **Lepton and photon details (reco).** Each row of `<ch>Leptons` / `<ch>Objects` is matched to the nearest same-charge
 PAT object (ΔR < 0.1; `correctedMuons` for muons when it exists, otherwise the MiniAOD collection), and these columns are
 added:

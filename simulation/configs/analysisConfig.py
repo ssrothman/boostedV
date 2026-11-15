@@ -121,6 +121,24 @@ def crossCheck(cfg):
         for level in ('reco', 'gen'):
             if c not in sel[level]['channels']:
                 p.append('jets/cleaning/channels: channel %s missing at %s level' % (c, level))
+    for level in ('reco', 'gen'):
+        jetColls = {n: c for n, c in cfg['jets']['collections'].items() if c['level'] == level}
+        for name, ch in sel[level]['channels'].items():
+            if not ch['backToBack']['enabled']:
+                continue
+            where = 'selection/%s/channels/%s/backToBack' % (level, name)
+            if ch['type'] == 'leptonMET':
+                p.append('%s: not available for leptonMET channels until the W selection is refined' % where)
+            if ch['type'] == 'singleObject' and ch['nMin'] < 1:
+                p.append('%s: needs a triggering object (nMin >= 1)' % where)
+            if name not in cfg['jets']['cleaning']['channels']:
+                p.append('%s: the channel must be in jets/cleaning/channels (its jets are the non-vetoed ones)' % where)
+            if len(jetColls) != 1:
+                p.append('%s: needs exactly one %s jet collection, found %s' % (where, level, sorted(jetColls)))
+            for n, c in jetColls.items():
+                if c.get('variations'):
+                    p.append('%s: not yet implemented with jet variations (jets/collections/%s); see '
+                             'simulation/backToBack_plan.md' % (where, n))
     agg = cfg['aggregation']
     for c in agg['channels']:
         for level in sel['levels']:

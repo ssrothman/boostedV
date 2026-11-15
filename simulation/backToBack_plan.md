@@ -1,5 +1,7 @@
 # Back-to-back jet selection: plan
 
+Status: implemented 2026-11-14 for nominal jets (JOURNAL.md); per-variation selection deferred (last section).
+
 Optional requirement that the event has a leading jet back to back with, and balanced against, the channel's triggering
 object; only that jet is written.
 
