@@ -359,3 +359,10 @@
   On the PTLL-400to600 test NANO it removes 2-3 events per region (written for another channel or level) and matches the
   B2B counts exactly. Synthetic test with mutations (flag ignored, veto jets used) caught; the uproot comparison now
   sums float32 genWeights in float64 (it failed by 5e-4 on weighted samples).
+- 2026-11-15 (later): ZX_test note second pass. Citations: 16 papers checked against the arXiv API; MUO and EGM POG pages
+  read on local copies (`~/nobackup/cms-wikis`); JME/LUM/XPOG pages only checked to exist (SSO). CMS-DP-2024-065 (quoted
+  in our MuonScaRe comments) is not found on CDS and not cited. New facts from the POG pages: MuonScaRe was derived for
+  tight, isolated muons in [26, 200] GeV (we apply it to all muons); Run-3 MiniAOD noIso MVA electron IDs include isolation
+  in the barrel (our columns are affected); EGM recommends Run-3 electron scale/smearing (not applied). High-pT smearing
+  factor for 2022 postEE is 0.32 (|eta| < 1.2) / 0.46, as implemented. The note now has an explicit order-of-operations
+  section (muons, electrons, gen leptons, reco and gen jets) with a table of what each cut sees.
