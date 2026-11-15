@@ -122,6 +122,8 @@ class LoaderRejects(unittest.TestCase):
     def test_missing_keys(self):
         self.assertRejected(lambda c: c['selection']['reco']['channels']['Zmumu'].pop('massMin'),
                             'selection/reco/channels/Zmumu', 'massMin')
+        self.assertRejected(lambda c: c['selection']['gen']['channels']['Zee'].pop('pairPtMin'),
+                            'selection/gen/channels/Zee', 'pairPtMin')
         self.assertRejected(lambda c: c['jets']['collections']['Reco']['jerc'].pop('jesKey'),
                             'jets/collections/Reco/jerc', 'jesKey')
         self.assertRejected(lambda c: c.pop('aggregation'), 'aggregation')
@@ -590,6 +592,7 @@ class BuiltProcess(unittest.TestCase):
     def test_yaml_values_reach_modules(self):
         cfg = loadDefault()
         cfg['selection']['reco']['channels']['Zmumu']['massMin'] = 81.0
+        cfg['selection']['gen']['channels']['Zee']['pairPtMin'] = 120.0
         cfg['jets']['collections']['Reco']['jetCuts']['ptMin'] = 250.0
         cfg['jets']['collections']['Reco']['variations']['TrkDrop']['dropProbability'] = 0.05
         cfg['observables']['E2C']['axes'][0]['nbins'] = 40
@@ -597,6 +600,9 @@ class BuiltProcess(unittest.TestCase):
         p = buildProcess(cfg)
         self.assertEqual(p.ZmumuSel.massMin.value(), 81.0)
         self.assertEqual(p.ZeeSel.massMin.value(), 71.0)
+        self.assertEqual(p.ZmumuSel.pairPtMin.value(), 0.0)
+        self.assertEqual(p.genZeeSel.pairPtMin.value(), 120.0)
+        self.assertEqual(p.ZeeSel.pairPtMin.value(), 0.0)
         self.assertEqual(p.jetsReco.ptMin.value(), 250.0)
         self.assertEqual(p.jetsRecoJESUp.ptMin.value(), 250.0)
         self.assertEqual(p.jetsGen.ptMin.value(), 200.0)

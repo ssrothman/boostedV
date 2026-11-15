@@ -58,7 +58,7 @@ definitions:
       - type: object
         additionalProperties: false
         required: [type, triggers, allowMissingTriggers, objects, leadPtMin, subleadPtMin, massMin, massMax,
-                   oppositeCharge, targetMass]
+                   oppositeCharge, targetMass, pairPtMin]
         properties:
           type: {const: dilepton}
           triggers: {$ref: '#/definitions/strList', minItems: 1}
@@ -70,6 +70,7 @@ definitions:
           massMax: {$ref: '#/definitions/num'}
           oppositeCharge: {type: boolean}
           targetMass: {$ref: '#/definitions/num'}
+          pairPtMin: {$ref: '#/definitions/num'}
       - type: object
         additionalProperties: false
         required: [type, triggers, allowMissingTriggers, objects, vetoes, ptMin, metMin, mtMin]
@@ -99,7 +100,7 @@ definitions:
       - type: object
         additionalProperties: false
         required: [type, objects, leadPtMin, subleadPtMin, massMin, massMax,
-                   oppositeCharge, targetMass]
+                   oppositeCharge, targetMass, pairPtMin]
         properties:
           type: {const: dilepton}
           objects: {$ref: '#/definitions/str'}
@@ -109,6 +110,7 @@ definitions:
           massMax: {$ref: '#/definitions/num'}
           oppositeCharge: {type: boolean}
           targetMass: {$ref: '#/definitions/num'}
+          pairPtMin: {$ref: '#/definitions/num'}
       - type: object
         additionalProperties: false
         required: [type, objects, vetoes, ptMin, metMin, mtMin]

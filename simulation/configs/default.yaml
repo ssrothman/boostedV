@@ -201,6 +201,7 @@ selection:
         massMax: 111.0
         oppositeCharge: true
         targetMass: 91.1876
+        pairPtMin: 0.0
       Zee:
         type: dilepton
         triggers: ['HLT_Ele32_WPTight_Gsf_v*']
@@ -212,6 +213,7 @@ selection:
         massMax: 111.0
         oppositeCharge: true
         targetMass: 91.1876
+        pairPtMin: 0.0
       Wmunu:
         type: leptonMET
         triggers: ['HLT_IsoMu24_v*']
@@ -288,6 +290,7 @@ selection:
         massMax: 111.0
         oppositeCharge: true
         targetMass: 91.1876
+        pairPtMin: 0.0
       Zee:
         type: dilepton
         objects: genTightElectrons
@@ -297,6 +300,7 @@ selection:
         massMax: 111.0
         oppositeCharge: true
         targetMass: 91.1876
+        pairPtMin: 0.0
       Wmunu:
         type: leptonMET
         objects: genTightMuons

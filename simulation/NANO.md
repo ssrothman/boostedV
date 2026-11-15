@@ -120,8 +120,9 @@ are empty otherwise.
 | `SelectionMET`, `GenSelectionMET` | singleton | `pt`, `phi` of the MET the leptonMET selectors use |
 
 The channel types, with the YAML keys of each:
-- `dilepton` (`objects`, `leadPtMin`, `subleadPtMin`, `massMin`, `massMax`, `oppositeCharge`, `targetMass`): the pair
-  passing the cuts with mass closest to `targetMass`.
+- `dilepton` (`objects`, `leadPtMin`, `subleadPtMin`, `massMin`, `massMax`, `oppositeCharge`, `targetMass`,
+  `pairPtMin`): the pair passing the cuts with mass closest to `targetMass`; the channel fails if that pair's pt is
+  below `pairPtMin` (a lower-pt pair is not replaced by another). `ZX_test.yaml` uses 150 GeV at reco and gen.
 - `leptonMET` (`objects`, `vetoes`, `ptMin`, `metMin`, `mtMin`): exactly one `objects` lepton above `ptMin`, no other
   object in `vetoes`, MET > `metMin`, m_T > `mtMin`.
 - `singleObject` (`objects`, `vetoes`, `nMin`, `nMax`): between `nMin` and `nMax` objects, no vetoed object.

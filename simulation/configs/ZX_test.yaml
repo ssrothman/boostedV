@@ -198,6 +198,7 @@ selection:
         massMax: 121.1876
         oppositeCharge: true
         targetMass: 91.1876
+        pairPtMin: 150.0
       Zee:
         type: dilepton
         triggers: ['HLT_Ele32_WPTight_Gsf_v*', 'HLT_Ele115_CaloIdVT_GsfTrkIdT_v*', 'HLT_Photon200_v*']
@@ -209,6 +210,7 @@ selection:
         massMax: 121.1876
         oppositeCharge: true
         targetMass: 91.1876
+        pairPtMin: 150.0
 
   # Generator level (MC only): Rivet particle-level objects, i.e. prompt final-state leptons dressed with photons,
   # isolated prompt photons, and MET from prompt neutrinos. There are no trigger, vertex, MET-filter, ID or isolation
@@ -242,6 +244,7 @@ selection:
         massMax: 121.1876
         oppositeCharge: true
         targetMass: 91.1876
+        pairPtMin: 150.0
       Zee:
         type: dilepton
         objects: genTightElectrons
@@ -251,6 +254,7 @@ selection:
         massMax: 121.1876
         oppositeCharge: true
         targetMass: 91.1876
+        pairPtMin: 150.0
 
 jets:
   cleaning:                  # jets are kept; each jet table gets veto<ch> (within cleaningDR of channel ch's selected
