@@ -2,7 +2,7 @@
 
 Output (accumulates across chunks and files):
   hists[hist][region][sample]   hist.Hist
-  cutflow[region][sample][cut]  {'n', 'sumw', 'jets'}  (cut order: Config.regions[region].cuts)
+  cutflow[region][sample][cut]  {'n', 'sumw', 'jets'}  ('channel', 'backToBack' if in the NANO, then the region's cuts)
   sumw[sample]                  sum of event weights before any selection
 Event weight: genWeight (MC) times metadata['lumiScale'] when given; 1 for data.
 """

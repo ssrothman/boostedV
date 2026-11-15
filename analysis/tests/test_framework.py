@@ -100,6 +100,24 @@ class Regions(unittest.TestCase):
         view, flow = config(['leptons.tight']).regions['R'].select(syntheticEvents(), ak.Array([1.0, 2.0, 3.0]))
         self.assertEqual(ak.to_list(view.weight), [1.0, 3.0])
 
+    def test_back_to_back_columns(self):
+        """With B2B<ch> / b2b<ch> in the NANO: events need B2B<ch>, and the jets are the b2b<ch> ones (not the
+        non-vetoed ones: in event 0 those would be jets 1 and 2)."""
+        ev = syntheticEvents()
+        ev['Selection'] = ak.zip({'Zmumu': np.array([True, True, True]), 'B2BZmumu': np.array([True, False, True])})
+        b2b = ak.Array([[False, False, True], [True, False], [True]])
+        ev['RecoJet'] = ak.zip({f: ev['RecoJet'][f] for f in ev['RecoJet'].fields} | {'b2bZmumu': b2b})
+        view, flow = config([]).regions['R'].select(ev, ak.Array([1.0, 2.0, 3.0]))
+        self.assertEqual(list(flow), ['channel', 'backToBack'])
+        self.assertEqual([(v['n'], v['sumw'], v['jets']) for v in flow.values()], [(3, 6.0, 3), (2, 4.0, 2)])
+        self.assertEqual(view.jetIdx.tolist(), [[2], [0]])
+        dR = view.entries('X')[0].dR
+        self.assertEqual(ak.num(dR, axis=2).tolist(), [[2], [2]])
+        np.testing.assert_allclose(ak.flatten(dR, axis=None).to_numpy(), [0.0, 0.3, 0.0, 0.1])
+        view, flow = config(['jets.pt > 240']).regions['R'].select(ev, ak.Array([1.0, 2.0, 3.0]))
+        self.assertEqual(list(flow), ['channel', 'backToBack', 'jets.pt > 240'])
+        self.assertEqual(view.jetIdx.tolist(), [[2], []])
+
     def test_config_errors(self):
         with self.assertRaises(ConfigError):
             config(['eec.dR > 0'])  # per-entry cuts belong to histograms
@@ -179,10 +197,14 @@ class RealFile(unittest.TestCase):
         a = uproot.open(f)['Events'].arrays(library='np')
         zpt = jpt = e2c = 0.0
         nJets = 0
-        for e in np.nonzero(a['Selection_Zmumu'])[0]:
-            w = a['genWeight'][e]
+        # A back-to-back NANO: the event needs B2BZmumu and the jets are the b2bZmumu ones.
+        b2b = 'Selection_B2BZmumu' in a
+        passed = a['Selection_Zmumu'] & (a['Selection_B2BZmumu'] if b2b else True)
+        for e in np.nonzero(passed)[0]:
+            w = float(a['genWeight'][e])  # float64 sums, as the histograms
             zpt += w
-            keep = (~a['RecoJet_vetoZmumu'][e]) & (a['RecoJet_pt'][e] > 250) & (np.abs(a['RecoJet_eta'][e]) < 1.5)
+            mine = a['RecoJet_b2bZmumu'][e] if b2b else ~a['RecoJet_vetoZmumu'][e]
+            keep = mine & (a['RecoJet_pt'][e] > 250) & (np.abs(a['RecoJet_eta'][e]) < 1.5)
             nJets += keep.sum()
             jpt += w * keep.sum()
             iJ, dR = a['RecoE2Cn1Entries_iJet'][e], a['RecoE2Cn1Entries_dR'][e]

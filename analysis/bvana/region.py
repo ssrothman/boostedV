@@ -3,12 +3,15 @@
 Objects seen by expressions (table names: simulation/NANO.md):
   boson    the channel's candidate (<p><ch>Boson, first row)      event level
   leptons  the channel's selected leptons (<p><ch>Leptons)         lepton level
-  jets     the level's jet table without the jets vetoed for ch    jet level
+  jets     the level's jets of ch: those with b2b<ch> if the NANO   jet level
+           has back-to-back columns, else those without veto<ch>
   met      PuppiMET (reco) or GenMET (gen)                         event level
   event    the whole event record (event.PV.npvsGood, ...)         event level
   eec      entries of one EEC observable, [event][jet][entry]      eec level (histograms only)
 A cut's level decides what it removes: event cuts drop events, jet cuts drop jets (and their EEC entries), lepton
 cuts drop events in which any selected lepton fails.
+Events must pass <flags>_<ch> and, when the NANO has it, <flags>_B2B<ch> (the back-to-back requirement, cutflow step
+'backToBack'); such a NANO holds only back-to-back jets, so another channel's or level's event has none for ch.
 """
 import awkward as ak
 
@@ -44,13 +47,18 @@ class Region:
                 raise RegionError('region %s: weight %r is not event-level' % (name, w.text))
 
     def select(self, events, eventWeight):
-        """Applies the cuts; returns (View, cutflow {cut: {'n', 'sumw'}} with 'channel' first)."""
+        """Applies the cuts; returns (View, cutflow {cut: {'n', 'sumw', 'jets'}}: 'channel', then 'backToBack' if
+        the NANO has it, then the cuts)."""
         L = LEVELS[self.level]
-        sel = asBool(events[L['flags']][self.channel])
+        flags = events[L['flags']]
+        sel = asBool(flags[self.channel])
         view = View(self, events[sel], eventWeight[sel])
         for w in self.weights:
             view.weight = view.weight * w(view.namespace())
         flow = {'channel': view.count()}
+        if 'B2B' + self.channel in flags.fields:
+            view = view.keepEvents(asBool(view.events[L['flags']]['B2B' + self.channel]))
+            flow['backToBack'] = view.count()
         for c in self.cuts:
             m = asBool(c(view.namespace()))
             if c.level == 'event':
@@ -72,8 +80,11 @@ class View:
         if jetIdx is None:
             jets = events[region.jetTable]
             idx = ak.local_index(jets.pt)
-            vetoName = 'veto' + region.channel
-            jetIdx = idx[~jets[vetoName]] if vetoName in jets.fields else idx
+            b2bName, vetoName = 'b2b' + region.channel, 'veto' + region.channel
+            if b2bName in jets.fields:
+                jetIdx = idx[jets[b2bName]]
+            else:
+                jetIdx = idx[~jets[vetoName]] if vetoName in jets.fields else idx
         self.jetIdx = jetIdx
         self._eec = {}
 
