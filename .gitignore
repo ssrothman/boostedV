@@ -21,3 +21,6 @@ __pycache__/
 
 # Analysis plots and run.py outputs
 /plots
+
+# Local cutflow NANO files (notes/zxtest_AN/make_cutflow.py inputs)
+/cutflow_zxtest/

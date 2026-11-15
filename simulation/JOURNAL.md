@@ -20,6 +20,7 @@
 - 2026-11-13 First ZX_test production: unbinned EECs, four MC samples
 - 2026-11-14 ZX_test production `20261113_zxtest`: CRAB outcome, merge, sample plots
 - 2026-11-14 Dilepton pT cut and back-to-back jet selection
+- 2026-11-15 Second-production manifest, ZX_test note, bvana back-to-back regions
 
 ## 2026-11-11 A.2 setup and DataFormats
 - Plan: `stepA2_plan.md`. New local repos (remotes pending): `EECDataFormats` (pkg `SRothman/DataFormats`),
@@ -345,3 +346,16 @@
   on enabled vs disabled runs: PTLL-400to600 431/517 events kept, 809 jets and 4045 (jet, EEC table) pairs identical to
   the recomputation, 903 other columns unchanged; inclusive DY 3/8. `--mutate` (dPhiMin + 0.1) fails it.
 - Size: the PTLL-400to600 NANO goes from 13.4 to 9.4 MB. Every NANO carries a fixed 2.5 MB ParameterSets tree.
+
+## 2026-11-15 Second-production manifest, ZX_test note, bvana back-to-back regions
+- Manifest `production/samples_zxb2b.yaml` (ZZ/WZ -> 2l2q powheg, DY MLM PTLL-200to400/400to600/600; ~360 jobs), not
+  submitted. Local timing with ZX_test: 28 s start-up, 5 ms/event (inclusive DY), 42 ms/event (PTLL-400to600), peak RSS
+  1.9 GB; back-to-back adds ~0.5 ms/event although the jet chain now feeds the event filter.
+- Note `notes/zxtest_AN/zxtest_AN.tex` (CMS-AN style) on every step of ZX_test. Cutflow on one file per sample from a
+  loose variant (pairPtMin 0, backToBack off) plus `make_cutflow.py`, which reproduces the B2B flags exactly. Written
+  fractions: ZZto2L2Q 0.30%, WZto2L2Q 0.51%, PTLL-binned DY 30-48%. ZZto2L2Q passes the reco Zmumu/Zee flags in only
+  7.5%/5.6% of events: "2L" probably includes taus (to check in the generator cards).
+- bvana regions: with B2B columns, step `backToBack` (B2B<ch>) after `channel`, and the jets are those with b2b<ch>.
+  On the PTLL-400to600 test NANO it removes 2-3 events per region (written for another channel or level) and matches the
+  B2B counts exactly. Synthetic test with mutations (flag ignored, veto jets used) caught; the uproot comparison now
+  sums float32 genWeights in float64 (it failed by 5e-4 on weighted samples).

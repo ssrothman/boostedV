@@ -1,0 +1,676 @@
+\documentclass[11pt]{article}
+
+\usepackage[a4paper, margin=1in, headheight=13.6pt]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+\usepackage{pdflscape}
+
+\newcommand{\pt}{p_{\mathrm{T}}}
+\newcommand{\GeV}{\ensuremath{\,\mathrm{GeV}}}
+\newcommand{\ptll}{\pt^{\ell\ell}}
+\newcommand{\ptj}{\pt^{\mathrm{jet}}}
+\newcommand{\code}[1]{\texttt{#1}}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{CMS Analysis Note (draft, not for circulation)}
+\rhead{boostedV: \code{ZX\_test} selection}
+\cfoot{\thepage}
+
+\title{Energy correlators of boosted jets recoiling against a $Z\to\ell\ell$ boson:\\
+event selection, object definitions and corrections of the \code{ZX\_test} configuration}
+\author{Simon Rothman}
+\date{Draft of \today}
+
+\begin{document}
+\sloppy
+\maketitle
+
+\begin{abstract}
+This note describes, step by step, the \code{ZX\_test} configuration of the boostedV workflow: the simulated samples,
+the reconstruction-level and generator-level event selections, the muon momentum assignment and corrections, the AK8
+jet processing (jet energy corrections re-applied from the raw momentum, jet energy resolution smearing, PUPPI-weighted
+constituents, jet identification, lepton--jet overlap flags and the back-to-back requirement), the energy correlator
+observables and their output format, the event weights stored, a cutflow, and the regions of the columnar analysis. It
+describes the simulation code at boostedV commit \code{a2ad376} (EventSelection \code{4cbe057}, JetSetup
+\code{04df502}), CMSSW\_15\_0\_22, and the columnar analysis as of 15 November 2026, applied to Run~3 2022 simulation
+with post-EE conditions. Values marked \emph{placeholder} are development choices, not CMS recommendations. Open points
+are collected in Section~\ref{sec:issues}.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+%=======================================================================================================================
+\section{Introduction and scope}
+\label{sec:intro}
+
+The boostedV project aims to measure energy correlators of boosted, hadronically decaying electroweak bosons and of the
+quark and gluon jets that mimic them. The \code{ZX\_test} configuration, the first one used for physics studies, selects
+events with a $Z\to\mu\mu$ or $Z\to ee$ candidate at high transverse momentum recoiling against an anti-$k_\mathrm{T}$
+jet of distance parameter $R = 0.8$ (AK8 jet). In $ZZ\to\ell\ell q\bar q$ and $WZ\to q\bar q'\ell\ell$ events this
+jet is frequently the hadronically decaying boson; in $Z$+jets events it is a quark or gluon jet. For each selected jet,
+the configuration stores the two-point projected energy correlator (E2C) with energy weights of power $n = 1$ and
+$n = 2$, and the one-point correlator (E1C) in three reference frames, all computed from the charged jet constituents
+and stored without binning.
+
+The reconstruction-level selection is deliberately loose: leptons are required to pass kinematic criteria only, without
+identification or isolation, so that these requirements and the trigger can be studied offline from the stored lepton
+properties (Section~\ref{sec:objects}). Every selection step is evaluated both at reconstruction level (\emph{reco})
+and at generator level (\emph{gen}) with the same channel definitions, and an event is retained if it passes at either
+level.
+
+The entire configuration is defined in one YAML file, \code{simulation/configs/ZX\_test.yaml}, which is validated
+against a JSON schema (\code{analysis.schema.yaml}) and additional consistency checks (\code{analysisConfig.py});
+unknown or missing keys are errors. The CMSSW configuration \code{eecNano\_cfg.py} builds the full process from this
+file; only per-job settings (input and output files, number of events, data or simulation, and whether constituent
+tables are written) are command-line arguments. Configuration keys, module labels and output columns are written in
+\code{typewriter} font. The labels \code{<c>} and \code{<ch>} denote a channel name (\code{Zmumu} or \code{Zee}).
+
+%=======================================================================================================================
+\section{Software and workflow}
+\label{sec:workflow}
+
+\begin{description}[style=nextline]
+\item[Release and packages] CMSSW\_15\_0\_22 (\code{el9\_amd64\_gcc12}) with four boostedV packages:
+  \code{SRothman/EECs} (correlator library and its EDM producers), \code{SRothman/DataFormats} (the \code{EECJet}
+  jet format), \code{SRothman/JetSetup} (jet processing) and \code{SRothman/EventSelection} (event selection, muon
+  corrections and event-level tables).
+\item[Job] \code{cmsRun eecNano\_cfg.py config=ZX\_test.yaml globalTag=<GT> inputFiles=<MiniAOD> isMC=1
+  writeConstituents=1} reads MiniAOD and writes a file in NanoAOD format (\emph{NANO}) and a histogram file. With
+  \code{ZX\_test} the histogram file is empty, because the correlators are stored unbinned and are not aggregated
+  (\code{aggregation.observables: []}). The processing chain is summarised in Table~\ref{tab:chain}.
+\item[Production] \code{simulation/production}: one CRAB task per sample (\code{submit.py}), with file-based
+  splitting, a 3000\,MB memory request and output to \code{T3\_US\_FNALLPC}; each job writes \code{nano\_<i>.root} and
+  \code{hists\_<i>.root} and is complete only when both exist. \code{status.py} reports and resubmits failed jobs, and
+  \code{merge.py} writes for each sample the list of NANO files of the complete jobs and the sums \code{genEventCount},
+  \code{genEventSumw} and \code{genEventSumw2} from the Runs trees of exactly those jobs; it refuses to merge with
+  missing jobs unless explicitly allowed. The git state of all repositories, the manifest and the analysis YAML are
+  recorded at submission.
+\item[Analysis] \code{analysis/} (package \code{bvana}): a coffea processor driven by a second YAML file,
+  \code{analysis/configs/zxtest.yaml}, which defines regions, cuts, binnings and histograms (Section~\ref{sec:regions}).
+\end{description}
+
+\paragraph{Resources.} Measured locally on Drell--Yan simulation with the configuration described here: a start-up time
+of 28\,s, then about 5\,ms per event for inclusive events and 42\,ms per event for events with $\ptll$ between 400 and
+600\GeV; peak resident memory 1.9\,GB; about 6.5\,kB of output per input event for the high-$\ptll$ events. Each NANO file
+also contains a fixed 2.5\,MB \code{ParameterSets} tree.
+
+\begin{table}[htbp]
+\centering
+\caption{Processing chain in simulation, in dependency order. Module labels are those of \code{eecNano\_cfg.py}; gen
+labels carry the prefix \code{gen}. In data, the gen-level steps and the JER smearing are absent, and the JEC uses the
+data key.}
+\label{tab:chain}
+\small
+\begin{tabularx}{\textwidth}{l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X}
+\toprule
+Step & Modules & Section \\
+\midrule
+Event filters & \code{goodVertexFlag}, \code{metFilterFlag}, \code{<c>Trigger} & \ref{sec:trigger}, \ref{sec:vertex} \\
+Muon momentum & \code{correctedMuons} (\code{MuonCorrectionProducer}) & \ref{sec:muoncorr} \\
+Lepton objects & \code{looseMuons}, \code{looseElectrons}; gen: \code{genParticleLevel}, \code{genTightMuons},
+  \code{genTightElectrons} & \ref{sec:objects}, \ref{sec:gen} \\
+Dilepton & \code{<c>Sel} (\code{DileptonSelector}); flag \code{<c>} (\code{FlagCombiner}) & \ref{sec:dilepton} \\
+Reco jets & \code{jetsRecoJEC} $\to$ \code{jetsRecoRaw} $\to$ \code{jetsRecoJER} $\to$ \code{jetsRecoConst} $\to$
+  \code{jetsReco} & \ref{sec:recojets} \\
+Gen jets & \code{jetsGenRaw} $\to$ \code{jetsGenConst} $\to$ \code{jetsGen} & \ref{sec:genjets} \\
+Overlap flags & \code{jetsRecoOverlap}, \code{jetsGenOverlap} (\code{EECJetOverlapProducer}) & \ref{sec:veto} \\
+Back-to-back & \code{jets<Coll>BackToBack<c>} (\code{BackToBackSelector}) $\to$ \code{jets<Coll>B2B}
+  (\code{EECJetMaskSelector}) & \ref{sec:b2b} \\
+Event filter & \code{anyChannel}, \code{genAnyChannel} $\to$ \code{anySelectedFilter} & \ref{sec:overview} \\
+Correlators & \code{eec<Coll><obs>} and \code{eec<Coll><obs>Table} & \ref{sec:eec} \\
+Tables & jet, lepton, event, weight and generator tables & \ref{sec:output} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+%=======================================================================================================================
+\section{Samples and normalisation}
+\label{sec:samples}
+
+All samples are Run3Summer22EE MiniAODv4 simulation (conditions of the 2022 eras E, F and G), processed with the global
+tag \code{130X\_mcRun3\_2022\_realistic\_postEE\_v6}. No collision data have been processed with \code{ZX\_test}.
+Table~\ref{tab:samples} lists the samples of the next production (manifest
+\code{simulation/production/samples\_zxb2b.yaml}, not yet submitted) and those of the first production (tag
+\code{20261113\_zxtest}), which used an earlier version of the configuration without the dilepton $\pt$ and back-to-back
+requirements.
+
+\begin{table}[htbp]
+\centering
+\caption{Samples. Event and file counts from DAS. For \code{20261113\_zxtest}, the processed fraction is the
+\code{genEventCount} of the merged jobs divided by the DAS event count; the missing jobs are discussed in
+Section~\ref{sec:issues}. For the next production, the splitting is given in input files per CRAB job.}
+\label{tab:samples}
+\small
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}Xrrl}
+\toprule
+Dataset (\code{/<name>/Run3Summer22EEMiniAODv4-\allowbreak{}130X\_\allowbreak{}...\_\allowbreak{}postEE\_\allowbreak{}v6-\allowbreak{}v*/MINIAODSIM}) & Events & Files & Jobs \\
+\midrule
+\multicolumn{4}{l}{\emph{Next production, manifest \code{samples\_\allowbreak{}zxb2b.yaml} (configuration of this note)}} \\
+\code{ZZto2L2Q\_\allowbreak{}TuneCP5\_\allowbreak{}13p6TeV\_\allowbreak{}powheg-\allowbreak{}pythia8} & 49\,084\,483 & 891 & 6 files/job \\
+\code{WZto2L2Q\_\allowbreak{}TuneCP5\_\allowbreak{}13p6TeV\_\allowbreak{}powheg-\allowbreak{}pythia8} & 14\,954\,528 & 278 & 6 files/job \\
+\code{DYto2L-\allowbreak{}4Jets\_\allowbreak{}MLL-\allowbreak{}50\_\allowbreak{}PTLL-\allowbreak{}200to400\_\allowbreak{}TuneCP5\_\allowbreak{}13p6TeV\_\allowbreak{}madgraphMLM-\allowbreak{}pythia8} & 6\,439\,323 & 286 & 4 files/job \\
+\code{DYto2L-\allowbreak{}4Jets\_\allowbreak{}MLL-\allowbreak{}50\_\allowbreak{}PTLL-\allowbreak{}400to600\_\allowbreak{}TuneCP5\_\allowbreak{}13p6TeV\_\allowbreak{}madgraphMLM-\allowbreak{}pythia8} & 3\,669\,178 & 180 & 4 files/job \\
+\code{DYto2L-\allowbreak{}4Jets\_\allowbreak{}MLL-\allowbreak{}50\_\allowbreak{}PTLL-\allowbreak{}600\_\allowbreak{}TuneCP5\_\allowbreak{}13p6TeV\_\allowbreak{}madgraphMLM-\allowbreak{}pythia8} & 3\,234\,438 & 186 & 4 files/job \\
+\midrule
+\multicolumn{4}{l}{\emph{First production \code{20261113\_\allowbreak{}zxtest} (earlier configuration), merged}} \\
+\code{DYto2L-\allowbreak{}4Jets\_\allowbreak{}MLL-\allowbreak{}50\_\allowbreak{}TuneCP5\_\allowbreak{}13p6TeV\_\allowbreak{}madgraphMLM-\allowbreak{}pythia8} & 264.4\,M & 6114 & 589/613, 96.0\% \\
+\code{TTto2L2Nu\_\allowbreak{}TuneCP5\_\allowbreak{}13p6TeV\_\allowbreak{}powheg-\allowbreak{}pythia8} & 74.3\,M & 1388 & 229/232, 98.7\% \\
+\code{WZ\_\allowbreak{}TuneCP5\_\allowbreak{}13p6TeV\_\allowbreak{}pythia8} & 26.7\,M & 391 & 79/79, 100\% \\
+\code{ZZ\_\allowbreak{}TuneCP5\_\allowbreak{}13p6TeV\_\allowbreak{}pythia8} & 4.04\,M & 82 & 17/17, 100\% \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Choice of samples.} The project plan requires $Z(\ell\ell)$+jets, $WZ$ and $ZZ$ samples, the latter two
+with $Z\to\ell\ell$ and a hadronically decaying $W$ or $Z$ boson. In the first production, the inclusive $ZZ$ sample
+yields only 960 events in the boosted region of Section~\ref{sec:regions}. The $ZZ\to2\ell2q$ sample would correspond
+to about 130 times the equivalent inclusive statistics if ``2L'' denoted electrons and muons only; however, the reco
+channel flags are passed by only 7.5\% ($\mu\mu$) and 5.6\% ($ee$) of its events (Table~\ref{tab:cutflow}), which
+suggests that $Z\to\tau\tau$ decays are included and the gain is smaller. This is to be checked in the generator
+configuration. The Drell--Yan samples binned in \code{PTLL} provide 13.3\,M events in the region $\ptll > 150\GeV$
+selected here (Section~\ref{sec:dilepton}), compared with about 0.5\,M events with $\ptll > 200\GeV$ in the inclusive
+sample (0.21\% of its selected $Z\to\mu\mu$ events). \code{PTLL} is a generator-level dilepton $\pt$ (to be confirmed
+from the generator configuration); combining these samples with the inclusive one requires an overlap removal in that
+variable.
+
+\paragraph{Normalisation.} The NANO stores \code{genWeight} per event, and the Runs tree stores \code{genEventCount},
+\code{genEventSumw} and \code{genEventSumw2} summed over all processed events (the weight table is scheduled on its own
+path, independent of the event filter). A sample is normalised with
+$w = \code{genWeight}\cdot\sigma\cdot L/\code{genEventSumw}$, where \code{genEventSumw} is summed over the merged jobs
+only, so that missing jobs do not bias the normalisation. Cross sections have not yet been collected
+(\code{analysis/xsec.yaml}); plots produced so far are normalised to unit area.
+
+%=======================================================================================================================
+\section{Event selection: overview}
+\label{sec:overview}
+
+\code{ZX\_test} defines two channels, \code{Zmumu} and \code{Zee}, both of type \code{dilepton}, at two levels:
+\begin{itemize}
+\item \textbf{reco}: built from MiniAOD objects; a channel requires its trigger, a good primary vertex, the MET filters
+  and the dilepton selection;
+\item \textbf{gen} (simulation only): built from Rivet particle-level objects; a channel requires the dilepton
+  selection only.
+\end{itemize}
+Each step is a boolean EDM product; Table~\ref{tab:flags} lists the flags, which are stored in the singleton tables
+\code{Selection} (reco) and \code{GenSelection} (gen). An event is written if \code{B2B<c>} is true for at least one
+channel at one level (\code{selection.levels: [reco, gen]}; module \code{anySelectedFilter}). Because both levels are
+evaluated for every event in simulation, every written event carries the flags and selected objects of both levels, so
+that events migrating across the selection between the levels are retained.
+
+\begin{table}[htbp]
+\centering
+\caption{Selection flags per channel \code{<c>}. Columns \code{Selection\_<flag>} and \code{GenSelection\_<flag>}.}
+\label{tab:flags}
+\small
+\begin{tabularx}{\textwidth}{lc>{\raggedright\arraybackslash}X}
+\toprule
+Flag & Levels & Definition \\
+\midrule
+\code{goodVertex} & reco & first primary vertex good (Section~\ref{sec:vertex}) \\
+\code{metFilters} & reco & all MET filters pass (Section~\ref{sec:vertex}) \\
+\code{<c>Trigger} & reco & any of the channel's HLT paths fired (Section~\ref{sec:trigger}) \\
+\code{<c>Sel} & both & dilepton selection, including $\ptll \geq 150\GeV$ (Section~\ref{sec:dilepton}) \\
+\code{<c>} & both & reco: \code{<c>Sel} AND \code{<c>Trigger} AND \code{goodVertex} AND \code{metFilters};
+  gen: \code{<c>Sel} \\
+\code{B2B<c>} & both & \code{<c>} AND a back-to-back jet at the same level (Section~\ref{sec:b2b}) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+%=======================================================================================================================
+\section{Reconstruction-level event selection}
+\label{sec:reco}
+
+\subsection{Trigger}
+\label{sec:trigger}
+The trigger decision is read from the \code{TriggerResults} of process \code{HLT}. Paths are specified as glob
+patterns with the version suffix \code{\_v*}; \code{<c>Trigger} is true if any matching path fired. A pattern that
+matches no path of the menu is a configuration error (\code{allowMissingTriggers: false}). The paths are
+\begin{itemize}
+\item \code{Zmumu}: \code{HLT\_IsoMu24}, \code{HLT\_Mu50}, \code{HLT\_CascadeMu100}, \code{HLT\_HighPtTkMu100};
+\item \code{Zee}: \code{HLT\_Ele32\_WPTight\_Gsf}, \code{HLT\_Ele115\_CaloIdVT\_GsfTrkIdT}, \code{HLT\_Photon200}.
+\end{itemize}
+The selection does not require trigger matching. Each selected lepton carries the column \code{triggerMatched}, true if
+the lepton lies within $\Delta R < 0.1$ of an HLT object from the last filter of a fired path among the channel's
+paths. No trigger efficiency corrections are applied (Section~\ref{sec:weights}).
+
+\subsection{Primary vertex and MET filters}
+\label{sec:vertex}
+\begin{itemize}
+\item \code{goodVertex}: the first vertex of \code{offlineSlimmedPrimaryVertices} exists, is not fake, and has
+  $\mathrm{ndof} > 4$, $|z| < 24\,\mathrm{cm}$ and $\rho < 2\,\mathrm{cm}$.
+\item \code{metFilters}: all of \code{Flag\_goodVertices}, \code{Flag\_globalSuperTightHalo2016Filter},
+  \code{Flag\_EcalDeadCellTriggerPrimitiveFilter}, \code{Flag\_BadPFMuonFilter}, \code{Flag\_BadPFMuonDzFilter},
+  \code{Flag\_hfNoisyHitsFilter}, \code{Flag\_eeBadScFilter} and \code{Flag\_ecalBadCalibFilter}, read from the
+  \code{TriggerResults} of process \code{PAT}, must pass.
+\end{itemize}
+
+\subsection{Muon momentum assignment and corrections}
+\label{sec:muoncorr}
+Before any muon selection, each \code{slimmedMuons} muon is copied by \code{MuonCorrectionProducer}
+(\code{muonCorrections.apply: true}); all muon consumers (object selection and tables) read these copies.
+\begin{enumerate}
+\item \textbf{Momentum assignment} (\code{momentum: hybrid}, \code{regimeThreshold: 200}): a muon with PF
+  $\pt \geq 200\GeV$ takes the TuneP momentum and is assigned to the \emph{high-$\pt$ regime}
+  (\code{highPtRegime} = 1); otherwise it keeps the PF momentum and is assigned to the \emph{medium regime} (0). The
+  input $\pt$ is stored as \code{originalPt}.
+\item \textbf{Medium regime}: the MUO POG Run~3 ``MuonScaRe'' scale correction (Z-peak method) and, in simulation, the
+  resolution smearing, from \code{MUO/\allowbreak{}Run3-\allowbreak{}22EFGSep23-\allowbreak{}Summer22EE-\allowbreak{}NanoAODv12/\allowbreak{}latest/\allowbreak{}muon\_scalesmearing.json.gz}, for
+  $26 \leq \pt \leq 200\GeV$ (\code{lowPtThreshold}, \code{highPtThreshold}); outside this range the momentum is
+  unchanged. The implementation is a port of the POG example \code{MuonScaRe.cc}; as in the POG code, the smearing
+  random number depends on the event number only, so all muons of an event share it.
+\item \textbf{High regime} (TuneP $\pt \geq 200\GeV$ and $|\eta| < 2.4$; \code{highPt.era: 2022postEE}): the
+  generalised-endpoint curvature bias $\kappa_b$ from the MUO POG tables, applied to simulation as
+  $q/\pt \to q/\pt + \kappa_b$ (\code{kappaTarget: mc}), followed by the simulation smearing
+  $p \to p\,(1 + \mathcal{N}(0, \sigma(p,\eta)\,f))$, with the random number seeded per run, luminosity block, event
+  and muon index.
+\end{enumerate}
+The nominal corrections are applied; no systematic variation is evaluated (\code{variation: nominal}). The formula and
+sign of the $\kappa_b$ correction, and the smearing and its systematic variations in all regimes, are provisional
+pending clarification with the MUO POG (Section~\ref{sec:issues}).
+
+\subsection{Electrons}
+\code{slimmedElectrons} are used with their MiniAOD four-momentum; no additional electron energy scale or resolution
+correction is applied.
+
+\subsection{Lepton objects}
+\label{sec:objects}
+Leptons are not dressed with photons at reco level (\code{dressing.mode: none}). The object selections are kinematic
+only:
+\begin{itemize}
+\item \code{looseMuons}: corrected muons with $\pt > 15\GeV$ and $|\eta| < 2.4$;
+\item \code{looseElectrons}: $\pt > 15\GeV$ and supercluster pseudorapidity $|\eta_\mathrm{SC}| < 2.5$, excluding the
+  barrel--endcap transition $1.4442 < |\eta_\mathrm{SC}| < 1.566$.
+\end{itemize}
+No identification, isolation or impact-parameter requirement is applied. For offline studies, the selected leptons carry
+the properties of Table~\ref{tab:leptoncols}, taken from the PAT object matched to each selected lepton (the nearest
+object of the same charge within $\Delta R < 0.1$).
+
+\begin{table}[htbp]
+\centering
+\caption{Properties stored for the selected reconstructed leptons (tables \code{<c>Leptons}) in addition to $\pt$,
+$\eta$, $\phi$, mass, charge, PDG identifier, \code{undressedPt} and \code{triggerMatched}.}
+\label{tab:leptoncols}
+\small
+\begin{tabularx}{\textwidth}{l>{\raggedright\arraybackslash}X}
+\toprule
+Muons & \code{dxy}, \code{dz} (with respect to the first primary vertex); \code{highPtRegime}; \code{tunePPt}
+  (uncorrected TuneP $\pt$); \code{originalPt}; \code{pfRelIso04} ($\Delta\beta$-corrected PF isolation,
+  $\Delta R = 0.4$); \code{tkRelIso} (tracker isolation, $\Delta R = 0.3$, relative to the TuneP $\pt$);
+  \code{looseId}, \code{mediumId}, \code{tightId}, \code{highPtId}, \code{trkHighPtId}; \code{pfIsoId} (VeryLoose to
+  VeryVeryTight as 1--6); \code{tkIsoId} (Loose 1, Tight 2) \\
+Electrons & \code{dxy}, \code{dz}; \code{scEta}; \code{cutBased} (RunIIIWinter22 V1: 0 fail, 1 veto, 2 loose,
+  3 medium, 4 tight); \code{pfRelIso03} ($\Delta\beta$-corrected, $\Delta R = 0.3$); \code{r9}; \code{heepId}
+  (HEEP V7.1); \code{mvaIsoWP80}, \code{mvaIsoWP90}, \code{mvaNoIsoWP80}, \code{mvaNoIsoWP90} (RunIIIWinter22 V1) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Dilepton selection}
+\label{sec:dilepton}
+All pairs of selected leptons of the channel's collection are considered. A pair is accepted if
+\begin{itemize}
+\item the leading lepton has $\pt \geq 26\GeV$ (\code{Zmumu}) or $\pt \geq 35\GeV$ (\code{Zee}), and the subleading
+  lepton $\pt \geq 15\GeV$;
+\item the leptons have opposite charges;
+\item the invariant mass satisfies $61.19 \leq m_{\ell\ell} \leq 121.19\GeV$, i.e.\ $m_Z \pm 30\GeV$ with
+  $m_Z = 91.1876\GeV$.
+\end{itemize}
+Among the accepted pairs, the one with mass closest to $m_Z$ is chosen. The channel then requires this pair to have
+$\ptll \geq 150\GeV$ (\code{pairPtMin}, placeholder); if it does not, the channel fails, even if another accepted pair
+has a larger $\pt$. The $Z$ candidate (table \code{<c>Boson}) is the sum of the two lepton four-momenta, and the two
+leptons (table \code{<c>Leptons}) are stored with the leading one first.
+
+The $\ptll$ requirement strongly reduces the number of written events. In the first production, which did not apply it,
+the generator-weighted fraction of selected $Z\to\mu\mu$ events with $\ptll > 150\GeV$ was 0.5\% for inclusive
+Drell--Yan, 2.5\% for $t\bar t\to 2\ell2\nu$ and about 5\% for the inclusive $WZ$ and $ZZ$ samples.
+
+%=======================================================================================================================
+\section{Generator-level event selection}
+\label{sec:gen}
+
+The generator-level objects are those of the Rivet particle level, computed as in NanoAOD: \code{ParticleLevelProducer}
+runs on the merged \code{prunedGenParticles} and \code{packedGenParticles}, converted to HepMC. It provides
+\begin{itemize}
+\item prompt final-state leptons (\code{usePromptFinalStates: true}), dressed with all photons within $\Delta R < 0.1$
+  (\code{lepConeSize}), with $\pt > 1\GeV$ and $|\eta| < 2.5$;
+\item isolated prompt photons ($\pt > 1\GeV$, $|\eta| < 2.5$, relative isolation below 0.5 within $\Delta R = 0.4$) and
+  the missing transverse momentum of prompt neutrinos, neither of which is used by \code{ZX\_test};
+\end{itemize}
+from input particles with $|\eta| < 5$ and no $\pt$ threshold. The gen objects mirror the reco kinematic requirements:
+\code{genTightMuons} ($|\mathrm{PDG\,ID}| = 13$, $\pt > 15\GeV$, $|\eta| < 2.4$) and \code{genTightElectrons}
+($|\mathrm{PDG\,ID}| = 11$, $\pt > 15\GeV$, $|\eta| < 2.5$ outside $1.4442 < |\eta| < 1.566$). The gen channels use the
+same dilepton selection as reco (lepton $\pt$ thresholds, mass window, choice of the pair closest to $m_Z$ and
+$\ptll \geq 150\GeV$), without any trigger, vertex or MET-filter requirement.
+
+%=======================================================================================================================
+\section{Jets}
+\label{sec:jets}
+
+One reco and one gen AK8 jet collection are built, both from MiniAOD jets with the jet daughters as constituents. Jets
+keep the order of the MiniAOD collection, and the index in that collection is stored as \code{srcIdx}. The processed
+jets are stored in the \code{EECJet} format (four-momentum, raw $\pt$, \code{srcIdx}, jet identification bits, JER
+factor and constituents).
+
+\subsection{Reconstructed AK8 jets}
+\label{sec:recojets}
+The PUPPI AK8 jets \code{slimmedJetsAK8} are processed in the following order.
+\begin{enumerate}
+\item \textbf{JEC re-application} (\code{PATJetJECProducer}). The raw four-momentum is obtained with
+  \code{correctedJet("Uncorrected")}, and the V4 compound correction \code{Summer22EE\_22Sep2023\_V4\_MC\_L1L2L3Res\_AK8PFPuppi}
+  from \code{JME/Run3-22EFGSep23-Summer22EE-NanoAODv12/latest/fatJet\_jerc.json.gz} is evaluated with the jet area,
+  raw $\pt$, $\eta$ and $\rho$ (\code{fixedGridRhoFastjetAll}); in data, the \code{DATA} key is used, with the run
+  number as an additional input. The jet four-momentum is the raw four-momentum times this correction. The MiniAOD
+  correction levels of the copy are rescaled consistently, so that \code{rawFactor} and the energy fractions refer to
+  the re-corrected jet.
+\item \textbf{Translation} (\code{PATJetToEECJetProducer}). Jets with corrected $\pt < 180\GeV$ are discarded. Each
+  daughter (a \code{packedPFCandidates} entry) becomes a constituent whose four-momentum is scaled by its PUPPI weight
+  (\code{pat::PackedCandidate::puppiWeight()}); constituents with vanishing scaled three-momentum are skipped. A jet
+  above the threshold without daughters stops the job with an error, since MiniAOD keeps the daughters of
+  \code{slimmedJetsAK8} only for jets above $170\GeV$ with the MiniAOD correction (Section~\ref{sec:issues}). The jet
+  identification bits are computed with \code{PFJetIDSelectionFunctor}, version \code{RUN3PUPPIruns2022FGruns2023CD}:
+  bit 0 for the TIGHT and bit 1 for the TIGHTLEPVETO criteria.
+\item \textbf{JER smearing} (simulation only) with the hybrid method and the keys
+  \code{Summer22EE\_22Sep2023\_JRV2\_MC\_ScaleFactor\_AK8PFPuppi} and \code{\dots\_PtResolution\_AK8PFPuppi}. A jet is
+  matched to the closest \code{slimmedGenJetsAK8} jet satisfying $\Delta R < R/2 = 0.4$ and
+  $|\pt - \pt^\mathrm{gen}| < 3\,\sigma\,\pt$, where $\sigma$ is the relative $\pt$ resolution. A matched jet is scaled
+  by $1 + (s-1)(\pt - \pt^\mathrm{gen})/\pt$, an unmatched one by $1 + \mathcal{N}(0,1)\,\sigma\sqrt{\max(s^2-1, 0)}$,
+  where $s$ is the resolution scale factor; negative factors are set to zero. Only the jet four-momentum is scaled, not
+  the constituents. The random number is seeded per run, luminosity block, event and \code{srcIdx}; the factor is
+  stored as \code{jerFactor}.
+\item \textbf{Constituent selection}: only charged constituents are kept (\code{chargedOnly: true}; no $\pt$ or PUPPI
+  weight threshold).
+\item \textbf{Jet selection}: $\pt \geq 200\GeV$ (after JEC and JER), $|\eta| \leq 2.4$, TIGHT jet identification, and
+  at least two constituents after the constituent selection, i.e.\ at least two charged constituents.
+\end{enumerate}
+The JES and JER uncertainty keys (\code{Summer22EE\_22Sep2023\_V4\_MC\_Total\_AK8PFPuppi} and
+\code{\dots\_JRV2\_MC\_SFUncertainty\_AK8PFPuppi}) are configured, but no systematic variation is processed
+(\code{variations: \{\}}).
+
+\paragraph{Stored jet properties.} The table \code{RecoJet} contains $\pt$, $\eta$, $\phi$ and mass after all
+corrections, \code{rawPt}, \code{srcIdx}, \code{jetId} (the two bits), \code{nConstituents} (after the constituent
+selection) and \code{jerFactor}. From the re-corrected PAT jet, it also contains \code{jecPt}, \code{jecFactor},
+\code{area}, \code{rawFactor}, the $N$-subjettiness variables $\tau_1$--$\tau_4$, the $N_2$ and $N_3$ variables with $\beta = 1$,
+the PUPPI soft-drop mass \code{msoftdrop}, the ParticleNet scores stored in MiniAOD, energy fractions and
+multiplicities, the soft-drop subjet indices, and in simulation the hadron and parton flavour and the numbers of $b$ and
+$c$ hadrons. The Global Particle Transformer (GloParT~3) scores, which are absent from this MiniAOD, are computed in the
+job by re-running the tagger on a copy of the jets (\code{updateJetCollection} with the global-tag AK8PFPuppi
+corrections, as in NanoAOD); this copy only provides the 23 \code{globalParT3\_*} columns, matched by \code{srcIdx}, and
+does not enter the selection.
+
+\subsection{Generator-level AK8 jets}
+\label{sec:genjets}
+\code{slimmedGenJetsAK8} jets, with the gen-jet daughters as constituents, are required to have $\pt \geq 180\GeV$;
+then only charged constituents are kept, and the jets must have $\pt \geq 200\GeV$, $|\eta| \leq 2.4$ and at least two
+charged constituents. No identification, energy correction or smearing is applied. The table \code{GenJet} contains the
+same basic columns as \code{RecoJet}, without \code{jerFactor} and the PAT-jet properties.
+
+\subsection{Lepton--jet overlap}
+\label{sec:veto}
+Jets overlapping with leptons are not removed. Instead, for each channel \code{<c>} listed in
+\code{jets.cleaning.channels}, each jet receives a flag \code{veto<c>} that is true if the jet axis lies within
+$\Delta R < 0.8$ (\code{cleaningDR}) of a selected lepton of that channel at the jet's level: reco jets are compared
+with reco leptons and gen jets with gen leptons. Channel \code{<c>} ignores the jets with \code{veto<c>}; the other
+channel is unaffected.
+
+\subsection{Back-to-back requirement}
+\label{sec:b2b}
+For each channel with \code{backToBack.enabled} (all four channels of \code{ZX\_test}), at each level:
+\begin{enumerate}
+\item among the jets of that level passing the jet selection and without \code{veto<c>}, the jet with the highest $\pt$
+  is taken;
+\item $\Delta\phi(\text{jet}, Z) > 2.8$ (\code{dPhiMin}) is required, with $\Delta\phi$ folded into $[0,\pi]$;
+\item the $\pt$ asymmetry $A = |\ptj - \ptll| / (\ptj + \ptll) < 0.3$ (\code{asymmetryMax}) is required.
+\end{enumerate}
+If the leading jet fails these requirements, the next jet is not considered, and \code{B2B<c>} is false. Both cut values
+are placeholders. The requirement removes whole events, and only the selected jets are written: per level, the jet
+table and the correlators contain the jets selected by the channels that passed, normally one jet, and two only if
+both channels pass with different jets. The column \code{b2b<c>} identifies the channel or channels that selected each
+jet, and \code{veto<c>} is kept. The requirement is evaluated with the nominal jets only; its re-evaluation for jet
+systematic variations is not implemented, and the configuration validation rejects the combination
+(Section~\ref{sec:issues}).
+
+%=======================================================================================================================
+\section{Energy correlators}
+\label{sec:eec}
+
+All correlators are computed for every written jet of both collections, from the selected constituents $i$ (charged,
+and PUPPI-weighted for reco jets). The weights use the constituent $\pt^i$ in the laboratory frame, normalised to
+$\ptj$, the jet $\pt$ after all corrections. Since $\ptj$ includes the neutral component, the weights do not sum to one.
+The correlators are stored unbinned, with one entry per term.
+
+\paragraph{Projected two-point correlator (E2C).} For each pair $\{i, j\}$ with $i \leq j$, including $i = j$, one
+entry is stored with
+\begin{equation}
+  \Delta R_{ij}, \qquad
+  w_{ij} = \left(\frac{\pt^i}{\ptj}\right)^{n}\left(\frac{\pt^j}{\ptj}\right)^{n}, \qquad
+  s_{ij} = \begin{cases} 2 & i \neq j, \\ 1 & i = j, \end{cases}
+\end{equation}
+where $\Delta R_{ij} = \sqrt{\Delta\eta^2 + \Delta\phi^2}$ is computed with pseudorapidity and $\Delta\phi$ folded into
+$[-\pi,\pi]$, and the symmetry factor $s_{ij}$ is stored separately (\code{symfactor}). The correlator is
+$\sum_{i\le j} s_{ij} w_{ij}\,\delta(\Delta R - \Delta R_{ij})$, which equals the sum over ordered pairs with
+repetition. Two observables are stored: \code{E2Cn1} ($n = 1$) and \code{E2Cn2} ($n = 2$). The $i = j$ terms have
+$\Delta R = 0$ and are removed in the analysis (histogram cut \code{eec.dR > 0}).
+
+\paragraph{One-point correlator (E1C).} For each constituent, one entry is stored with the polar and azimuthal angles
+$(\theta_i, \phi_i)$ of its momentum in a frame defined by the jet four-momentum $P$ (after all corrections), the weight
+$(\pt^i/\ptj)^n$ with $n = 1$, and symmetry factor 1. If the frame is a rest frame, the constituent is first boosted into
+it; $\theta \in [0,\pi]$ and $\phi \in [-\pi, \pi]$ are then measured with respect to the orthonormal axes
+$(\hat x, \hat y = \hat z \times \hat x, \hat z)$, with $\hat x$ orthogonalised against $\hat z$. The three frames are:
+\begin{description}
+\item[\code{E1CLab} (frame \code{jetAxis})] no boost; $\hat z$ along the jet momentum and $\hat x$ in the plane of the
+  jet and the beam axis, on the side of the $+z$ beam; $\theta$ is the three-dimensional angle to the jet axis.
+\item[\code{E1CHelicity} (frame \code{jetHelicity})] the jet rest frame, reached by a boost along $P$; $\hat z$ along
+  the jet direction and $\hat x$ as for \code{jetAxis}, since a boost along the jet direction leaves the jet--beam plane
+  unchanged.
+\item[\code{E1CCS} (frame \code{jetCS})] the jet rest frame with Collins--Soper axes. With unit light-like vectors along
+  the two beams, beam $A$ moving along the sign of the jet $p_z$ (the $+z$ beam if $p_z = 0$), and their directions
+  $\hat p_A$, $\hat p_B$ in the jet rest frame, $\hat z \propto \hat p_A - \hat p_B$ and
+  $\hat x \propto -(\hat p_A + \hat p_B)$.
+\end{description}
+A jet that is not timelike, or whose axes are degenerate (a jet along the beam), stops the job with an error. The
+minimum of two constituents per jet excludes single-particle jets, in whose rest frame the constituent direction is
+undefined.
+
+\paragraph{Output.} For each observable and collection (\code{Reco}, \code{Gen}) there are a per-jet table
+\code{<Coll><obs>} with \code{E\_jet} ($= \ptj$), \code{n}, \code{N} and \code{nEntries}, and an entries table
+\code{<Coll><obs>Entries} with \code{iJet}, the coordinates (\code{dR}, or \code{theta} and \code{phi}), \code{weight}
+and \code{symfactor}, all at full floating-point precision. The weights can be renormalised to another jet scale $E'$
+with the factor $(E_\mathrm{jet}/E')^{nN}$, where $N = 2$ for E2C and $N = 1$ for E1C. With \code{writeConstituents=1},
+the constituents are stored in \code{RecoJetConstituents} and \code{GenJetConstituents} (\code{iJet}, $\pt$, $\eta$,
+$\phi$, energy, charge, PDG identifier, the PUPPI weight applied, and \code{srcIdx}).
+
+%=======================================================================================================================
+\section{Event weights, corrections and stored information}
+\label{sec:weights}
+\label{sec:output}
+
+Table~\ref{tab:corrections} summarises which corrections are applied in the job and which weights are only stored. No
+event weight is applied in the job, since \code{ZX\_test} produces no aggregated histograms; all weights are left to
+the analysis.
+
+\begin{table}[htbp]
+\centering
+\caption{Corrections and weights in \code{ZX\_test}.}
+\label{tab:corrections}
+\small
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{4.2cm}>{\raggedright\arraybackslash}X}
+\toprule
+Item & Treatment \\
+\midrule
+Generator weight & stored (\code{genWeight} and the Runs-tree sums); used by the analysis \\
+LHE, PDF, scale and PS weights & stored (\code{LHEWeight}, \code{LHEPdfWeight}, \code{LHEScaleWeight},
+  \code{LHEReweightingWeight}, \code{PSWeight}), with the LHE particles and \code{LHE\_*} quantities as in NanoAOD \\
+Pileup weights & stored (\code{Pileup\_weight}, \code{Pileup\_weightUp}, \code{Pileup\_weightDown}, from the key
+  \code{Collisions2022\_359022\_362760\_eraEFG\_GoldenJson} at the in-time true number of interactions); not applied \\
+Muon momentum & applied: hybrid assignment, MuonScaRe (medium regime), $\kappa_b$ and smearing (high regime) \\
+Muon efficiency corrections & none (\code{muonScaleFactors: \{\}}): no identification or isolation is required \\
+Electron energy scale, resolution and efficiency corrections & none \\
+Trigger efficiency corrections & none \\
+AK8 jet energy correction & re-applied (V4 L1L2L3Res) \\
+AK8 jet energy resolution & nominal hybrid smearing applied in simulation \\
+JES and JER uncertainties & not evaluated (no variations) \\
+Jet identification & TIGHT required; TIGHTLEPVETO stored \\
+AK4 PUPPI jets & stored only (\code{AK4Jet}: V4 correction re-applied, $\pt > 20\GeV$, $|\eta| < 4.7$, with
+  \code{jesUncTotal} and flavour-tagging scores) \\
+Missing transverse momentum & stored only: PF (\code{MET}, \code{RawMET}), PUPPI (\code{PuppiMET},
+  \code{RawPuppiMET}) and \code{GenMET} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Further stored event content: the HLT bits, the primary and secondary vertices (\code{PV}, \code{OtherPV}, \code{SV}),
+the generator vertex, six $\rho$ variables, pruned generator particles (\code{GenPart}), and at both levels the
+selection flags of Table~\ref{tab:flags}, the $Z$ candidates and the selected leptons (empty unless \code{<c>Sel} passed).
+The complete inventory is given in \code{simulation/NANO.md}.
+
+%=======================================================================================================================
+\section{Cutflow}
+\label{sec:cutflow}
+
+Table~\ref{tab:cutflow} gives the cutflow obtained on one input file per sample, using 30\,000 events or, for the
+\code{PTLL}-binned samples, the whole file. The configuration was run with the dilepton $\pt$ and back-to-back
+requirements disabled, which writes every event passing a channel at either level together with all its jets, and the
+remaining steps were applied with \code{notes/zxtest\_AN/make\_cutflow.py}. On a test file of 1000 events with
+$\ptll$ between 400 and 600\GeV, this script reproduces exactly the \code{B2B<c>} flags of the full configuration
+(206, 183, 214 and 206 events for reco $\mu\mu$, reco $ee$, gen $\mu\mu$ and gen $ee$). The first step,
+\emph{channel flag}, combines the dilepton selection without the $\ptll$ requirement with the trigger, vertex and MET
+filters at reco level, and is the dilepton selection alone at gen level. Since events failing it at both levels are not
+written, it cannot be divided further with this method. The steps are cumulative; counts are unweighted, and the
+percentages are generator-weighted fractions of all processed events.
+
+The fraction of processed events written is 0.30\% for $ZZ\to2\ell2q$ and 0.51\% for $WZ\to2\ell2q$, which corresponds to
+roughly $1.5\times10^{5}$ and $7.6\times10^{4}$ events for the full samples of Table~\ref{tab:samples} (unweighted,
+extrapolated from one file each), and between 30\% and 48\% for the \code{PTLL}-binned Drell--Yan samples.
+
+\begin{landscape}
+\begin{table}[htbp]
+\centering
+\caption{Cutflow per level and channel on one input file per sample: events (generator-weighted percentage of the
+processed events). The last row counts the events passing the full selection in at least one channel at one level,
+i.e.\ the events written by \code{ZX\_test}.}
+\label{tab:cutflow}
+\small
+\input{cutflow_table.tex}
+\end{table}
+\end{landscape}
+
+%=======================================================================================================================
+\section{Analysis regions}
+\label{sec:regions}
+
+The columnar analysis reads the merged NANO with the configuration \code{analysis/configs/zxtest.yaml}. A region is one
+channel at one level, optionally narrowed by further cuts, and is built as follows.
+\begin{enumerate}
+\item Events with \code{Selection\_<c>} (\code{GenSelection\_<c>} at gen level) are kept (cutflow step
+  \code{channel}).
+\item If the NANO contains the back-to-back flag \code{B2B<c>}, events without it are removed (cutflow step
+  \code{backToBack}). This removes events written because another channel or level passed, which have no jet of
+  channel \code{<c>}.
+\item The objects of the region are the channel's $Z$ candidate (\code{boson}), its selected leptons (\code{leptons}),
+  the missing transverse momentum (PUPPI at reco, generator-level at gen), the jets of the channel (\code{jets}), and
+  their correlator entries (\code{eec}). The jets of the channel are those with \code{b2b<c>} if the NANO contains
+  that column, and otherwise those without \code{veto<c>}. NANO files without the back-to-back columns (such as the
+  first production) are therefore processed as before.
+\item The region's cuts are applied in order. Each cut is an expression on these objects with a level fixed by its
+  form: an event-level cut removes events, a jet-level cut removes jets together with their correlator entries, and a
+  lepton-level cut removes the event if any selected lepton fails. Cuts on individual correlator entries are allowed in
+  histogram definitions only.
+\end{enumerate}
+The event weight is \code{genWeight}, multiplied by $\sigma L/\code{genEventSumw}$ once cross sections are available;
+correlator entries are filled with the event weight times \code{weight} times \code{symfactor}. On the test file of
+Section~\ref{sec:cutflow}, the \code{backToBack} step reproduces the \code{B2B<c>} counts exactly and removes 2 or 3
+events per region.
+
+\begin{table}[htbp]
+\centering
+\caption{Regions of \code{analysis/configs/zxtest.yaml}, in addition to the channel and back-to-back steps.}
+\label{tab:regions}
+\small
+\begin{tabularx}{\textwidth}{lll>{\raggedright\arraybackslash}X}
+\toprule
+Region & Level & Channel & Additional cuts, in order \\
+\midrule
+\code{ZmumuReco} & reco & \code{Zmumu} & none \\
+\code{ZeeReco} & reco & \code{Zee} & none \\
+\code{ZmumuGen} & gen & \code{Zmumu} & none \\
+\code{ZeeGen} & gen & \code{Zee} & none \\
+\code{ZmumuBoostedReco} & reco & \code{Zmumu} & both muons pass the medium identification (lepton level);
+  $\ptll > 200\GeV$ (event level); jet $\pt > 300\GeV$, $|\eta^\mathrm{jet}| < 2.0$ and $\Delta R(\text{jet}, Z) > 2.0$
+  (jet level); at least one jet (event level) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The histograms are: $\ptll$, $m_{\ell\ell}$, the number of jets, lepton $\pt$, jet $\pt$ and $\eta$, and, at reco level
+only, the jet soft-drop mass, $\tau_{21} = \tau_2/\tau_1$ and the GloParT $W$-versus-QCD score; E2C ($n = 1, 2$) versus
+$\Delta R$ (50 logarithmic bins between $10^{-3}$ and 1, without the $\Delta R = 0$ entries) and jet $\pt$ (bin edges
+200, 300, 400, 600, 1000 and 3000\GeV); and E1C versus $(\theta, \phi)$ in the three frames ($\theta$ in 40 logarithmic
+bins between $10^{-3}$ and 1 for the laboratory frame and in 40 bins between 0 and $\pi$ for the rest frames; $\phi$ in
+40 bins between $-\pi$ and $\pi$).
+
+%=======================================================================================================================
+\section{Validation}
+\label{sec:validation}
+
+The following checks were made on the implementation; details are recorded in \code{simulation/JOURNAL.md}.
+\begin{itemize}
+\item Unit tests of all modules and of the framework-independent selection, jet and correlator code
+  (\code{scram b runtests}), and of the columnar analysis; deliberately altered versions of the logic are verified to
+  fail them.
+\item Correlators: every unbinned entry (reco and gen, five observables, four samples) agrees with a NumPy
+  recomputation from the stored constituents (\code{configs/checkUnbinned.py}), with maximum differences of
+  $9\times10^{-5}$ in the coordinates and $3\times10^{-7}$ in the relative weights.
+\item Re-applied AK8 jet energy corrections: no mismatch in raw $\pt$ and energy fractions with respect to an
+  FWLite/correctionlib computation, on 802 simulated and 428 data jets. GloParT scores identical to those of the standard
+  NanoAOD sequence (1056 jets, 23 columns).
+\item Dilepton $\pt$ requirement: on 2000 inclusive Drell--Yan events, 8 events are written instead of 513; they are
+  exactly the events with a reco or gen $Z$ candidate above $150\GeV$ in the run without the requirement.
+\item Back-to-back requirement (\code{JetSetup/test/validation/checkBackToBack.py}): a run with the requirement is
+  compared with an independent recomputation from a run without it. On 1000 events with $\ptll$ between 400 and
+  600\GeV, 431 of 517 events are kept; the selected jets (809, all columns), their correlator entries (4045
+  jet--observable pairs) and the flags agree exactly, and the other 903 columns are unchanged. With the requirement
+  disabled, the configuration builds a CMSSW process identical to the one before the feature was added.
+\item Columnar analysis: histogram integrals agree with an independent uproot computation on NANO files with and without
+  the back-to-back columns.
+\end{itemize}
+
+%=======================================================================================================================
+\section{Known issues and open items}
+\label{sec:issues}
+
+\begin{enumerate}
+\item \textbf{AK8 jets without daughters.} In 3 of the 232 $t\bar t$ jobs of the first production, a
+  \code{slimmedJetsAK8} jet had a MiniAOD $\pt$ below $170\GeV$, so that its daughters were not stored, but a raw $\pt$
+  of $326.8\GeV$ (in both events inspected), which the re-applied V4 correction raises to about $348\GeV$ (in all three
+  failures), above the $180\GeV$ threshold; the job then stops with an error. The identical raw $\pt$ in independent
+  events suggests a MiniAOD artefact. These jobs were excluded from the merge; the cause and the treatment of such jets
+  are open, and the same failure can occur in the next production.
+\item \textbf{Back-to-back requirement with jet variations.} Not implemented; it is needed before jet systematic
+  variations are enabled. The required steps are listed in \code{simulation/backToBack\_plan.md}.
+\item \textbf{Muon corrections.} The formula and sign of the $\kappa_b$ correction, the smearing and its systematic
+  variations, the scale correction above $200\GeV$ and the definition of the resolution variation are provisional,
+  pending the MUO POG (\code{simulation/EventSelection/README.md}).
+\item \textbf{Lepton identification, isolation, trigger and corrections.} By design, none is applied at reco level;
+  electron energy corrections and all lepton and trigger efficiency corrections are still missing.
+\item \textbf{Cross sections.} Not yet collected; they are needed for the luminosity normalisation and for combining
+  the \code{PTLL}-binned Drell--Yan samples with the inclusive one, which also requires a generator-level overlap
+  removal.
+\item \textbf{Sample content.} Whether \code{ZZto2L2Q} and \code{WZto2L2Q} include $Z\to\tau\tau$ decays, and the
+  definition of \code{PTLL}, are to be confirmed from the generator configuration (Section~\ref{sec:samples}).
+\item \textbf{Placeholder values.} $\ptll \geq 150\GeV$, $\Delta\phi > 2.8$ and $A < 0.3$ are development choices.
+\end{enumerate}
+
+\end{document}
