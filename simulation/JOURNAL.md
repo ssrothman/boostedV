@@ -438,3 +438,7 @@ Plan and decisions: `notes/zxtest_AN/review1_plan.md`.
 - Fix (user decisions): jets without PF specific get jetId bit 2 (4) only (`kNoPFSpecific`, `JetId.h`), so they fail
   idMask 1/3 and can be counted in the `jetId` column; they no longer block the back-to-back selection (the leading
   jet is then the next one passing the ID). Module test fails with the old `bits` (exception above), passes with the fix.
+
+## 2026-11-16 Third ZX_test production `20261116_zxb2b` submitted
+- Same manifest as `20261115_zxb2b` with the no-PF jet ID fix (JetSetup 66274b8, boostedV 441bae0): 5 CRAB tasks submitted;
+  dry run: all 5 test jobs exit 0 (as before, not covering a no-PF jet). The failed `20261115_zxb2b` tasks are left as is.
