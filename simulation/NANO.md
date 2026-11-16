@@ -185,7 +185,7 @@ those; other channels' vetoes are not applied.
 | `pt`, `mass` | float | after the corrections (JER smearing in MC, applied before every jet cut, including `translator.ptMin`) and the variation |
 | `eta`, `phi` | float | |
 | `rawPt` | float | uncorrected pt |
-| `jetId` | uint8 | bit 0 Tight, bit 1 TightLeptonVeto of the JME correctionlib jet ID (`translator.jetId`; 0 for gen and reclustered jets) |
+| `jetId` | uint8 | bit 0 Tight, bit 1 TightLeptonVeto of the JME correctionlib jet ID (`translator.jetId`; 0 for gen and reclustered jets); bit 2 (4): MiniAOD dropped the jet's PF specific (`slimmedJetsAK8`, pt < 170), bits 0 and 1 are then clear |
 | `nConstituents` | uint32 | constituents after `constituentCuts` |
 | `srcIdx` | uint32 | index in the source collection |
 

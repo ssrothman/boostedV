@@ -22,6 +22,7 @@
 - 2026-11-14 Dilepton pT cut and back-to-back jet selection
 - 2026-11-15 Second-production manifest, ZX_test note, bvana back-to-back regions
 - 2026-11-15 Human review 1 of the ZX_test note: flags, JER order, frames, gen-jet flavour
+- 2026-11-15 Second ZX_test production `20261115_zxb2b` submitted
 
 ## 2026-11-11 A.2 setup and DataFormats
 - Plan: `stepA2_plan.md`. New local repos (remotes pending): `EECDataFormats` (pkg `SRothman/DataFormats`),
@@ -419,3 +420,21 @@ Plan and decisions: `notes/zxtest_AN/review1_plan.md`.
   crystal flags exactly its 5 events); CAT paths pinned; eras `Run3, run3_nanoAOD_pre142X` from `inputs.eras`
   (needed for the calo geometry: no CASTOR) — NANO output identical with and without them. Soft-drop mass and MET
   flagged as future work.
+
+## 2026-11-15 Second ZX_test production `20261115_zxb2b` submitted
+- `production/samples_zxb2b.yaml`, ZX_test.yaml at boostedV 3d1c550 (EECs ef60354, EventSelection 75644f1, JetSetup
+  9f87b81): jet veto map, ECAL crystal, JME jet ID, eras, jetProjective. 5 CRAB tasks, 374 jobs (ZZto2L2Q 149, WZto2L2Q
+  47, DY PTLL-200to400 74, 400to600 50, 600 54). Dry run: all test jobs exit 0; the FJR "Process element not found"
+  message also appeared in the 20261113_zxtest dry run.
+- Before submitting: jetProjective phi = 0 toward the beam on the jet side checked with particles tilted toward the
+  near/far beam (jetAxis, jetHelicity, jetProjective, 24 jets, both signs of pz); fixing s = +1 fails all 12 pz < 0 jets.
+
+## 2026-11-16 `20261115_zxb2b` failed: jet ID on jets without PF specific
+- Status: ZZ 149/149 failed, WZ 47/47, DY 200to400 72/74, 400to600 37/50, 600 26/53 (8001, plus one 8028 and one 60328).
+- The 8001 messages shown by `crab status --verboseErrors` (ZZ, DY 200to400) are all `PATJetToEECJetProducer/'jetsRecoRaw'`:
+  "This PAT jet was not made from a JPTJet nor from PFJet." MiniAOD `slimmedJetsAK8` has `dropSpecific = "pt < 170"` as well as
+  `dropDaughters` (`applySubstructure_cff.py:210-211`), so the no-daughter jets smeared above 200 also lack the PF fractions that
+  `JetId::bits` (new in 3d1c550) reads, before the no-daughters branch. Deterministic: resubmission will not help.
+- Fix (user decisions): jets without PF specific get jetId bit 2 (4) only (`kNoPFSpecific`, `JetId.h`), so they fail
+  idMask 1/3 and can be counted in the `jetId` column; they no longer block the back-to-back selection (the leading
+  jet is then the next one passing the ID). Module test fails with the old `bits` (exception above), passes with the fix.
