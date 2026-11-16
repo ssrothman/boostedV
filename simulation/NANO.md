@@ -299,7 +299,24 @@ menu, with the `_v<N>` suffix removed.
 - The branch set depends on the menu of the input sample. The channel triggers the analysis uses are in `Selection_<ch>Trigger`.
 
 ### 4.10 MET
-- `SelectionMET` / `GenSelectionMET` (§4.3): the MET the W selections use.
+- `SelectionMET` / `GenSelectionMET` (§4.3): the MET the W selections use. At reco it is `inputs.met`, or, with
+  `selection.reco.metCorrections.apply`, the corrected MET below.
+- **MET corrections** (`selection.reco.metCorrections`, reco only, in this order; JME `cms-jme-jmar` MET corrections):
+  1. `metType1`: Type-1 PUPPI MET recomputed as raw MET - sum over the AK4 PUPPI jets (`type1.jets`) of (p_T full -
+     p_T L1) along the muon-subtracted jet direction (the muon daughters removed from the raw jet: packed flags
+     isGlobalMuon or isStandAloneMuon, or the source candidate of a `inputs.muons` muon with either flag; the packed
+     flags alone miss standalone-only PF muons that production subtracts), for jets with
+     corrected p_T > `ptMin` (15 GeV), |eta| < `absEtaMax` (5.2) and chEmEF + neEmEF < `emFractionMax` (0.9). The JEC
+     is the V4 payload (`mcKey`/`dataKey`, L1 from `l1McKey`/`l1DataKey`) evaluated on the muon-subtracted raw jet; in MC
+     with `type1.jer.enabled` the nominal JER factor of each jet (`PATJetJERCProducer`, AK4 PUPPI JRV2) multiplies the
+     full p_T. MiniAOD jets below its own threshold are not available; jets without PF specific are not cut on the EM fraction.
+  2. `metXY` (`xy.enabled`): JME XY shift (`met_xy_corrections`, `metType`, `epoch`, `variation`, data or MC, number of
+     good vertices of `selection.reco.vertex`).
+  3. `correctedMET` (`muons.propagate`, needs `muonCorrections` to change the muons): MET + sum over the PF muons of
+     (p_T of `inputs.muons` - p_T of `correctedMuons`), as the MUO POG recommends for TuneP muons.
+  Not propagated: the jet and MET variations (JES, JER, unclustered), electrons and photons. The pat::MET products keep
+  their Raw and Type1 levels; the JES/JER/unclustered shifts stored in them (and so the `PuppiMET` table's variations)
+  are the MiniAOD ones. The module and validation details are in `JetSetup/README.md`.
 - One table per entry of `output.metTables` (`name: pat::MET label`), with the standard NanoAOD `PuppiMET` columns: `pt`,
   `phi`, `sumEt`, `significance`, `covXX`, `covXY`, `covYY`, `sumPtUnclustered`, `pt`/`phi` `UnclusteredUp`/`Down`, plus
   `ptJESUp`/`Down`, `phiJESUp`/`Down`, `ptJERUp`/`Down`, `phiJERUp`/`Down`.

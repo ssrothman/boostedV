@@ -51,6 +51,10 @@ def _muonChecks(reco):
             p.append('selection/reco/muonCorrections: variation %s needs apply' % var)
         if ('high' if var.startswith('highPt') else 'medium') not in regimes:
             p.append('selection/reco/muonCorrections: variation %s has no effect with momentum %s' % (var, mc['momentum']))
+    m = reco['metCorrections']
+    if m['apply'] and m['muons']['propagate'] and not (mc['apply'] or mc['momentum'] != 'pf'):
+        p.append('selection/reco/metCorrections/muons: propagate has no effect, the muons are not corrected '
+                 '(muonCorrections apply false and momentum pf)')
     for ch, terms in reco['muonScaleFactors'].items():
         where = 'selection/reco/muonScaleFactors/%s' % ch
         if ch not in reco['channels']:

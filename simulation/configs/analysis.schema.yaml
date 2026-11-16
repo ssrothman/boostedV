@@ -376,8 +376,8 @@ properties:
       reco:
         type: object
         additionalProperties: false
-        required: [vertex, metFilters, ecalBadCalib, jetVetoMap, muonCorrections, muonScaleFactors, objectTables, dressing,
-                   objects, channels]
+        required: [vertex, metFilters, ecalBadCalib, jetVetoMap, metCorrections, muonCorrections, muonScaleFactors,
+                   objectTables, dressing, objects, channels]
         properties:
           ecalBadCalib:          # rerun of EcalBadCalibFilter on these crystals; [] = not run
             type: object
@@ -408,6 +408,54 @@ properties:
               mapType: {$ref: '#/definitions/str'}
               ptMin: {$ref: '#/definitions/num'}
               emFractionMax: {$ref: '#/definitions/num'}
+          metCorrections:        # Type-1 PUPPI MET with the V4 AK4 JEC, optional XY shift and muon propagation
+            type: object
+            additionalProperties: false
+            required: [apply, type1, xy, muons]
+            properties:
+              apply: {type: boolean}
+              type1:
+                type: object
+                additionalProperties: false
+                required: [jets, rho, correctionFile, l1McKey, l1DataKey, mcKey, dataKey, ptMin, absEtaMax, emFractionMax, jer]
+                properties:
+                  jets: {$ref: '#/definitions/str'}
+                  rho: {$ref: '#/definitions/str'}
+                  correctionFile: {$ref: '#/definitions/str'}
+                  l1McKey: {$ref: '#/definitions/str'}
+                  l1DataKey: {$ref: '#/definitions/str'}
+                  mcKey: {$ref: '#/definitions/str'}
+                  dataKey: {$ref: '#/definitions/str'}
+                  ptMin: {$ref: '#/definitions/num'}
+                  absEtaMax: {$ref: '#/definitions/num'}
+                  emFractionMax: {$ref: '#/definitions/num'}
+                  jer:
+                    type: object
+                    additionalProperties: false
+                    required: [enabled, genJets, scaleFactorKey, scaleFactorUncertaintyKey, resolutionKey, seedSalt]
+                    properties:
+                      enabled: {type: boolean}
+                      genJets: {$ref: '#/definitions/str'}
+                      scaleFactorKey: {$ref: '#/definitions/str'}
+                      scaleFactorUncertaintyKey: {$ref: '#/definitions/str'}
+                      resolutionKey: {$ref: '#/definitions/str'}
+                      seedSalt: {$ref: '#/definitions/uint'}
+              xy:
+                type: object
+                additionalProperties: false
+                required: [enabled, correctionFile, metType, epoch, variation]
+                properties:
+                  enabled: {type: boolean}
+                  correctionFile: {$ref: '#/definitions/str'}
+                  metType: {$ref: '#/definitions/str'}
+                  epoch: {$ref: '#/definitions/str'}
+                  variation: {$ref: '#/definitions/str'}
+              muons:
+                type: object
+                additionalProperties: false
+                required: [propagate]
+                properties:
+                  propagate: {type: boolean}
           muonCorrections:
             type: object
             additionalProperties: false

@@ -58,6 +58,40 @@ selection:
       ptMin: 15.0
       emFractionMax: 0.9
 
+    # MET corrections (JME Run 3: Type-1 PUPPI MET, mandatory, recomputed here with the V4 AK4 PUPPI JEC instead of the
+    # production JEC in MiniAOD; optional JER propagation and XY shift. MUO: PF MET with the PF muon pT replaced by the
+    # corrected one). The corrected MET replaces inputs.met in the leptonMET channels. Type-1: raw MET minus the sum over
+    # AK4 jets (muon-subtracted raw jets) with corrected pT > ptMin, |eta| < absEtaMax and EM fraction < emFractionMax of
+    # (pT full - pT L1). Applied in this order: Type-1, XY, muons.
+    metCorrections:
+      apply: true
+      type1:
+        jets: slimmedJetsPuppi
+        rho: fixedGridRhoFastjetAll
+        correctionFile: /cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-22EFGSep23-Summer22EE-NanoAODv12/2026-06-05/jet_jerc.json.gz
+        l1McKey: Summer22EE_22Sep2023_V4_MC_L1FastJet_AK4PFPuppi
+        l1DataKey: Summer22EE_22Sep2023_V4_DATA_L1FastJet_AK4PFPuppi
+        mcKey: Summer22EE_22Sep2023_V4_MC_L1L2L3Res_AK4PFPuppi
+        dataKey: Summer22EE_22Sep2023_V4_DATA_L1L2L3Res_AK4PFPuppi
+        ptMin: 15.0
+        absEtaMax: 5.2
+        emFractionMax: 0.9
+        jer:                   # MC only: the nominal JER smearing of each Type-1 jet is propagated to the MET
+          enabled: true
+          genJets: slimmedGenJets
+          scaleFactorKey: Summer22EE_22Sep2023_JRV2_MC_ScaleFactor_AK4PFPuppi
+          scaleFactorUncertaintyKey: Summer22EE_22Sep2023_JRV2_MC_SFUncertainty_AK4PFPuppi
+          resolutionKey: Summer22EE_22Sep2023_JRV2_MC_PtResolution_AK4PFPuppi
+          seedSalt: 0
+      xy:                      # JME MET XY shift; epoch: 2022 (Run2022C-D) or 2022EE (Run2022E-G and Summer22EE MC)
+        enabled: true
+        correctionFile: /cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-22EFGSep23-Summer22EE-NanoAODv12/2026-06-05/met_xyCorrections_2022_2022EE.json.gz
+        metType: PuppiMET
+        epoch: 2022EE
+        variation: nom
+      muons:                   # PF muon pT -> the muonCorrections momentum; true needs muonCorrections to change the muons
+        propagate: false
+
     # Reco lepton dressing (photons added to muon and electron momenta):
     #   none  no dressing (the `objects` cut is the whole selection; every dressedCut must be "")
     #   fsr   CMSSW LeptonFSRProducer (as for NanoAOD FsrPhoton): at most one isolated PF photon per lepton,

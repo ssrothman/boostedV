@@ -456,3 +456,31 @@ Plan and decisions: `notes/zxtest_AN/review1_plan.md`.
   WZtoLNu2Q_powheg, first 8000 events of one file, default.yaml W channels; LHEPart is empty for the pythia-only WZ_pythia8).
   Reco (709 events): status 1 n=290, median(reco-true p_z) -3.6 GeV, 68% of |reco-true| < 101 GeV, smaller-|p_z| root closer
   to the truth in 57.9%; status 3 n=419, median 5.3, 68% < 81.5 GeV. Gen (699): status 1 n=445, 53.9% closer root; status 3 n=254.
+
+## 2026-11-16 MET corrections (PUPPI MET, Summer22EE)
+- Plan and sources: `metCorrections_plan.md`. User decisions: JER propagation yes; XY yes (switch); muon propagation yes (switch);
+  JEC/JER variation propagation and electron/photon propagation deferred (TODO.md).
+- Modules (JetSetup): `PATMETType1Producer` (raw MET - sum (p_T full - p_T L1) over AK4 PUPPI jets, muon-subtracted;
+  `jetsetup::type1Shift` in `METTools.h`), `PATMETXYCorrectionProducer` (`met_xy_corrections`), `PATMETMuonShiftProducer`;
+  `METUtil.h::withMETP4` keeps the Raw and Type1 levels (pat::MET stores them as packed shifts from the default p4: setP4 alone
+  moves them; packing error ~1e-4 relative). Wiring `_metCorrections` (eventSelection_cff.py): `metType1Jets`, `metType1JetsJer`,
+  `metType1`, `metXY`, per suffix `correctedMET`; `metLabel(..., process)` picks the last one; YAML `selection.reco.metCorrections`
+  (default.yaml: apply, no muon propagation because default muonCorrections are off; ZX_test.yaml: apply false, so the running
+  production configuration is unchanged).
+- Tests: `type1Shift` unit tests; module tests of the three producers; 7 mutations each fail a test (cut on L1 pt, sign, muon
+  shift sign, isPFMuon, data as MC, no JER, no EM cut); `test_analysisConfig.py` 39 passed (wiring, switches, loader checks).
+- Validation (`test/validation/validateMET_cfg.py`, `checkMET.py`, 2000 DY MC and 2000 Run2022F events): the module equals an
+  independent FWLite + correctionlib recomputation of the V4 Type-1 and XY MET to 1e-5 GeV (MC and data);
+  MC closure: Type-1 from the stored production factors vs `slimmedMETsPuppi` 8e-3 GeV in 2000/2000 events (the first version
+  used `pat::Jet::jecFactor(level)` as a raw-to-level factor and failed by 30 GeV: it is the factor from the level to Uncorrected);
+  data closure: 5/2000 events differed by 1-20 GeV. Cause (4 events): muon-dominated jets whose standalone-only PF muon has unset packed flags (`pat::PackedCandidate::isStandAloneMuon` false) while `slimmedMuons` says isStandAloneMuon: production subtracts the muon, the jet falls below 15 GeV after JEC and drops out. Kept jets all had tracker-type muons. Fix: also subtract daughters that are the source candidate of a `slimmedMuons` muon with isGlobalMuon or isStandAloneMuon; data closure 1999/2000, MC 2000/2000. Subtracting every |pdgId| 13, PUPPI-weighting the muon or a full-jet pT > 15 cut are worse. Rest: one event whose production p4 and Type1 level disagree by 11.8 GeV (TODO.md). The Production code (runMETCorrectionsAndUncertainties.py, PATJetCleanerForType1MET, PATPackedCandidateProducer) was read in CMSSW_15_0_22; MiniAOD jets carry no muonSubtrRawPt (NanoAOD adds it with the same packed flags). `pat::MET` also stores a NoShift offset that `withMETP4` zeroes. V4 vs production Type-1 (MC): median 0.013 GeV, 99% 4 GeV,
+  max 4.9; XY shift median 0.44 GeV, max 1.0 (MC); JER propagation (MC): median 3.8 GeV, 99% 37 GeV.
+- End to end (`eecNano_cfg.py` on 2000 DY events, muon corrections on and propagated): exit 0; on the 53 W-selected events
+  `SelectionMET` vs `PuppiMET` median |dpt| 1.9 GeV.
+- Muon subtraction vs central NanoAOD (`JetSetup/test/validation/checkMuonSubtraction.py`; Run2022F test file vs the central
+  `/Muon/Run2022F-22Sep2023-v2/NANOAOD` file with the same 3 lumis, copied to `~/nobackup/boostedV/testdata/central_nano/`):
+  8062 of 8062 `slimmedJetsPuppi` jets (2000 events) match a Nano jet (`Jet` or `CorrT1METJet`, dR < 0.01); with the packed-flags rule
+  our muon-subtracted raw pt gives Nano's `muonSubtrFactor` for all of them (max |d| 7.8e-3 = Nano's 6-bit storage, 2108 jets
+  with a pdgId 13 daughter). The `+muons` rule of `PATMETType1Producer` differs from Nano on exactly 4 jets (the standalone-only
+  muon jets, factor 0.82, 0.89, 1.0, 0.82 vs Nano 0); production's MET dropped those, so central Nano's `muonSubtrFactor`
+  has the same blind spot and a Nano-based Type-1 recomputation would not close on them. Not done: the MC file.

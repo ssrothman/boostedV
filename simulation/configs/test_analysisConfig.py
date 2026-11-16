@@ -154,6 +154,9 @@ class LoaderRejects(unittest.TestCase):
         mc = lambda c: c['selection']['reco']['muonCorrections']
         sfs = lambda c: c['selection']['reco']['muonScaleFactors']
         self.assertRejected(lambda c: mc(c).update(variation='scaleUp'), 'variation scaleUp needs apply')
+        met = lambda c: c['selection']['reco']['metCorrections']
+        self.assertRejected(lambda c: met(c)['muons'].update(propagate=True), 'propagate has no effect')
+        self.assertRejected(lambda c: met(c).pop('xy'), 'selection/reco/metCorrections', 'xy')
         self.assertRejected(lambda c: mc(c).update(apply=True, variation='highPtScaleUp'),
                             'variation highPtScaleUp has no effect with momentum pf')
         self.assertRejected(lambda c: mc(c).update(apply=True, momentum='tuneP', variation='resolutionUp'),
@@ -419,7 +422,7 @@ class BuiltProcess(unittest.TestCase):
 
     def test_selected_lepton_and_met_tables(self):
         p = buildProcess()
-        for level, prefix, met in (('reco', '', 'slimmedMETsPuppi'), ('gen', 'Gen', 'genParticleLevel')):
+        for level, prefix, met in (('reco', '', 'metXY'), ('gen', 'Gen', 'genParticleLevel')):
             lab = lambda ch: ('gen' + ch if level == 'gen' else ch)
             for ch in ('Zmumu', 'Zee', 'Wmunu', 'Wenu'):
                 t = getattr(p, lab(ch) + 'LeptonsTable')
@@ -532,6 +535,56 @@ class BuiltProcess(unittest.TestCase):
         cfg['output']['ak4Jets']['enabled'] = False
         self.assertFalse(hasattr(buildProcess(cfg), 'ak4JetTable'))
 
+    def test_met_corrections(self):
+        r = loadDefault()['selection']['reco']['metCorrections']
+        t, x = r['type1'], r['xy']
+        for isMC in (1, 0):
+            p = buildProcess(isMC=isMC)
+            m, xy, jec = p.metType1, p.metXY, p.metType1Jets
+            self.assertEqual((jec.type_(), jec.src.getModuleLabel(), jec.key.value(), jec.sortByPt.value()),
+                             ('PATJetJECProducer', 'slimmedJetsPuppi', t['mcKey' if isMC else 'dataKey'], False))
+            self.assertEqual((m.type_(), m.met.getModuleLabel(), m.jets.getModuleLabel(), m.jecSource.value(),
+                              m.l1Key.value(), m.key.value(), m.applyJER.value(), m.ptMin.value(), m.absEtaMax.value(),
+                              m.emFractionMax.value()),
+                             ('PATMETType1Producer', 'slimmedMETsPuppi', 'metType1JetsJer' if isMC else 'metType1Jets',
+                              'correctionlib', t['l1McKey' if isMC else 'l1DataKey'], t['mcKey' if isMC else 'dataKey'],
+                              bool(isMC), 15.0, 5.2, 0.9))
+            self.assertEqual(m.muons.getModuleLabel(), 'slimmedMuons')
+            self.assertEqual(hasattr(p, 'metType1JetsJer'), bool(isMC))
+            if isMC:
+                j = p.metType1JetsJer
+                self.assertEqual((j.src.getModuleLabel(), j.type.value(), j.direction.value(), j.jetR.value(),
+                                  j.genJets.getModuleLabel(), j.jerResolutionKey.value()),
+                                 ('metType1Jets', 'jer', 'nominal', 0.4, 'slimmedGenJets', t['jer']['resolutionKey']))
+            self.assertEqual((xy.type_(), xy.met.getModuleLabel(), xy.metType.value(), xy.epoch.value(), xy.isData.value(),
+                              xy.vertices.getModuleLabel(), xy.ndofMin.value()),
+                             ('PATMETXYCorrectionProducer', 'metType1', x['metType'], x['epoch'], not isMC,
+                              'offlineSlimmedPrimaryVertices', 4.0))
+            self.assertEqual(p.WmunuSel.met.getModuleLabel(), 'metXY')
+            self.assertEqual(p.WenuSel.met.getModuleLabel(), 'metXY')
+            self.assertFalse(hasattr(p, 'correctedMET'))
+        # Switches: JER, XY, muon propagation, the whole correction.
+        cfg = loadDefault()
+        cfg['selection']['reco']['metCorrections']['type1']['jer']['enabled'] = False
+        cfg['selection']['reco']['metCorrections']['xy']['enabled'] = False
+        p = buildProcess(cfg)
+        self.assertFalse(hasattr(p, 'metType1JetsJer') or hasattr(p, 'metXY'))
+        self.assertEqual((p.metType1.applyJER.value(), p.metType1.jets.getModuleLabel(), p.WmunuSel.met.getModuleLabel()),
+                         (False, 'metType1Jets', 'metType1'))
+        cfg = loadDefault()
+        mc = cfg['selection']['reco']['muonCorrections']
+        mc['apply'] = True
+        cfg['selection']['reco']['metCorrections']['muons']['propagate'] = True
+        p = buildProcess(cfg)
+        c = p.correctedMET
+        self.assertEqual((c.type_(), c.met.getModuleLabel(), c.original.getModuleLabel(), c.corrected.getModuleLabel()),
+                         ('PATMETMuonShiftProducer', 'metXY', 'slimmedMuons', 'correctedMuons'))
+        self.assertEqual(p.WmunuSel.met.getModuleLabel(), 'correctedMET')
+        cfg['selection']['reco']['metCorrections']['apply'] = False
+        p = buildProcess(cfg)
+        self.assertFalse(any(hasattr(p, n) for n in ('metType1', 'metType1Jets', 'metXY', 'correctedMET')))
+        self.assertEqual(p.WmunuSel.met.getModuleLabel(), 'slimmedMETsPuppi')
+
     def test_event_cleaning(self):
         cfg = loadDefault()
         r = cfg['selection']['reco']
@@ -637,7 +690,7 @@ class BuiltProcess(unittest.TestCase):
         self.assertEqual(list(p2.jetsRecoVetoTable.channels), ['GammaJets'])
         self.assertEqual(p.genWmunuSel.met.getModuleLabel(), 'genParticleLevel')
         self.assertEqual(p.genWmunuSel.met.getProductInstanceLabel(), 'mets')
-        self.assertEqual(p.WmunuSel.met.getModuleLabel(), 'slimmedMETsPuppi')
+        self.assertEqual(p.WmunuSel.met.getModuleLabel(), 'metXY')
 
     def test_yaml_values_reach_modules(self):
         cfg = loadDefault()
