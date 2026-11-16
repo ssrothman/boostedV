@@ -20,6 +20,13 @@ definitions:
       type: {$ref: '#/definitions/str'}
   uint: {type: integer, minimum: 0}
 
+  neutrino:                  # strategy: the module type; the other keys are that module's parameters
+    type: object
+    required: [type]
+    properties:
+      type: {$ref: '#/definitions/str'}
+    additionalProperties: {type: [number, string, boolean]}
+
   backToBack:                # leading non-vetoed jet back to back with and balanced against the channel's object
     type: object
     additionalProperties: false
@@ -90,7 +97,7 @@ definitions:
           backToBack: {$ref: '#/definitions/backToBack'}
       - type: object
         additionalProperties: false
-        required: [type, triggers, allowMissingTriggers, objects, vetoes, ptMin, metMin, mtMin, backToBack]
+        required: [type, triggers, allowMissingTriggers, objects, vetoes, ptMin, metMin, mtMin, neutrino, backToBack]
         properties:
           type: {const: leptonMET}
           triggers: {$ref: '#/definitions/strList', minItems: 1}
@@ -100,6 +107,7 @@ definitions:
           ptMin: {$ref: '#/definitions/num'}
           metMin: {$ref: '#/definitions/num'}
           mtMin: {$ref: '#/definitions/num'}
+          neutrino: {$ref: '#/definitions/neutrino'}
           backToBack: {$ref: '#/definitions/backToBack'}
       - type: object
         additionalProperties: false
@@ -133,7 +141,7 @@ definitions:
           backToBack: {$ref: '#/definitions/backToBack'}
       - type: object
         additionalProperties: false
-        required: [type, objects, vetoes, ptMin, metMin, mtMin, backToBack]
+        required: [type, objects, vetoes, ptMin, metMin, mtMin, neutrino, backToBack]
         properties:
           type: {const: leptonMET}
           objects: {$ref: '#/definitions/str'}
@@ -141,6 +149,7 @@ definitions:
           ptMin: {$ref: '#/definitions/num'}
           metMin: {$ref: '#/definitions/num'}
           mtMin: {$ref: '#/definitions/num'}
+          neutrino: {$ref: '#/definitions/neutrino'}
           backToBack: {$ref: '#/definitions/backToBack'}
       - type: object
         additionalProperties: false

@@ -442,3 +442,17 @@ Plan and decisions: `notes/zxtest_AN/review1_plan.md`.
 ## 2026-11-16 Third ZX_test production `20261116_zxb2b` submitted
 - Same manifest as `20261115_zxb2b` with the no-PF jet ID fix (JetSetup 66274b8, boostedV 441bae0): 5 CRAB tasks submitted;
   dry run: all 5 test jobs exit 0 (as before, not covering a no-PF jet). The failed `20261115_zxb2b` tasks are left as is.
+
+## 2026-11-16 W neutrino reconstruction (leptonMET channels)
+- Plan: `neutrinoReco_plan.md`. Neutrino reconstruction is its own module (`WMassNeutrinoProducer`, `ZeroPzNeutrinoProducer` =
+  `NeutrinoProducer<Strategy>`; contract in `EventSelection/README.md`), the boson is `LeptonNeutrinoBosonProducer`
+  (lepton + neutrino) at reco and gen. `LeptonMETSelector` no longer produces `boson`; `bosonTag()` (eventSelection_cff.py)
+  gives the boson input for tables and back-to-back. New table `<ch>Neutrino` with `status`; `channels.<ch>.neutrino`
+  required for leptonMET channels (default.yaml: `WMassNeutrinoProducer`, wMass 80.3692, PDG 2025 world average, user-given).
+- MET corrections stay future work: MET = `inputs.met` (`slimmedMETsPuppi`) / `genParticleLevel:mets`.
+- Tests: `wMassNeutrino` unit tests (4 mutations each fail a test: larger |p_z|, complex -> 0, wrong cos sign, repeated-root
+  status), module tests of the three producers, `test_analysisConfig.py` 38 passed.
+- Validation vs the LHE neutrino (`EventSelection/test/validation/plotNeutrinoPz.py`, plot `plots/neutrino_pz_WZtoLNu2Q_powheg.png`;
+  WZtoLNu2Q_powheg, first 8000 events of one file, default.yaml W channels; LHEPart is empty for the pythia-only WZ_pythia8).
+  Reco (709 events): status 1 n=290, median(reco-true p_z) -3.6 GeV, 68% of |reco-true| < 101 GeV, smaller-|p_z| root closer
+  to the truth in 57.9%; status 3 n=419, median 5.3, 68% < 81.5 GeV. Gen (699): status 1 n=445, 53.9% closer root; status 3 n=254.

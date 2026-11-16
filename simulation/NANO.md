@@ -117,7 +117,8 @@ are empty otherwise.
 | Table | Rows | Columns |
 |---|---|---|
 | `<ch>Boson` (dilepton) | 1: the sum of the two selected leptons | `pt`, `eta`, `phi`, `mass`, `charge` (sum) |
-| `<ch>Boson` (leptonMET) | 1: lepton + MET with MET p_z = 0, E = MET pt | `pt`, `eta`, `phi`, `mass`, `charge` (the lepton's) |
+| `<ch>Boson` (leptonMET) | 1: the selected lepton + the reconstructed neutrino | `pt`, `eta`, `phi`, `mass`, `charge` (the lepton's) |
+| `<ch>Neutrino` (leptonMET) | 1: the reconstructed neutrino (massless, pT = MET) | `pt`, `eta`, `phi`, `mass`, `status` (strategy code) |
 | `<ch>Objects` (singleObject) | the selected objects (for example photons) | `pt`, `eta`, `phi`, `mass`, `charge` |
 | `<ch>Leptons` (dilepton, leptonMET) | 2 (leading first) or 1 | `pt`, `eta`, `phi`, `mass`, `charge`, `pdgId` |
 | `SelectionMET`, `GenSelectionMET` | singleton | `pt`, `phi` of the MET the leptonMET selectors use |
@@ -126,11 +127,15 @@ The channel types, with the YAML keys of each:
 - `dilepton` (`objects`, `leadPtMin`, `subleadPtMin`, `massMin`, `massMax`, `oppositeCharge`, `targetMass`,
   `pairPtMin`): the pair passing the cuts with mass closest to `targetMass`; the channel fails if that pair's pt is
   below `pairPtMin` (a lower-pt pair is not replaced by another). `ZX_test.yaml` uses 200 GeV at reco and gen.
-- `leptonMET` (`objects`, `vetoes`, `ptMin`, `metMin`, `mtMin`): exactly one `objects` lepton above `ptMin`, no other
-  object in `vetoes`, MET > `metMin`, m_T > `mtMin`.
+- `leptonMET` (`objects`, `vetoes`, `ptMin`, `metMin`, `mtMin`, `neutrino`): exactly one `objects` lepton above `ptMin`, no
+  other object in `vetoes`, MET > `metMin`, m_T > `mtMin`. `neutrino: {type, ...}` names the neutrino reconstruction
+  module (`WMassNeutrinoProducer`: `wMass`; `ZeroPzNeutrinoProducer`: none); it does not affect the selection.
+  `WMassNeutrinoProducer`: p_T = MET, p_z from m(ℓν) = `wMass`; `status` 1 two real roots (smaller |p_z|), 2 one root,
+  3 complex roots (real part; m_T > `wMass`). `ZeroPzNeutrinoProducer`: p_z = 0, `status` 0. The MET is `inputs.met`
+  (`slimmedMETsPuppi`) without further corrections.
 - `singleObject` (`objects`, `vetoes`, `nMin`, `nMax`): between `nMin` and `nMax` objects, no vetoed object.
 
-The `<ch>Boson` mass of a leptonMET channel is the invariant mass of that four-vector, not m_T.
+The `<ch>Boson` mass of a leptonMET channel is the invariant mass of lepton + reconstructed neutrino, not m_T.
 
 **Back-to-back jet** (every channel, key `backToBack: {enabled, dPhiMin, asymmetryMax}`; enabled in `ZX_test.yaml`
 with 2.8 and 0.3, disabled in `default.yaml`). For an enabled channel, the highest-pt jet of the level's collection that

@@ -244,6 +244,8 @@ selection:
         ptMin: 30.0
         metMin: 40.0
         mtMin: 50.0
+        # Neutrino strategy: a module taking `leptons` and `met`; the other keys are its parameters.
+        neutrino: &wNeutrino {type: WMassNeutrinoProducer, wMass: 80.3692}   # PDG 2025 world average, 80.3692 +- 0.0133 GeV
         backToBack: {enabled: false, dPhiMin: 2.8, asymmetryMax: 0.3}
       Wenu:
         type: leptonMET
@@ -254,6 +256,7 @@ selection:
         ptMin: 35.0
         metMin: 40.0
         mtMin: 50.0
+        neutrino: *wNeutrino
         backToBack: {enabled: false, dPhiMin: 2.8, asymmetryMax: 0.3}
       Hadronic:                # no leptons, no tight photon; jet requirements are in `jets`
         type: singleObject
@@ -335,6 +338,7 @@ selection:
         ptMin: 30.0
         metMin: 40.0
         mtMin: 50.0
+        neutrino: *wNeutrino
         backToBack: {enabled: false, dPhiMin: 2.8, asymmetryMax: 0.3}
       Wenu:
         type: leptonMET
@@ -343,6 +347,7 @@ selection:
         ptMin: 35.0
         metMin: 40.0
         mtMin: 50.0
+        neutrino: *wNeutrino
         backToBack: {enabled: false, dPhiMin: 2.8, asymmetryMax: 0.3}
       Hadronic:
         type: singleObject
