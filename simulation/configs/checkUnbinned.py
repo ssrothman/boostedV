@@ -1,5 +1,5 @@
 """Checks the Unbinned EEC tables of eecNano_cfg.py output against a numpy recomputation from the constituent tables
-(run with writeConstituents=1). Supports pENC with N = 2 and E1C (frames lab, jetAxis, jetHelicity, jetCS), with
+(run with writeConstituents=1). Supports pENC with N = 2 and E1C (frames lab, jetAxis, jetHelicity, jetCS, jetProjective), with
 weight Pt and norm jetPt or sumPt.
 Usage: python3 checkUnbinned.py nano.root analysis.yaml [--mutate]
   --mutate perturbs the recomputation (n + 0.1, E1C x axis flipped); every comparison must then FAIL.
@@ -48,18 +48,24 @@ def angles(v, z, x):
 
 
 def e1cCoords(frame, cons, jet):
+    """cons: (px, py, pz, E, pt, eta, phi) per constituent."""
     sgnX = -1.0 if MUTATE else 1.0
-    beam = np.array([0.0, 0.0, 1.0])
+    s = -1.0 if jet[2] < 0 else 1.0  # the beam on the jet side
+    beam = np.array([0.0, 0.0, s])
     jdir = jet[:3]
+    if frame == 'jetProjective':
+        de = cons[:, 5] - np.arcsinh(jet[2] / np.hypot(jet[0], jet[1]))
+        dp = dphi(cons[:, 6], np.arctan2(jet[1], jet[0]))
+        return np.hypot(de, dp), np.arctan2(-s * sgnX * dp, s * de)
+    cons = cons[:, :4]
     if frame == 'lab':
-        return angles(cons[:, :3], beam, np.array([sgnX, 0.0, 0.0]))
+        return angles(cons[:, :3], np.array([0.0, 0.0, 1.0]), np.array([sgnX, 0.0, 0.0]))
     if frame == 'jetAxis':
         return angles(cons[:, :3], jdir, sgnX * beam)
     v = boostToRest(cons, jet)
     if frame == 'jetHelicity':
         return angles(v, jdir, sgnX * beam)
     if frame == 'jetCS':
-        s = -1.0 if jet[2] < 0 else 1.0
         a = boostToRest(np.array([[0, 0, s, 1.0]]), jet)[0]
         b = boostToRest(np.array([[0, 0, -s, 1.0]]), jet)[0]
         a, b = a / np.linalg.norm(a), b / np.linalg.norm(b)
@@ -76,7 +82,7 @@ def expected(spec, cons, jet, Ejet):
     n = spec['n'] + (0.1 if MUTATE else 0.0)
     w1 = (pt / Ejet) ** n
     if spec['kind'] == 'e1c':
-        th, ph = e1cCoords(spec['frame'], cons[:, :4], jet)
+        th, ph = e1cCoords(spec['frame'], cons, jet)
         return np.stack([th, ph], 1), w1, np.ones(len(pt))
     i, j = np.triu_indices(len(pt))
     eta, phi = cons[:, 5], cons[:, 6]

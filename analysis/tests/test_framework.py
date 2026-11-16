@@ -101,21 +101,21 @@ class Regions(unittest.TestCase):
         self.assertEqual(ak.to_list(view.weight), [1.0, 3.0])
 
     def test_back_to_back_columns(self):
-        """With B2B<ch> / b2b<ch> in the NANO: events need B2B<ch>, and the jets are the b2b<ch> ones (not the
-        non-vetoed ones: in event 0 those would be jets 1 and 2)."""
+        """With b2b<ch> in the NANO: the jets are the b2b<ch> ones (not the non-vetoed ones: in event 0 those would be
+        jets 1 and 2); <ch> already includes <ch>B2B, which is not applied again."""
         ev = syntheticEvents()
-        ev['Selection'] = ak.zip({'Zmumu': np.array([True, True, True]), 'B2BZmumu': np.array([True, False, True])})
+        ev['Selection'] = ak.zip({'Zmumu': np.array([True, False, True]), 'ZmumuB2B': np.array([True, True, False])})
         b2b = ak.Array([[False, False, True], [True, False], [True]])
         ev['RecoJet'] = ak.zip({f: ev['RecoJet'][f] for f in ev['RecoJet'].fields} | {'b2bZmumu': b2b})
         view, flow = config([]).regions['R'].select(ev, ak.Array([1.0, 2.0, 3.0]))
-        self.assertEqual(list(flow), ['channel', 'backToBack'])
-        self.assertEqual([(v['n'], v['sumw'], v['jets']) for v in flow.values()], [(3, 6.0, 3), (2, 4.0, 2)])
+        self.assertEqual(list(flow), ['channel'])
+        self.assertEqual([(v['n'], v['sumw'], v['jets']) for v in flow.values()], [(2, 4.0, 2)])
         self.assertEqual(view.jetIdx.tolist(), [[2], [0]])
         dR = view.entries('X')[0].dR
         self.assertEqual(ak.num(dR, axis=2).tolist(), [[2], [2]])
         np.testing.assert_allclose(ak.flatten(dR, axis=None).to_numpy(), [0.0, 0.3, 0.0, 0.1])
         view, flow = config(['jets.pt > 240']).regions['R'].select(ev, ak.Array([1.0, 2.0, 3.0]))
-        self.assertEqual(list(flow), ['channel', 'backToBack', 'jets.pt > 240'])
+        self.assertEqual(list(flow), ['channel', 'jets.pt > 240'])
         self.assertEqual(view.jetIdx.tolist(), [[2], []])
 
     def test_config_errors(self):
@@ -197,9 +197,9 @@ class RealFile(unittest.TestCase):
         a = uproot.open(f)['Events'].arrays(library='np')
         zpt = jpt = e2c = 0.0
         nJets = 0
-        # A back-to-back NANO: the event needs B2BZmumu and the jets are the b2bZmumu ones.
-        b2b = 'Selection_B2BZmumu' in a
-        passed = a['Selection_Zmumu'] & (a['Selection_B2BZmumu'] if b2b else True)
+        # A back-to-back NANO: the jets are the b2bZmumu ones.
+        b2b = 'RecoJet_b2bZmumu' in a
+        passed = a['Selection_Zmumu']
         for e in np.nonzero(passed)[0]:
             w = float(a['genWeight'][e])  # float64 sums, as the histograms
             zpt += w

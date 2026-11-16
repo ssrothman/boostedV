@@ -52,7 +52,7 @@ MC-only families.
 | Rho | Events | `output.rhoTable` not empty | `Rho` | the listed `fixedGridRho*` |
 | Pileup weights | Events | MC, `output.pileupWeights.file` set (needs `mcEventTables`) | extends `Pileup` | `output.pileupWeights.{file,key}`, `inputs.pileupInfo` |
 | Gen particles | Events | MC and `output.genParticles` | `GenPart` | `inputs.prunedGenParticles`; standard NanoAOD pruning |
-| AK4 jets | Events | `output.ak4Jets.enabled` | `output.ak4Jets.name` | `output.ak4Jets`: `src`, `cut`, `jec` keys (MC or data), `jetIdVersion`, `variables` |
+| AK4 jets | Events | `output.ak4Jets.enabled` | `output.ak4Jets.name` | `output.ak4Jets`: `src`, `cut`, `jec` keys (MC or data), `jetId`, `variables` |
 | Muon SFs | Events | MC, one per key of `selection.reco.muonScaleFactors` | `<ch>MuonSF` | the channel's term list: column names come from the term `name`s |
 | Jets | Events | one per jet collection and variation | `<table.name><variation>` | `jets.collections.<C>`: `src`, `mode`, cuts, `cleaningDR`, `table.precision`; `jets.cleaning.channels`; `variations` (MC only); `mcOnly` collections are skipped in data |
 | Jet veto flags | Events | every jet table, if `jets.cleaning.channels` is not empty | extends the jet table: `veto<ch>` | `jets.cleaning.channels`, the collection's `cleaningDR`; the channel's selected objects at the jet's level |
@@ -99,9 +99,12 @@ Table `Selection` (reco) and, in MC, `GenSelection` (gen). All columns are bool.
 |---|---|---|
 | `goodVertex` | reco | `selection.reco.vertex` cuts on the primary vertex |
 | `metFilters` | reco | AND of the `selection.reco.metFilters` paths (`inputs.metFilterProcess`) |
+| `ecalBadCalib` | reco | only if `selection.reco.ecalBadCalib.crystals` is non-empty: `EcalBadCalibFilter` rerun on those crystals (JME, 2022-23 prompt-reco ECAL crystal) |
+| `jetVetoMap` | reco | JME Run 3 jet veto map (`selection.reco.jetVetoMap`): no JEC-corrected AK4 jet with pt > `ptMin`, TightLeptonVeto ID and chEmEF + neEmEF < `emFractionMax` in a vetoed (η, φ) bin |
 | `<ch>Trigger` | reco | OR of the channel's `triggers` (globs, `inputs.hltProcess`) |
 | `<ch>Sel` | both | the channel's object selection alone (§4.3) |
-| `<ch>` | both | the full channel selection. Reco: `<ch>Trigger` AND `goodVertex` AND `metFilters` AND `<ch>Sel`. Gen: `<ch>Sel` |
+| `<ch>B2B` | both | only for channels with `backToBack.enabled`: `<ch>Sel` AND a back-to-back jet at the same level |
+| `<ch>` | both | the full channel selection. Reco: `<ch>Trigger` AND `goodVertex` AND `metFilters` [AND `ecalBadCalib`] AND `jetVetoMap` AND `<ch>Sel` [AND `<ch>B2B`]. Gen: `<ch>Sel` [AND `<ch>B2B`] |
 
 In MC both levels are always evaluated and stored, whatever `selection.levels` says. `selection.levels` only decides
 which events are written (§1).
@@ -122,7 +125,7 @@ are empty otherwise.
 The channel types, with the YAML keys of each:
 - `dilepton` (`objects`, `leadPtMin`, `subleadPtMin`, `massMin`, `massMax`, `oppositeCharge`, `targetMass`,
   `pairPtMin`): the pair passing the cuts with mass closest to `targetMass`; the channel fails if that pair's pt is
-  below `pairPtMin` (a lower-pt pair is not replaced by another). `ZX_test.yaml` uses 150 GeV at reco and gen.
+  below `pairPtMin` (a lower-pt pair is not replaced by another). `ZX_test.yaml` uses 200 GeV at reco and gen.
 - `leptonMET` (`objects`, `vetoes`, `ptMin`, `metMin`, `mtMin`): exactly one `objects` lepton above `ptMin`, no other
   object in `vetoes`, MET > `metMin`, m_T > `mtMin`.
 - `singleObject` (`objects`, `vetoes`, `nMin`, `nMax`): between `nMin` and `nMax` objects, no vetoed object.
@@ -133,10 +136,10 @@ The `<ch>Boson` mass of a leptonMET channel is the invariant mass of that four-v
 with 2.8 and 0.3, disabled in `default.yaml`). For an enabled channel, the highest-pt jet of the level's collection that
 passes `jetCuts` and is not `veto<ch>` must have Δφ > `dPhiMin` to the channel's highest-pt `<ch>Boson`/`<ch>Objects`
 candidate and |pt_jet − pt_V| / (pt_jet + pt_V) < `asymmetryMax`; a failing leading jet is not replaced by the next one.
-- The channel then counts for the event filter only with such a jet; `Selection_<ch>` / `GenSelection_<ch>` keep the
-  channel's own selection, and `Selection_B2B<ch>` / `GenSelection_B2B<ch>` record the combined result.
+- `<ch>B2B` records the requirement (with `<ch>Sel`), and `<ch>` includes it, so the event filter and the aggregated
+  histograms count the channel only with such a jet.
 - The jet table and its EECs hold only the jets selected by some enabled channel (normally one); `b2b<ch>` marks the
-  channel(s) that selected each jet. Aggregated histograms of the channel need the same jet.
+  channel(s) that selected each jet. The jet is chosen whenever `<ch>Sel` passes, also if the trigger fails.
 - Validation rejects it for `leptonMET` channels (W selection to be refined), `singleObject` channels with `nMin` 0,
   channels missing from `jets.cleaning.channels`, more than one jet collection at the level, and jet variations
   (per-variation selection deferred: `backToBack_plan.md`).
@@ -179,10 +182,10 @@ those; other channels' vetoes are not applied.
 
 | Column | Type | Meaning |
 |---|---|---|
-| `pt`, `mass` | float | after the corrections (JER smearing in MC) and the variation |
+| `pt`, `mass` | float | after the corrections (JER smearing in MC, applied before every jet cut, including `translator.ptMin`) and the variation |
 | `eta`, `phi` | float | |
 | `rawPt` | float | uncorrected pt |
-| `jetId` | uint8 | bit 0 tight, bit 1 tightLepVeto (`translator.jetIdVersion`; 0 for gen and reclustered jets) |
+| `jetId` | uint8 | bit 0 Tight, bit 1 TightLeptonVeto of the JME correctionlib jet ID (`translator.jetId`; 0 for gen and reclustered jets) |
 | `nConstituents` | uint32 | constituents after `constituentCuts` |
 | `srcIdx` | uint32 | index in the source collection |
 
@@ -197,6 +200,13 @@ variation tables have no extension columns: match them to the nominal through `s
 - MC only: `hadronFlavour`, `partonFlavour`, `nBHadrons`, `nCHadrons`.
 
 The names follow the NanoAODv12 `FatJet` table where it has them.
+
+**Gen `pat` collections (nominal table, e.g. `GenJet`).** Built-in extension columns:
+- `partonFlavour`, `hadronFlavour`, `nBHadrons`, `nCHadrons`: ghost clustering (`HadronAndPartonSelector`,
+  `JetFlavourClustering` with the collection's R), as for NanoAOD `GenJetAK8`;
+- `bosonPdgId`, `bosonPt`, `bosonDR`: the closest last-copy W/Z/H with a quark or gluon daughter in `prunedGenParticles`
+  within ΔR < R of the jet axis (`bosonPdgId` 0, the others -1 if none);
+- `nBosonDaughters`: that boson's quark and gluon daughters within ΔR < R of the jet axis.
 
 **Re-tagged columns (GloParT).** Taggers that the MiniAOD does not store are run in the job when the collection has a
 `retag` block (`taggers: [GlobalParT]` in `default.yaml`).
@@ -214,7 +224,8 @@ The names follow the NanoAODv12 `FatJet` table where it has them.
   identical per jet, so this comes from how CMSSW stores the model outputs, not from this job. Build discriminants as
   sig/(sig + bkg), as the NanoAOD docs say.
 
-- Variations exist in MC only. JES and JER variations change only the jet four-momentum; constituent variations
+- Variations exist in MC only. JES and JER variations change only the jet four-momentum (on the pat::Jet, before the
+  translator); constituent variations
   (`constScale`, `constDrop`) change the constituents and so the EECs. See `JetSetup/README.md`.
 - With `writeConstituents=1`, every jet table also gets `<jet table>Constituents`: `iJet`, `pt`, `eta`, `phi`, `E`,
   `charge`, `pdgId`, `puppiWeight` (already applied to the momentum), `srcIdx`.
@@ -243,7 +254,9 @@ For each jet collection `<C>`, variation `<v>` and observable `<obs>` (name `<C>
 - `weight` is the product of (E_p / E_jet)ⁿ over the tuple, with E_p from `weight` (`Energy` or `Pt`).
 - `bin` is the flow-inclusive linear index over all axes: 0 is underflow, axis 0 varies fastest.
 - Axis 0 is θ_max (pENC) or the first frame coordinate (E1C). For E1C the coordinates are (θ, φ) in `frame`
-  (`lab`, `jetAxis`, `jetHelicity`, `jetCS`; see `EECs/interface/Config.h`).
+  (`lab`, `jetAxis`, `jetHelicity`, `jetCS`, `jetProjective`; see `EECs/interface/Config.h`). The jet frames take the
+  beam on the jet side (sign of the jet pz) as reference; `jetProjective` has θ = ΔR to the jet axis and φ the
+  direction in the (η, φ) plane, 0 toward that beam.
 - To use another normalisation E′, multiply the weights by (E_jet / E′)^(n·N).
 - Definitions and conventions: `EECs/docs/guide.md`.
 
@@ -315,8 +328,8 @@ hadronisation.
 - **Correction:** p4 = raw p4 × C, where C is the correctionlib compound correction (`jec.mcKey` in MC, `jec.dataKey` in
   data; V4 L1L2L3Res AK4 PUPPI) at the raw pt and η, the jet area and `rho`. The jets are then cut with `cut` (on the
   corrected jets) and sorted by corrected pt.
-- **Built-in columns:** `pt`, `eta`, `phi`, `mass` (corrected), `rawPt`, `jecFactor` (C), `jetId` (bit 0 tight, bit 1
-  tightLepVeto, `jetIdVersion`), `srcIdx` (index in `src`), and with `jec.uncKey` `jesUncTotal` (the relative Total JES
+- **Built-in columns:** `pt`, `eta`, `phi`, `mass` (corrected), `rawPt`, `jecFactor` (C), `jetId` (bit 0 Tight, bit 1
+  TightLeptonVeto, JME correctionlib `jetId`), `srcIdx` (index in `src`), and with `jec.uncKey` `jesUncTotal` (the relative Total JES
   uncertainty at the corrected pt; shift with pt × (1 ± jesUncTotal)).
 - **Not applied:** JER smearing.
 - **`variables` in `default.yaml`:**

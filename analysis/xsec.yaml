@@ -1,6 +1,12 @@
 # Cross sections in pb per production sample name (production manifest keys). Fill from a cited source (XSDB entry,
 # GenXSecAnalyzer run, or a paper) and record it in `source`; null means "not yet known" and blocks normalisation.
+# Values must be for 13.6 TeV. ZZto2L2Q / WZto2L2Q include tau decays and low-mass gamma* (notes/zxtest_AN, Samples).
 DYto2L-4Jets_MLL-50_MLM: {xsec: null, source: ''}
 ZZ_pythia8: {xsec: null, source: ''}
 WZ_pythia8: {xsec: null, source: ''}
 TTto2L2Nu_powheg: {xsec: null, source: ''}
+ZZto2L2Q_powheg: {xsec: null, source: ''}
+WZto2L2Q_powheg: {xsec: null, source: ''}
+DYto2L-4Jets_MLL-50_PTLL-200to400_MLM: {xsec: null, source: ''}
+DYto2L-4Jets_MLL-50_PTLL-400to600_MLM: {xsec: null, source: ''}
+DYto2L-4Jets_MLL-50_PTLL-600_MLM: {xsec: null, source: ''}

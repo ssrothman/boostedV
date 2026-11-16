@@ -46,9 +46,9 @@ Each expression has a level, which decides what a cut does:
 | lepton | `leptons.mediumId` | drops events in which any selected lepton fails |
 | eec | `eec.dR > 0` | histogram cuts only |
 
-- The jets of a region are the level's jet table minus the jets vetoed for its channel (`veto<channel>`). With a
-  back-to-back NANO (`Selection_B2B<channel>` present), the region also requires `B2B<channel>` (cutflow step
-  `backToBack`, after `channel`) and its jets are those with `b2b<channel>`; such a NANO keeps only the selected jets.
+- A region requires its channel flag `<channel>`, which includes the back-to-back requirement `<channel>B2B` when the
+  production enabled it. Its jets are those with `b2b<channel>` if the jet table has that column (a back-to-back NANO
+  keeps only the selected jets), and otherwise the jets not vetoed for its channel (`veto<channel>`).
 - A missing value, such as `max()` over no jets, fails a cut and goes to the overflow bin of an axis.
 - EEC entries are filled with event weight × `weight` × `symfactor`.
 - Columns present only at reco level (`msoftdrop`, taggers) need `regions:` limited to reco regions.

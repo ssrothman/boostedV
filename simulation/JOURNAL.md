@@ -21,6 +21,7 @@
 - 2026-11-14 ZX_test production `20261113_zxtest`: CRAB outcome, merge, sample plots
 - 2026-11-14 Dilepton pT cut and back-to-back jet selection
 - 2026-11-15 Second-production manifest, ZX_test note, bvana back-to-back regions
+- 2026-11-15 Human review 1 of the ZX_test note: flags, JER order, frames, gen-jet flavour
 
 ## 2026-11-11 A.2 setup and DataFormats
 - Plan: `stepA2_plan.md`. New local repos (remotes pending): `EECDataFormats` (pkg `SRothman/DataFormats`),
@@ -366,3 +367,55 @@
   in the barrel (our columns are affected); EGM recommends Run-3 electron scale/smearing (not applied). High-pT smearing
   factor for 2022 postEE is 0.32 (|eta| < 1.2) / 0.46, as implemented. The note now has an explicit order-of-operations
   section (muons, electrons, gen leptons, reco and gen jets) with a table of what each cut sees.
+
+## 2026-11-15 Human review 1 of the ZX_test note: flags, JER order, frames, gen-jet flavour
+Plan and decisions: `notes/zxtest_AN/review1_plan.md`.
+- Flags: `<ch>B2B` = `<ch>Sel` AND a back-to-back jet; `<ch>` now ANDs it (the old `B2B<ch>` column and `<ch>B2BFilter`
+  are gone). bvana: the region's `channel` step is the whole selection (no `backToBack` step).
+- ZX_test: pairPtMin 200 (= jet pt cut), jet ID tight + lepton veto (idMask 3), translator ptMin 200, new E1C
+  `jetProjective`. bvana boosted region: jet pt > 200, no dR(jet, Z) cut. The cross sections first given by the
+  analysts were 13 TeV values and were withdrawn the same day; `analysis/xsec.yaml` is all null until 13.6 TeV values
+  are collected.
+- JER now on the pat::Jet (`PATJetJERCProducer`, POG JSON, per-srcIdx seed) before the translator and every jet cut;
+  JES variations likewise. `pat::Jet::scaleEnergy` adds a level, so the translator takes the raw pt from
+  `correctedP4(0)` (the "Uncorrected" level is no longer level 0). Central `SmearedPATJetProducer` (needs JRDatabase text
+  files: AK8PFPuppi JRV2 = links to AK4PFPuppi files, resolution from JRV1) vs ours on 1000 PTLL-400to600 events
+  (`JetSetup/test/validation/compareCentralJER*.py`): text and JSON payloads identical at all 2180 jets; 2124 gen-matched
+  factors equal to 1.3e-7; 56 unmatched jets with z widths 1.09 (ours) / 1.04 (central). The central output is pt-sorted.
+- GT 130X_mcRun3_2022_realistic_postEE_v6 has AK8PFPuppi JEC `Summer22EE_AK8PFPuppi_offline_v2` and JER
+  `..._offline_v1`, not V4/JRV2, so central MiniAOD tools would need sqlite/text payloads. V4 MC AK8PFPuppi: L1FastJet,
+  L3Absolute and L2L3Residual are 1 (2000 random points); only L2Relative acts. JME also ships `jetid.json.gz`
+  (AK8PUPPI_Tight/TightLeptonVeto), not yet compared with `PFJetIDSelectionFunctor`.
+- JER before the 180 cut made jobs fail: MiniAOD jets without daughters (pt < 170) smeared above 180 in 14/10508
+  PTLL-200to400 events (1 above 200). User decision: translator at 200, such jets kept without constituents with a
+  LogWarning, and they block the back-to-back selection when they would lead (`leadingEmptyJetPt`).
+- Regression against HEAD (separate CMSSW area) on 1000 PTLL-400to600 events: 388 reco / 420 gen jets in both; all 75/8
+  columns identical except rawPt (64 jets, <= 1 float ulp, from the float JEC factors of the extra level); E2C and E1C
+  entries identical except jetAxis/jetHelicity of the jets with pz < 0 (182 reco, 199 gen), as intended.
+  `checkUnbinned.py`: helicity/CS have 4-18 entries per table above the 1e-4 coordinate tolerance (max 6e-4), the same
+  entries with HEAD code and HEAD checker, so pre-existing (probably float32 inputs boosted into the rest frame).
+- Frames: jetAxis/jetHelicity x now toward the beam on the jet side (as CS); jetProjective: theta = dR,
+  phi = atan2(-s dphi, s deta), s = sign(pz), equal to jetAxis phi near the axis (unit test both signs).
+- Gen jets: NanoAOD-style flavour (HadronAndPartonSelector + JetFlavourClustering R 0.8) and the closest hadronic W/Z/H
+  within 0.8 with its quark/gluon daughters in the jet (`EECGenJetMCTableProducer`).
+- ZZto2L2Q / WZto2L2Q: the leptonic Z is ee/mumu/tautau in thirds; 54% of Z->ee/mumu have m_ll < 40 GeV (gamma*).
+- Other analyses' back-to-back (read in the PDFs): CMS JES (1607.03663 Sec. 3.2) |dphi(Z, jet1)| > 2.8 and
+  alpha = pt2/ptZ < 0.3; CMS SMP-20-010 (2109.03340 Sec. 4) leading jet with dphi > 2 and asymmetry < 0.3.
+- validateJets_cfg.py: recluster specs copied the reco jec/retag blocks; now dropped (retag needs a GlobalTag).
+
+- Cutflow v3 (`cutflow_zxtest/v3`, 7 samples): ZZ efficiency is dominated by ptll >= 200 (gen mumu 7.69% -> 0.26%);
+  gen breakdown: mumu flavour 33.2%, two accepted leptons 9.0%, window 7.60%, ptll >= 200 0.258%. Jet-step loss in
+  DY PTLL-200to400 (reco mumu, -39% after ptll): no jet >= 200 7%, then the ID step removes the leptons' own AK8 jet
+  (410 of 415 lost jets overlap a selected muon; ZZ 17/17), dphi 15%. Gen-jet boson columns match a GenPart
+  recomputation on ZZ/WZ (0 mismatches; radius 0.6 gives 17/39).
+- JME docs (6 sites) mirrored to ~/nobackup/cms-wikis/jme-docs (SSO needs Kerberos + OTP; `sso_login.py`).
+- JME review (`notes/zxtest_AN/jme_review.md`, from the local JME docs): compliant JEC V4/JER JRV2/PUPPI/MET-filter
+  list; missing the mandatory Run 3 jet veto map (AK4-based event veto); CMSSW_15_0_22 `PFJetIDSelectionFunctor`
+  RUN3 PUPPI TightLepVeto keeps NHF < 0.90 (unreachable else-if), 2 of ~69k |eta|<2.4 jets differ from `jetid.json.gz`;
+  ECAL bad-crystal filter rerun for 2022 prompt era; payloads read from `latest/` (unpinned).
+- JME follow-up implemented (user decisions): `jetVetoMap` flag (`JetVetoMapFlagProducer` on V4-corrected AK4 PUPPI;
+  agrees with an FWLite recomputation on 3000 events, 69/1000 and 42/2000 vetoed); jet ID from `jetid.json.gz`
+  (`JetId.h`, 0/395 mismatches; 6 mutations caught); `ecalBadCalib` rerun (crystal 838871812; probe with a present
+  crystal flags exactly its 5 events); CAT paths pinned; eras `Run3, run3_nanoAOD_pre142X` from `inputs.eras`
+  (needed for the calo geometry: no CASTOR) — NANO output identical with and without them. Soft-drop mass and MET
+  flagged as future work.

@@ -168,7 +168,7 @@ def crossCheck(cfg):
         where = 'jets/collections/%s' % name
         t = set(c['translator'])
         expect = ({'ptMin', 'algorithm', 'applyPuppiWeights', 'puppiValueMap', 'dropAbsPdgIds'} if c['mode'] == 'recluster'
-                  else {'ptMin', 'applyPuppiWeights', 'puppiValueMap', 'jetIdVersion'} if c['level'] == 'reco'
+                  else {'ptMin', 'applyPuppiWeights', 'puppiValueMap', 'jetId'} if c['level'] == 'reco'
                   else {'ptMin'})
         if t != expect:
             p.append('%s/translator: %s/%s needs exactly %s' % (where, c['level'], c['mode'], sorted(expect)))

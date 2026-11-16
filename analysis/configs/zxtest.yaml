@@ -32,9 +32,8 @@ regions:
     cuts:
       - all(leptons.mediumId)          # lepton cut: every selected muon
       - boson.pt > 200
-      - jets.pt > 300                  # jet cut: drops jets and their EEC entries
+      - jets.pt > 200                  # jet cut: drops jets and their EEC entries
       - abs(jets.eta) < 2.0
-      - dRjZ > 2.0
       - num(jets) >= 1                 # event cut
 
 anchors:
@@ -67,3 +66,6 @@ histograms:
   E1CCS:
     granularity: eec:E1CCS
     axes: [{var: eec.theta, bins: theta, name: theta}, {var: eec.phi, bins: phi, name: phi}]
+  E1CProjective:
+    granularity: eec:E1CProjective
+    axes: [{var: eec.theta, bins: logTheta, name: theta}, {var: eec.phi, bins: phi, name: phi}]

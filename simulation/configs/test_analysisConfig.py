@@ -532,15 +532,65 @@ class BuiltProcess(unittest.TestCase):
         cfg['output']['ak4Jets']['enabled'] = False
         self.assertFalse(hasattr(buildProcess(cfg), 'ak4JetTable'))
 
+    def test_event_cleaning(self):
+        cfg = loadDefault()
+        r = cfg['selection']['reco']
+        for isMC, key in ((1, 'mcKey'), (0, 'dataKey')):
+            p = buildProcess(isMC=isMC)
+            j, f, e = p.jetVetoMapJets, p.jetVetoMapFlag, p.ecalBadCalibFlag
+            v = r['jetVetoMap']
+            self.assertEqual((j.type_(), j.src.getModuleLabel(), j.key.value(), j.jetIdFile.value(), j.jetIdType.value()),
+                             ('PATJetJECProducer', 'slimmedJetsPuppi', v['jec'][key], v['jetId']['correctionFile'],
+                              'AK4PUPPI'))
+            self.assertEqual((f.type_(), f.src.getModuleLabel(), f.key.value(), f.mapType.value(), f.ptMin.value(),
+                              f.emFractionMax.value(), f.idMask.value()),
+                             ('JetVetoMapFlagProducer', 'jetVetoMapJets', 'Summer22EE_23Sep2023_RunEFG_V1', 'jetvetomap',
+                              15.0, 0.9, 2))
+            self.assertEqual((e.type_(), list(e.baddetEcal), e.ecalMinEt.value(), e.taggingMode.value(),
+                              e.EcalRecHitSource.value()),
+                             ('EcalBadCalibFilter', [838871812], 50.0, True, 'reducedEgamma:reducedEBRecHits'))
+            t = dict(zip(p.selectionFlagsTable.names, labels(p.selectionFlagsTable.srcs)))
+            self.assertEqual((t['jetVetoMap'], t['ecalBadCalib']), ('jetVetoMapFlag', 'ecalBadCalibFlag'))
+            self.assertIn('jetVetoMapFlag', labels(p.Zmumu.srcs))
+            self.assertTrue(hasattr(p, 'CaloGeometryBuilder') or hasattr(p, 'caloGeometryBuilder') or
+                            any('CaloGeometry' in n for n in p.es_producers_()))
+        from Configuration.Eras.Modifier_run3_common_cff import run3_common
+        from Configuration.Eras.Modifier_run3_nanoAOD_pre142X_cff import run3_nanoAOD_pre142X
+        self.assertTrue(p.isUsingModifier(run3_common) and p.isUsingModifier(run3_nanoAOD_pre142X))
+        r['ecalBadCalib']['crystals'] = []
+        p = buildProcess(cfg)
+        self.assertFalse(hasattr(p, 'ecalBadCalibFlag'))
+        self.assertNotIn('ecalBadCalibFlag', labels(p.Zmumu.srcs))
+        self.assertNotIn('ecalBadCalib', list(p.selectionFlagsTable.names))
+        # Jet ID from the JME correctionlib file for the EEC jets and the AK4 table.
+        p = buildProcess()
+        self.assertEqual((p.jetsRecoRaw.jetIdFile.value(), p.jetsRecoRaw.jetIdType.value()),
+                         (cfg['jets']['collections']['Reco']['translator']['jetId']['correctionFile'], 'AK8PUPPI'))
+        self.assertEqual(p.ak4JetsCorrected.jetIdType.value(), 'AK4PUPPI')
+
     def test_ak8_jec(self):
         p = buildProcess()
         c = p.jetsRecoJEC
         self.assertEqual((c.type_(), c.src.getModuleLabel(), c.key.value(), c.uncKey.value(), c.sortByPt.value()),
                          ('PATJetJECProducer', 'slimmedJetsAK8', 'Summer22EE_22Sep2023_V4_MC_L1L2L3Res_AK8PFPuppi', '', False))
-        self.assertEqual(p.jetsRecoRaw.src.getModuleLabel(), 'jetsRecoJEC')
+        # MC: JEC -> JER on the pat::Jets -> translator; data: no JER.
+        self.assertEqual((p.jetsRecoJER.type_(), p.jetsRecoJER.src.getModuleLabel(), p.jetsRecoJER.type.value()),
+                         ('PATJetJERCProducer', 'jetsRecoJEC', 'jer'))
+        self.assertEqual(p.jetsRecoRaw.src.getModuleLabel(), 'jetsRecoJER')
+        # Variations: JES on the corrected pat::Jets, then the nominal JER, then their own translator.
+        self.assertEqual((p.jetsRecoJESUpJES.type.value(), p.jetsRecoJESUpJES.direction.value(),
+                          p.jetsRecoJESUpJES.src.getModuleLabel()), ('jes', 'up', 'jetsRecoJEC'))
+        self.assertEqual((p.jetsRecoJESUpJER.direction.value(), p.jetsRecoJESUpJER.src.getModuleLabel()),
+                         ('nominal', 'jetsRecoJESUpJES'))
+        self.assertEqual(p.jetsRecoJESUpRaw.src.getModuleLabel(), 'jetsRecoJESUpJER')
+        self.assertEqual((p.jetsRecoJERUpJER.direction.value(), p.jetsRecoJERUpJER.src.getModuleLabel()),
+                         ('up', 'jetsRecoJEC'))
         self.assertFalse(hasattr(p, 'jetsGenJEC'))
         self.assertEqual(p.ak4JetsCorrected.sortByPt.value(), True)
-        self.assertEqual(buildProcess(isMC=0).jetsRecoJEC.key.value(), 'Summer22EE_22Sep2023_V4_DATA_L1L2L3Res_AK8PFPuppi')
+        d = buildProcess(isMC=0)
+        self.assertEqual(d.jetsRecoJEC.key.value(), 'Summer22EE_22Sep2023_V4_DATA_L1L2L3Res_AK8PFPuppi')
+        self.assertEqual(d.jetsRecoRaw.src.getModuleLabel(), 'jetsRecoJEC')
+        self.assertFalse(hasattr(d, 'jetsRecoJER'))
 
     def test_lhe_tables(self):
         p = buildProcess()
@@ -671,16 +721,26 @@ class BackToBack(unittest.TestCase):
         b = p.jetsRecoBackToBackZmumu
         self.assertEqual((b.dPhiMin.value(), b.asymmetryMax.value()), (2.5, 0.4))
         self.assertEqual((b.src.value(), b.flag.value(), b.objects.value(), b.vetoFlags.value()),
-                         ('jetsReco', 'Zmumu', 'ZmumuSel:boson', 'jetsRecoOverlap:Zmumu'))
+                         ('jetsReco', 'ZmumuSel', 'ZmumuSel:boson', 'jetsRecoOverlap:Zmumu'))
+        # Jets without constituents are seen before the jet selection, with the nominal pt, eta and ID cuts.
+        jc = cfg['jets']['collections']['Reco']['jetCuts']
+        self.assertEqual((b.emptyJets.value(), b.vetoObjects.value(), b.vetoDR.value()),
+                         ('jetsRecoRaw', 'ZmumuSel:leptons', cfg['jets']['collections']['Reco']['cleaningDR']))
+        self.assertEqual((b.ptMin.value(), b.absEtaMax.value(), b.idMask.value()), (jc['ptMin'], jc['absEtaMax'], jc['idMask']))
+        self.assertTrue(p.jetsRecoRaw.allowNoDaughters.value())
         self.assertEqual(list(p.jetsRecoOverlap.channels), ['Zmumu'])
         self.assertEqual(p.jetsRecoB2B.src.value(), 'jetsReco')
-        # Only the reco Zmumu channel needs its back-to-back jet; Zee and the gen level are unchanged.
-        self.assertEqual(sorted(labels(p.anyChannel.srcs)), sorted(['jetsRecoBackToBackZmumu', 'Zee', 'Wmunu', 'Wenu',
-                                                                    'Hadronic', 'GammaJets']))
-        self.assertEqual(sorted(labels(p.genAnyChannel.srcs)), sorted('gen' + c for c in ('Zmumu', 'Zee', 'Wmunu', 'Wenu',
-                                                                                         'Hadronic', 'GammaJets')))
-        self.assertEqual(list(p.selectionFlagsTable.names)[-1], 'B2BZmumu')
-        self.assertEqual(labels(p.selectionFlagsTable.srcs)[-1], 'jetsRecoBackToBackZmumu')
+        # Only the reco Zmumu channel flag gains the back-to-back requirement; Zee and the gen level are unchanged.
+        clean = ['goodVertexFlag', 'metFilterFlag', 'ecalBadCalibFlag', 'jetVetoMapFlag']
+        self.assertEqual(labels(p.Zmumu.srcs), ['ZmumuTrigger'] + clean + ['ZmumuSel', 'jetsRecoBackToBackZmumu'])
+        self.assertEqual(labels(p.Zee.srcs), ['ZeeTrigger'] + clean + ['ZeeSel'])
+        self.assertEqual(labels(p.genZmumu.srcs), ['genZmumuSel'])
+        self.assertEqual(sorted(labels(p.anyChannel.srcs)), sorted(['Zmumu', 'Zee', 'Wmunu', 'Wenu', 'Hadronic',
+                                                                    'GammaJets']))
+        names, srcs = list(p.selectionFlagsTable.names), labels(p.selectionFlagsTable.srcs)
+        self.assertEqual(dict(zip(names, srcs))['ZmumuB2B'], 'jetsRecoBackToBackZmumu')
+        self.assertNotIn('ZeeB2B', names)
+        self.assertNotIn('ZmumuB2B', list(p.genSelectionFlagsTable.names))
         self.assertFalse(hasattr(p, 'jetsGenB2B'))
         # Reco jets after the selection feed the tables, the EECs and the aggregators; the pre-selection table is not
         # written ('*Table' labels only).
@@ -688,10 +748,8 @@ class BackToBack(unittest.TestCase):
             self.assertEqual(getattr(p, m).src.value(), 'jetsRecoB2B')
         self.assertFalse(hasattr(p, 'jetsRecoTable'))
         self.assertEqual(p.Zmumu_reco_eecRecoE2C.jetMask.value(), 'jetsRecoB2BVetoTable:Zmumu')
-        self.assertIn('ZmumuB2BFilter', p.Zmumu_reco_AggPath.moduleNames())
-        self.assertNotIn('ZmumuFilter', p.Zmumu_reco_AggPath.moduleNames())
-        self.assertIn('ZeeFilter', p.Zee_reco_AggPath.moduleNames())
-        self.assertEqual(labels(p.ZmumuB2BFilter.srcs), ['jetsRecoBackToBackZmumu'])
+        self.assertIn('ZmumuFilter', p.Zmumu_reco_AggPath.moduleNames())
+        self.assertEqual(labels(p.ZmumuFilter.srcs), ['Zmumu'])
 
 
 if __name__ == '__main__':

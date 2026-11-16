@@ -1,9 +1,13 @@
-"""Cutflow of the ZX_test selection from NANO files produced with ZX_loose.yaml (ZX_test.yaml with pairPtMin 0 and
-backToBack disabled), which writes every event passing a channel at either level, with all jets passing jetCuts.
+"""Cutflow of the ZX_test selection from NANO files produced with ZX_loose2.yaml (ZX_test.yaml with pairPtMin 0,
+backToBack disabled and jetCuts relaxed except minConstituents >= 2), which writes every event passing a channel at
+either level, with all jets above the translator threshold (reco 200 GeV after JEC and JER, gen 180 GeV). Jets without
+MiniAOD daughters are not in the table, so their blocking of the back-to-back requirement is not modelled.
 
 Usage: python3 make_cutflow.py OUT.tex NAME=nano.root [NAME=nano.root ...]
 Steps per (level, channel), cumulative, as unweighted counts and genWeight-weighted fractions of the processed events
-(Runs-tree genEventCount / genEventSumw). The pT, Delta phi and asymmetry cuts are those of ZX_test.yaml.
+(Runs-tree genEventCount / genEventSumw). The jet steps require at least one jet passing all jet requirements so far;
+the back-to-back steps use the leading such jet. Cut values are those of ZX_test.yaml. Events failing the channel at
+both levels are not written, so the first reco steps are fractions of the written events' flags.
 """
 import math
 import sys
@@ -12,34 +16,54 @@ import awkward as ak
 import numpy as np
 import uproot
 
-PT_MIN, DPHI_MIN, ASYM_MAX = 150.0, 2.8, 0.3
+PT_MIN, JET_PT, JET_ETA, JET_ID, DPHI_MIN, ASYM_MAX = 200.0, 200.0, 2.4, 3, 2.8, 0.3
 LEVELS = {'reco': ('', 'RecoJet'), 'gen': ('Gen', 'GenJet')}
 CHANNELS = ('Zmumu', 'Zee')
-STEPS = {'reco': ['channel flag', r'$\pt^{\ell\ell} > 150\GeV$', r'$\geq 1$ jet', r'$\Delta\phi > 2.8$',
+CLEANING = ('goodVertex', 'metFilters', 'ecalBadCalib', 'jetVetoMap')
+STEPS = {'reco': [r'dilepton (\code{<c>Sel}, no $\ptll$ cut)', r'+ trigger', r'+ event cleaning',
+                  r'$\ptll \geq 200\GeV$', r'jet $\pt \geq 200\GeV$', r'jet $|\eta| \leq 2.4$',
+                  r'jet ID tight + lepton veto', r'jet not overlapping a lepton', r'$\Delta\phi > 2.8$',
                   r'asymmetry $< 0.3$'],
-         'gen': ['channel flag', r'$\pt^{\ell\ell} > 150\GeV$', r'$\geq 1$ jet', r'$\Delta\phi > 2.8$',
+         'gen': [r'dilepton (\code{<c>Sel}, no $\ptll$ cut)', r'$\ptll \geq 200\GeV$', r'jet $\pt \geq 200\GeV$',
+                 r'jet $|\eta| \leq 2.4$', r'jet not overlapping a lepton', r'$\Delta\phi > 2.8$',
                  r'asymmetry $< 0.3$']}
 
 
 def steps(ev, level, ch):
-    """Boolean arrays, cumulative, one per step."""
+    """Boolean arrays, cumulative, one per step of STEPS[level]."""
     P, J = LEVELS[level]
-    flag = np.asarray(ev[P + 'Selection_' + ch], dtype=bool)
+    flags = P + 'Selection_'
+    out = [np.asarray(ev[flags + ch + 'Sel'], dtype=bool)]
+    if level == 'reco':
+        out.append(out[-1] & np.asarray(ev[flags + ch + 'Trigger'], dtype=bool))
+        clean = out[-1].copy()
+        for c in CLEANING:  # absent in NANO produced before the ECAL and jet veto map flags
+            if flags + c in ev.fields:
+                clean &= np.asarray(ev[flags + c], dtype=bool)
+        out.append(clean)
     bpt = ak.fill_none(ak.firsts(ev[P + ch + 'Boson_pt']), -1.0)
     bphi = ak.fill_none(ak.firsts(ev[P + ch + 'Boson_phi']), 0.0)
-    pt = ev[J + '_pt'][~ev[J + '_veto' + ch]]
-    phi = ev[J + '_phi'][~ev[J + '_veto' + ch]]
+    out.append(out[-1] & (np.asarray(bpt) >= PT_MIN))
+    fields = ['pt', 'eta', 'phi', 'veto' + ch] + (['jetId'] if level == 'reco' else [])
+    jets = ak.zip({k: ev[J + '_' + k] for k in fields})
+    cuts = [jets.pt >= JET_PT, abs(jets.eta) <= JET_ETA]
+    if level == 'reco':
+        cuts.append((jets.jetId & JET_ID) == JET_ID)
+    cuts.append(~jets['veto' + ch])
+    keep = cuts[0]
+    for c in cuts:
+        keep = keep & c
+        out.append(out[-1] & np.asarray(ak.any(keep, axis=1)))
+    pt, phi = jets.pt[keep], jets.phi[keep]
     lead = ak.argmax(pt, axis=1, keepdims=True)
     lpt = ak.fill_none(ak.firsts(pt[lead]), -1.0)
     lphi = ak.fill_none(ak.firsts(phi[lead]), 0.0)
     dphi = np.abs(np.remainder(np.asarray(lphi - bphi) + math.pi, 2 * math.pi) - math.pi)
     asym = np.abs(np.asarray(lpt - bpt)) / np.maximum(np.asarray(lpt + bpt), 1e-9)
-    s1 = flag
-    s2 = s1 & (np.asarray(bpt) > PT_MIN)
-    s3 = s2 & (np.asarray(lpt) > 0)
-    s4 = s3 & (dphi > DPHI_MIN)
-    s5 = s4 & (asym < ASYM_MAX)
-    return [s1, s2, s3, s4, s5]
+    out.append(out[-1] & (dphi > DPHI_MIN))
+    out.append(out[-1] & (asym < ASYM_MAX))
+    assert len(out) == len(STEPS[level])
+    return out
 
 
 def main():
@@ -50,7 +74,8 @@ def main():
         f = uproot.open(path)
         runs = f['Runs'].arrays(['genEventCount', 'genEventSumw'], library='np')
         nProc, wProc = runs['genEventCount'].sum(), runs['genEventSumw'].sum()
-        ev = f['Events'].arrays(library='ak')
+        ev = f['Events'].arrays(filter_name=['*Selection_*', '*Boson_pt', '*Boson_phi', 'RecoJet_*', 'GenJet_*',
+                                             'genWeight'], library='ak')
         w = np.asarray(ev['genWeight'])
         anyPass = np.zeros(len(w), dtype=bool)
         for level in LEVELS:
@@ -69,10 +94,7 @@ def main():
     for (level, ch), byName in rows.items():
         for k, step in enumerate(STEPS[level]):
             head = '%s %s' % (level, ch) if k == 0 else ''
-            cells = []
-            for n in names:
-                cnt, frac = byName[n][k]
-                cells.append('%d (%s)' % (cnt, fmt(frac)))
+            cells = ['%d (%s)' % (byName[n][k][0], fmt(byName[n][k][1])) for n in names]
             lines.append('%s & %s & %s \\\\' % (head, step, ' & '.join(cells)))
         lines.append(r'\midrule')
     lines.append(r'\multicolumn{2}{l}{Written (any level, channel)} & ' +

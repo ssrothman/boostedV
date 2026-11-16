@@ -10,8 +10,8 @@ Objects seen by expressions (table names: simulation/NANO.md):
   eec      entries of one EEC observable, [event][jet][entry]      eec level (histograms only)
 A cut's level decides what it removes: event cuts drop events, jet cuts drop jets (and their EEC entries), lepton
 cuts drop events in which any selected lepton fails.
-Events must pass <flags>_<ch> and, when the NANO has it, <flags>_B2B<ch> (the back-to-back requirement, cutflow step
-'backToBack'); such a NANO holds only back-to-back jets, so another channel's or level's event has none for ch.
+Events must pass <flags>_<ch>, which includes the back-to-back requirement <ch>B2B when the configuration enables it;
+such a NANO holds only back-to-back jets, so another channel's or level's event has none for ch.
 """
 import awkward as ak
 
@@ -47,8 +47,7 @@ class Region:
                 raise RegionError('region %s: weight %r is not event-level' % (name, w.text))
 
     def select(self, events, eventWeight):
-        """Applies the cuts; returns (View, cutflow {cut: {'n', 'sumw', 'jets'}}: 'channel', then 'backToBack' if
-        the NANO has it, then the cuts)."""
+        """Applies the cuts; returns (View, cutflow {cut: {'n', 'sumw', 'jets'}}: 'channel', then the cuts)."""
         L = LEVELS[self.level]
         flags = events[L['flags']]
         sel = asBool(flags[self.channel])
@@ -56,9 +55,6 @@ class Region:
         for w in self.weights:
             view.weight = view.weight * w(view.namespace())
         flow = {'channel': view.count()}
-        if 'B2B' + self.channel in flags.fields:
-            view = view.keepEvents(asBool(view.events[L['flags']]['B2B' + self.channel]))
-            flow['backToBack'] = view.count()
         for c in self.cuts:
             m = asBool(c(view.namespace()))
             if c.level == 'event':

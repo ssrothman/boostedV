@@ -4,6 +4,8 @@
 # Values marked "placeholder" are invented for development and are not CMS recommendations.
 
 inputs:                      # MiniAOD collection labels
+  # cms.Process eras and modifiers, as central NANO of 13_0_X MiniAOD (relval_nano.py NANO_mc13.0 / NANO_data13.0)
+  eras: [Run3, run3_nanoAOD_pre142X]
   muons: slimmedMuons
   electrons: slimmedElectrons
   photons: slimmedPhotons
@@ -38,6 +40,23 @@ selection:
       - Flag_hfNoisyHitsFilter
       - Flag_eeBadScFilter
       - Flag_ecalBadCalibFilter
+    # JME: rerun of EcalBadCalibFilter for the 2022-23 prompt-reco ECAL crystal (data and MC; runs 362433-367144)
+    ecalBadCalib: {recHits: 'reducedEgamma:reducedEBRecHits', minEt: 50.0, crystals: [838871812]}
+    # JME Run 3 jet veto map (mandatory): event fails if a JEC-corrected AK4 jet with pt > ptMin, TightLeptonVeto ID
+    # and chEmEF + neEmEF < emFractionMax lies in a vetoed bin; same map for data and MC
+    jetVetoMap:
+      src: slimmedJetsPuppi
+      rho: fixedGridRhoFastjetAll
+      jec:
+        correctionFile: /cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-22EFGSep23-Summer22EE-NanoAODv12/2026-06-05/jet_jerc.json.gz
+        mcKey: Summer22EE_22Sep2023_V4_MC_L1L2L3Res_AK4PFPuppi
+        dataKey: Summer22EE_22Sep2023_V4_DATA_L1L2L3Res_AK4PFPuppi
+      jetId: {correctionFile: /cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-22EFGSep23-Summer22EE-NanoAODv12/2026-06-05/jetid.json.gz, type: AK4PUPPI}
+      correctionFile: /cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-22EFGSep23-Summer22EE-NanoAODv12/2026-06-05/jetvetomaps.json.gz
+      key: Summer22EE_23Sep2023_RunEFG_V1
+      mapType: jetvetomap
+      ptMin: 15.0
+      emFractionMax: 0.9
 
     # Reco lepton dressing (photons added to muon and electron momenta):
     #   none  no dressing (the `objects` cut is the whole selection; every dressedCut must be "")
@@ -63,7 +82,7 @@ selection:
       apply: false
       momentum: pf
       regimeThreshold: 200.0
-      correctionFile: /cvmfs/cms-griddata.cern.ch/cat/metadata/MUO/Run3-22EFGSep23-Summer22EE-NanoAODv12/latest/muon_scalesmearing.json.gz
+      correctionFile: /cvmfs/cms-griddata.cern.ch/cat/metadata/MUO/Run3-22EFGSep23-Summer22EE-NanoAODv12/2026-06-18/muon_scalesmearing.json.gz
       lowPtThreshold: 26.0
       highPtThreshold: 200.0   # stated validity; the POG C++ example corrects the scale at all pt above lowPtThreshold
       # MC only: nominal | scaleUp | scaleDown | resolutionUp | resolutionDown (medium regime);
@@ -92,11 +111,11 @@ selection:
     # with, for the medium regime, the trigger key NUM_IsoMu24_or_Mu50_or_CascadeMu100_or_HighPtTkMu100_DEN_CutBasedIdTight_and_PFIsoTight.
     muonScaleFactors:
       Zmumu: &mediumMuonSFs
-        - {name: id, regime: medium, file: /cvmfs/cms-griddata.cern.ch/cat/metadata/MUO/Run3-22EFGSep23-Summer22EE-NanoAODv12/latest/muon_Z.json.gz,
+        - {name: id, regime: medium, file: /cvmfs/cms-griddata.cern.ch/cat/metadata/MUO/Run3-22EFGSep23-Summer22EE-NanoAODv12/2026-06-18/muon_Z.json.gz,
            key: NUM_TightID_DEN_TrackerMuons, trigger: false, paths: [], outOfRange: error}
-        - {name: iso, regime: medium, file: /cvmfs/cms-griddata.cern.ch/cat/metadata/MUO/Run3-22EFGSep23-Summer22EE-NanoAODv12/latest/muon_Z.json.gz,
+        - {name: iso, regime: medium, file: /cvmfs/cms-griddata.cern.ch/cat/metadata/MUO/Run3-22EFGSep23-Summer22EE-NanoAODv12/2026-06-18/muon_Z.json.gz,
            key: NUM_TightPFIso_DEN_TightID, trigger: false, paths: [], outOfRange: error}
-        - {name: trig, regime: medium, file: /cvmfs/cms-griddata.cern.ch/cat/metadata/MUO/Run3-22EFGSep23-Summer22EE-NanoAODv12/latest/muon_Z.json.gz,
+        - {name: trig, regime: medium, file: /cvmfs/cms-griddata.cern.ch/cat/metadata/MUO/Run3-22EFGSep23-Summer22EE-NanoAODv12/2026-06-18/muon_Z.json.gz,
            key: NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight, trigger: true, paths: ['HLT_IsoMu24_v*'],
            outOfRange: skip}
       Wmunu: *mediumMuonSFs
@@ -355,7 +374,7 @@ jets:
         ptMin: 180.0         # must exceed 170: slimmedJetsAK8 has no constituents below that
         applyPuppiWeights: true
         puppiValueMap: ''    # '' = pat::PackedCandidate::puppiWeight()
-        jetIdVersion: RUN3PUPPIruns2022FGruns2023CD
+        jetId: {correctionFile: /cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-22EFGSep23-Summer22EE-NanoAODv12/2026-06-05/jetid.json.gz, type: AK8PUPPI}   # JME correctionlib jet ID
       jetCuts: {ptMin: 200.0, absEtaMax: 2.4, idMask: 1, minConstituents: 2}   # idMask bit 0 tight, bit 1 tightLepVeto;
                                # minConstituents >= 2 (schema): a one-particle jet has no E1C frame
       constituentCuts: {ptMin: 0.0, chargedOnly: false, keepAbsPdgIds: [], dropAbsPdgIds: [], minPuppiWeight: 0.0}
@@ -503,12 +522,12 @@ jets:
           - {name: nCHadrons, type: uint8, precision: -1, mcOnly: true, doc: 'number of c-hadrons clustered in the jet',
              expr: 'jetFlavourInfo().getcHadrons().size()'}
       jec:                   # re-applied from the raw momentum before the translator (data key takes the run)
-        correctionFile: /cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-22EFGSep23-Summer22EE-NanoAODv12/latest/fatJet_jerc.json.gz
+        correctionFile: /cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-22EFGSep23-Summer22EE-NanoAODv12/2026-06-05/fatJet_jerc.json.gz
         mcKey: Summer22EE_22Sep2023_V4_MC_L1L2L3Res_AK8PFPuppi
         dataKey: Summer22EE_22Sep2023_V4_DATA_L1L2L3Res_AK8PFPuppi
         rho: fixedGridRhoFastjetAll
       jerc:                  # MC only: nominal JER smearing and the JES/JER variations
-        correctionFile: /cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-22EFGSep23-Summer22EE-NanoAODv12/latest/fatJet_jerc.json.gz
+        correctionFile: /cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-22EFGSep23-Summer22EE-NanoAODv12/2026-06-05/fatJet_jerc.json.gz
         jesKey: Summer22EE_22Sep2023_V4_MC_Total_AK8PFPuppi
         jerScaleFactorKey: Summer22EE_22Sep2023_JRV2_MC_ScaleFactor_AK8PFPuppi
         jerScaleFactorUncertaintyKey: Summer22EE_22Sep2023_JRV2_MC_SFUncertainty_AK8PFPuppi   # up/down: SF * (1 +- unc)
@@ -568,7 +587,7 @@ observables:
     kind: e1c
     n: 1.0
     weight: Pt
-    frame: jetHelicity       # lab | jetAxis | jetHelicity | jetCS
+    frame: jetHelicity       # lab | jetAxis | jetHelicity | jetCS | jetProjective
     norm: sumPt
     output: SparseMerged
     axes:
@@ -594,7 +613,7 @@ output:
              fixedGridRhoFastjetCentral, fixedGridRhoFastjetCentralChargedPileUp]   # Rho table; [] disables
   genParticles: true         # MC only: GenPart with the standard NanoAOD pruning
   pileupWeights:             # MC only, needs mcEventTables: Pileup_weight{,Up,Down}; file '' disables
-    file: /cvmfs/cms-griddata.cern.ch/cat/metadata/LUM/Run3-22EFGSep23-Summer22EE-NanoAODv12/latest/puWeights.json.gz
+    file: /cvmfs/cms-griddata.cern.ch/cat/metadata/LUM/Run3-22EFGSep23-Summer22EE-NanoAODv12/2024-01-31/puWeights.json.gz
     key: Collisions2022_359022_362760_eraEFG_GoldenJson
   ak4Jets:                   # AK4 PUPPI jets, JECs re-applied in-job; not used by the selection or the EECs
     enabled: true
@@ -602,9 +621,9 @@ output:
     src: slimmedJetsPuppi
     rho: fixedGridRhoFastjetAll
     cut: 'pt > 20 && abs(eta) < 4.7'   # on the re-corrected jets
-    jetIdVersion: RUN3PUPPIruns2022FGruns2023CD
+    jetId: {correctionFile: /cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-22EFGSep23-Summer22EE-NanoAODv12/2026-06-05/jetid.json.gz, type: AK4PUPPI}
     jec:
-      correctionFile: /cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-22EFGSep23-Summer22EE-NanoAODv12/latest/jet_jerc.json.gz
+      correctionFile: /cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-22EFGSep23-Summer22EE-NanoAODv12/2026-06-05/jet_jerc.json.gz
       mcKey: Summer22EE_22Sep2023_V4_MC_L1L2L3Res_AK4PFPuppi
       dataKey: Summer22EE_22Sep2023_V4_DATA_L1L2L3Res_AK4PFPuppi
       uncKey: Summer22EE_22Sep2023_V4_MC_Total_AK4PFPuppi   # '' = no jesUncTotal column

@@ -3,7 +3,7 @@
 Open questions for outside groups and decisions are in `OPEN_QUESTIONS.md`; this is our own work list.
 
 - [ ] Validate the electron and photon setup against the EGM Run-3 recommendations (IDs, scale and smearing, SFs).
-- [ ] Validate the jet setup against the JME Run-3 recommendations (JEC/JER, jet ID, PUPPI, vetomaps).
+- [x] Validate the jet setup against the JME Run-3 recommendations (JEC/JER, jet ID, PUPPI, vetomaps): `notes/zxtest_AN/jme_review.md`; deviations there await decisions.
 - [ ] W tag: the neutrino (MET-based reconstruction; the W candidate now uses MET with p_z = 0).
 - [ ] W tag: the W boson (definition and its NANO output).
 - [ ] Loose-selection pair bias (`simulation/configs/ZX_test.yaml`): only the dilepton pair closest to the Z mass among the loose (ID-less) objects is stored, so tighter IDs/isolation applied offline do not reproduce a tight selection exactly. Study the size of the effect, probably by storing the selected pair for each of several IDs/selections.
@@ -13,3 +13,12 @@ Open questions for outside groups and decisions are in `OPEN_QUESTIONS.md`; this
 - [ ] Back-to-back selection per jet variation (JES/JER/constituent/cuts): deferred; the first implementation uses nominal jets only and rejects `backToBack.enabled` with variations. What is needed: `simulation/backToBack_plan.md`, "Deferred" section.
 - [ ] Electron no-isolation MVA IDs: Run-3 MiniAOD `slimmedElectrons` noIso MVA decisions include isolation in the barrel (EGM POG docs, Run3_EleMvaID); our `mvaNoIsoWP80/90` columns inherit the bug. Apply the POG fix (EgammaPostRecoTools on MiniAOD) or drop the columns.
 - [ ] Electron energy scale (data) and smearing (MC): recommended by the EGM POG for Run 3 (Run3/SaS), not applied in-job.
+- [ ] Study the impact of each muon momentum correction (assignment, MuonScaRe, kappa_b, smearing) and of their systematic variations on the selection and the correlators (review 1, 2026-11-15).
+- [ ] Study the impact of reco-level lepton dressing (`dressing.mode`) and its systematics (review 1; deferred).
+- [ ] E1C with other jet-axis definitions (e.g. winner-take-all) (review 1; to explore).
+- [x] Compare our AK8 jet ID (`PFJetIDSelectionFunctor`) with the JME correctionlib jet ID (`JME/.../jetid.json.gz`, `AK8PUPPI_Tight`/`_TightLeptonVeto`) on MiniAOD jets.
+- [ ] Soft-drop mass per JME: re-apply AK4 JEC and JER to both soft-drop subjets and recompute; JMS ±1 %, JMR ±2 % (`notes/zxtest_AN/jme_review.md` item 6).
+- [ ] MET per JME: recompute Type-1 PUPPI MET with the V4 AK4 JEC (and optionally JER and XY) before any MET use (`jme_review.md` item 7).
+- [ ] Before jet systematics: switch JES from `Total` to the `Regrouped_*` sources (`jme_review.md` item 5).
+- [ ] Jet veto map: document its effect on the jet (eta, phi) occupancy and the observables (JME requirement); rerun the cutflow with the new cleaning flags.
+- [ ] Report the `PFJetIDSelectionFunctor` TIGHTLEPVETO NHF bug (CMSSW_15_0_22) to JME / CMSSW.

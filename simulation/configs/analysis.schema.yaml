@@ -11,6 +11,13 @@ definitions:
   strList: {type: array, items: {$ref: '#/definitions/str'}}
   intList: {type: array, items: {type: integer}}
   num: {type: number}
+  jetId:                      # JME correctionlib jet ID: <type>_Tight (bit 0), <type>_TightLeptonVeto (bit 1)
+    type: object
+    additionalProperties: false
+    required: [correctionFile, type]
+    properties:
+      correctionFile: {type: string}   # '' = no jet ID (bits 0)
+      type: {$ref: '#/definitions/str'}
   uint: {type: integer, minimum: 0}
 
   backToBack:                # leading non-vetoed jet back to back with and balanced against the channel's object
@@ -205,12 +212,12 @@ definitions:
     oneOf:
       - type: object          # reco, pat
         additionalProperties: false
-        required: [ptMin, applyPuppiWeights, puppiValueMap, jetIdVersion]
+        required: [ptMin, applyPuppiWeights, puppiValueMap, jetId]
         properties:
           ptMin: {$ref: '#/definitions/num'}
           applyPuppiWeights: {type: boolean}
           puppiValueMap: {type: string}
-          jetIdVersion: {type: string}
+          jetId: {$ref: '#/definitions/jetId'}
       - type: object          # gen, pat
         additionalProperties: false
         required: [ptMin]
@@ -307,7 +314,7 @@ definitions:
           kind: {const: e1c}
           n: {$ref: '#/definitions/num'}
           weight: {enum: [Energy, Pt]}
-          frame: {enum: [lab, jetAxis, jetHelicity, jetCS]}
+          frame: {enum: [lab, jetAxis, jetHelicity, jetCS, jetProjective]}
           norm: {enum: [sumE, sumPt, jetE, jetPt, unity]}
           output: {enum: [Dense, SparseMerged, SparseUnmerged, Unbinned]}
           axes: {type: array, items: {$ref: '#/definitions/axis'}, minItems: 2, maxItems: 2}
@@ -326,10 +333,11 @@ properties:
   inputs:
     type: object
     additionalProperties: false
-    required: [muons, electrons, photons, pfCandidates, met, vertices, secondaryVertices, genEventInfo, lheInfo, genVertex,
+    required: [eras, muons, electrons, photons, pfCandidates, met, vertices, secondaryVertices, genEventInfo, lheInfo, genVertex,
                pileupInfo, hltProcess, triggerObjects,
                metFilterProcess, prunedGenParticles, packedGenParticles]
     properties:
+      eras: {type: array, items: {$ref: '#/definitions/str'}, minItems: 1}
       muons: {$ref: '#/definitions/str'}
       electrons: {$ref: '#/definitions/str'}
       photons: {$ref: '#/definitions/str'}
@@ -359,8 +367,38 @@ properties:
       reco:
         type: object
         additionalProperties: false
-        required: [vertex, metFilters, muonCorrections, muonScaleFactors, objectTables, dressing, objects, channels]
+        required: [vertex, metFilters, ecalBadCalib, jetVetoMap, muonCorrections, muonScaleFactors, objectTables, dressing,
+                   objects, channels]
         properties:
+          ecalBadCalib:          # rerun of EcalBadCalibFilter on these crystals; [] = not run
+            type: object
+            additionalProperties: false
+            required: [recHits, minEt, crystals]
+            properties:
+              recHits: {$ref: '#/definitions/str'}
+              minEt: {$ref: '#/definitions/num'}
+              crystals: {$ref: '#/definitions/intList'}
+          jetVetoMap:
+            type: object
+            additionalProperties: false
+            required: [src, rho, jec, jetId, correctionFile, key, mapType, ptMin, emFractionMax]
+            properties:
+              src: {$ref: '#/definitions/str'}
+              rho: {$ref: '#/definitions/str'}
+              jec:
+                type: object
+                additionalProperties: false
+                required: [correctionFile, mcKey, dataKey]
+                properties:
+                  correctionFile: {$ref: '#/definitions/str'}
+                  mcKey: {$ref: '#/definitions/str'}
+                  dataKey: {$ref: '#/definitions/str'}
+              jetId: {$ref: '#/definitions/jetId'}
+              correctionFile: {$ref: '#/definitions/str'}
+              key: {$ref: '#/definitions/str'}
+              mapType: {$ref: '#/definitions/str'}
+              ptMin: {$ref: '#/definitions/num'}
+              emFractionMax: {$ref: '#/definitions/num'}
           muonCorrections:
             type: object
             additionalProperties: false
@@ -548,14 +586,14 @@ properties:
       ak4Jets:
         type: object
         additionalProperties: false
-        required: [enabled, name, src, rho, cut, jetIdVersion, jec, variables]
+        required: [enabled, name, src, rho, cut, jetId, jec, variables]
         properties:
           enabled: {type: boolean}
           name: {type: string, pattern: '^[A-Z][A-Za-z0-9]*$'}
           src: {$ref: '#/definitions/str'}
           rho: {$ref: '#/definitions/str'}
           cut: {type: string}
-          jetIdVersion: {$ref: '#/definitions/str'}
+          jetId: {$ref: '#/definitions/jetId'}
           jec:
             type: object
             additionalProperties: false

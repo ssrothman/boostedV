@@ -6,6 +6,7 @@ and record the answer in the relevant journal.
 ## Contents
 - [Ask the MUO POG](#ask-the-muo-pog)
 - [Ask JME](#ask-jme)
+- [Ask the EGM POG](#ask-the-egm-pog)
 - [Analysis decisions (us)](#analysis-decisions-us)
 - [Not yet verified](#not-yet-verified)
 - [Literature survey](#literature-survey)
@@ -24,10 +25,18 @@ Details: `simulation/EventSelection/README.md` § "Muon corrections: points to c
 5. **PUPPI MET with TuneP muons (Wmunu).** The wiki asks for PF MET to be corrected by the TuneP − PF muon pT difference. Does this also apply to PUPPI MET, and how? Not implemented.
 6. **Trigger SF with more than one muon.** The trigger SF uses only HLT-matched muons. What should be done when several muons match? Meanwhile only the highest-pT matched muon gets the trigger SF.
 7. **Trigger fired but no selected muon matches an HLT object.** This happens when the trigger was fired by another object, e.g. a muon failing the Tight PF iso: 2 of about 730 single-tight-muon test events, both rejected by the Wmunu veto. What should the trigger SF be? Meanwhile a warning is emitted and the event gets no trigger SF (factor 1).
-8. **Out of scope until asked:** the impact-parameter (dxy/dz) pileup-loss systematic for the Tight and HighPt IDs (the wiki leaves it to the analysis); the >500 GeV manual scale-shift sanity check; and the 2024/2025 high-pT κ_b tables, which are only in an SSO-protected PDF.
+8. **Regime threshold: PF or TuneP pT?** (review 1, 2026-11-15) The wiki speaks of muons with "pT > 200 GeV" (`guidelines/corrections.md`, high-pT section) without saying which pT. Meanwhile the regime is decided by the PF pT (`regimeThreshold: 200`), and the high-pT corrections then require TuneP pT >= 200 and |eta| < 2.4.
+9. **TuneP direction.** The wiki asks for the TuneP *pT* (`guidelines/recommendations.md`, high-pT ID notes); the TuneP track direction is available (`tunePMuonBestTrack()`, and `tuneP_eta/phi` in the MUO NanoAOD extension, `code/nano/index.md`). Should eta and phi also come from TuneP? Meanwhile the PF direction is kept in both regimes.
+10. **Out of scope until asked:** the impact-parameter (dxy/dz) pileup-loss systematic for the Tight and HighPt IDs (the wiki leaves it to the analysis); the >500 GeV manual scale-shift sanity check; and the 2024/2025 high-pT κ_b tables, which are only in an SSO-protected PDF.
 
 ## Ask JME
-1. **JRV2 JER SF uncertainty.** The stored `unc` matches JRV1's absolute shift (up − nom), but the reference code applies SF·(1 ± unc). Meanwhile we follow the reference. Details: `simulation/JME_JRV2_SFUncertainty.md` (to report).
+1. **JRV2 JER SF uncertainty.** The stored `unc` matches JRV1's absolute shift (up − nom), but the reference code applies SF·(1 ± unc). Meanwhile we follow the reference. Details: `simulation/JME_JRV2_SFUncertainty.md` (to report). The JERC FAQ ("Where is the reference correctionlib implementation of JER smearing?") calls `SFUncertainty` fractional and builds up/down from it, as we do.
+2. **Run-3 MET-filter list** (review 1). Resolved from the JME docs: our eight flags are the Run 3 list. Open: the 2022 prompt-reco ECAL bad-crystal rerun of `EcalBadCalibFilter` (`notes/zxtest_AN/jme_review.md` item 3).
+3. **AK8 PUPPI jet ID.** Compared (`notes/zxtest_AN/jme_review.md` item 2): `PFJetIDSelectionFunctor` TightLepVeto for `RUN3PUPPIruns2022FGruns2023CD` keeps NHF < 0.90 (unreachable `else if` in CMSSW_15_0_22), unlike the JME table and `jetid.json.gz` (NHF < 0.99). To report to JME / CMSSW.
+4. **AK8 JEC on MiniAOD.** The GT `130X_mcRun3_2022_realistic_postEE_v6` carries `Summer22EE_AK8PFPuppi_offline_v2` (JEC) and `Summer22EE_*_AK8PFPuppi_offline_v1` (JER), not the recommended `Summer22EE_22Sep2023_V4` / `JRV2`, so the central MiniAOD tools (`updateJetCollection`, `SmearedPATJetProducer`) need the payloads as sqlite or text files. We read the POG JSON with our own producers; is that acceptable, or is a sqlite payload preferred?
+
+## Ask the EGM POG
+1. **Gen electrons in the ECAL barrel–endcap gap** (review 1). The gen channels drop gen electrons with 1.4442 < |eta| < 1.566 to mirror the reco supercluster cut (on the gen eta, since gen electrons have no supercluster). Is this recommended for unfolding to particle level, or should the gap be treated as an efficiency/migration?
 
 ## Analysis decisions (us)
 1. **Default muon recipe.** `default.yaml` uses the medium recipe (`momentum: pf`, Tight ID, Tight PF iso, IsoMu24 SFs). Yet about half the muons in PTLL-400to600 have pT > 200 GeV, and the wiki recommends the high-pT recipe (or both) for such samples. A worked hybrid recipe exists: `simulation/EventSelection/test/validation/muonRecipes.py`.
