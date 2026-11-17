@@ -19,6 +19,7 @@ binning:
   dR: {log: [50, 1.0e-3, 1.0], label: '$\Delta R$'}
   theta: {regular: [40, 0, 3.141592653589793], label: '$\theta$'}
   logTheta: {log: [40, 1.0e-3, 1.0], label: '$\theta$ (jet axis)'}
+  logDRProjective: {log: [40, 1.0e-3, 1.0], label: '$\Delta R$'}   # E1CProjective theta is the (eta, phi) distance to the jet axis
   phi: {regular: [40, -3.141592653589793, 3.141592653589793], label: '$\phi$'}
 
 regions:
@@ -68,4 +69,4 @@ histograms:
     axes: [{var: eec.theta, bins: theta, name: theta}, {var: eec.phi, bins: phi, name: phi}]
   E1CProjective:
     granularity: eec:E1CProjective
-    axes: [{var: eec.theta, bins: logTheta, name: theta}, {var: eec.phi, bins: phi, name: phi}]
+    axes: [{var: eec.theta, bins: logDRProjective, name: theta}, {var: eec.phi, bins: phi, name: phi}]
