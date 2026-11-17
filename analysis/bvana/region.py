@@ -16,7 +16,7 @@ such a NANO holds only back-to-back jets, so another channel's or level's event 
 import awkward as ak
 
 from . import eec as eecTools
-from .expr import Expr, asBool
+from .expr import MEMO, Expr, asBool
 
 LEVELS = {'reco': dict(flags='Selection', prefix='', collection='Reco', met='PuppiMET'),
           'gen': dict(flags='GenSelection', prefix='Gen', collection='Gen', met='GenMET')}
@@ -83,6 +83,8 @@ class View:
                 jetIdx = idx[~jets[vetoName]] if vetoName in jets.fields else idx
         self.jetIdx = jetIdx
         self._eec = {}
+        self._ns = {}
+        self.cache = {}   # per-histogram-fill intermediates shared across histograms (bvana/histograms.py)
 
     def keepEvents(self, mask):
         return View(self.region, self.events[mask], self.weight[mask], self.jetIdx[mask])
@@ -106,8 +108,14 @@ class View:
         return self._eec[observable]
 
     def namespace(self, observable=None):
+        """Built once per observable; the weight is not part of it, so reweighting a view keeps it valid."""
+        if observable not in self._ns:
+            self._ns[observable] = self._namespace(observable)
+        return self._ns[observable]
+
+    def _namespace(self, observable):
         ev, ch, p = self.events, self.region.channel, self._L['prefix']
-        ns = {'event': ev, 'jets': ev[self.region.jetTable][self.jetIdx], 'met': ev[self._L['met']]}
+        ns = {MEMO: {}, 'event': ev, 'jets': ev[self.region.jetTable][self.jetIdx], 'met': ev[self._L['met']]}
         if p + ch + 'Boson' in ev.fields:
             ns['boson'] = ak.firsts(ev[p + ch + 'Boson'])
         if p + ch + 'Leptons' in ev.fields:

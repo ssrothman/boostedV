@@ -101,28 +101,50 @@ class HistDef:
             template = ns['leptons'].pt
         else:
             template = ns['eec'].weight
-        w = ak.broadcast_arrays(view.weight, template)[0]
+        # Intermediates shared by histograms of the same level and observable (and cuts) are cached on the view.
+        cache, level = view.cache, (self.level, self.observable)
+        if ('wEvent',) + level not in cache:
+            cache[('wEvent',) + level] = ak.broadcast_arrays(view.weight, template)[0]
+        w = cache[('wEvent',) + level]
         if self.level == 'eec':
-            entries, perJet = view.entries(self.observable)
-            ew = eecTools.tupleWeight(entries)
-            if self.renorm is not None:
-                newNorm = self.renorm(ns)
-                ew = ew * ak.broadcast_arrays((perJet.E_jet / newNorm) ** (perJet.n * perJet.N), ew)[0]
-            w = w * ew
+            if ('w',) + level not in cache:
+                cache[('tuple',) + level] = eecTools.tupleWeight(view.entries(self.observable)[0])
+                cache[('w',) + level] = w * cache[('tuple',) + level]
+            if self.renorm is None:
+                w = cache[('w',) + level]
+            else:
+                perJet = view.entries(self.observable)[1]
+                ew = cache[('tuple',) + level]
+                ew = ew * ak.broadcast_arrays((perJet.E_jet / self.renorm(ns)) ** (perJet.n * perJet.N), ew)[0]
+                w = w * ew
         if self.weight is not None:
             w = w * ak.broadcast_arrays(self.weight(ns), template)[0]
-        keep = ak.ones_like(template, dtype=bool)
-        for c in self.cuts:
-            keep = keep & ak.broadcast_arrays(asBool(c(ns)), template)[0]
+        cutKey = level + tuple(c.text for c in self.cuts)
+        if ('keep',) + cutKey not in cache:
+            keep = ak.ones_like(template, dtype=bool)
+            for c in self.cuts:
+                keep = keep & ak.broadcast_arrays(asBool(c(ns)), template)[0]
+            cache[('keep',) + cutKey] = keep
+        keep = cache[('keep',) + cutKey]
+
         def flat(x):
             # Missing values (e.g. max() over no jets) become NaN, which hist puts in the overflow bin.
             x = ak.broadcast_arrays(x, template)[0][keep]
             x = ak.flatten(x, axis=None) if DEPTH[self.level] > 0 else x
             return ak.to_numpy(ak.fill_none(x, np.nan))
-        values = [flat(v(ns)) for v in self.vars]
+
+        def cachedFlat(key, compute):
+            if key not in cache:
+                cache[key] = flat(compute())
+            return cache[key]
+        values = [cachedFlat(('flat',) + cutKey + (v.text,), lambda v=v: v(ns)) for v in self.vars]
         for k, ax in enumerate(self.axes):
             if isinstance(ax, hist.axis.Integer):
                 values[k] = np.where(np.isnan(values[k]), ax.edges[-1], values[k]).astype(np.int64)
+        if self.renorm is None and self.weight is None:
+            weights = cachedFlat(('flatw',) + cutKey, lambda: w)
+        else:
+            weights = flat(w)
         h = self.empty()
-        h.fill(*values, weight=flat(w))
+        h.fill(*values, weight=weights)
         return h

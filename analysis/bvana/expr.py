@@ -49,6 +49,9 @@ def combine(a, b, text):
     raise ExprError('%r combines %s-level and %s-level quantities' % (text, a, b))
 
 
+MEMO = '__memo__'   # namespace key of the per-namespace result cache; not a valid object name in expressions
+
+
 class Expr:
     """A parsed expression; `level` is static, `__call__(namespace)` evaluates it on awkward arrays."""
 
@@ -109,7 +112,13 @@ class Expr:
         raise ExprError('%r: %s is not allowed' % (t, type(n).__name__))
 
     def __call__(self, ns):
-        return self._eval(self.tree, ns)
+        # The memo is keyed by text: within one namespace, all expressions share the configuration's variables.
+        memo = ns.get(MEMO)
+        if memo is None:
+            return self._eval(self.tree, ns)
+        if self.text not in memo:
+            memo[self.text] = self._eval(self.tree, ns)
+        return memo[self.text]
 
     def _eval(self, n, ns):
         if isinstance(n, ast.Constant):

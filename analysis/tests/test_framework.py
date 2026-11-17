@@ -156,6 +156,39 @@ class Histograms(unittest.TestCase):
         expect = 1 * (0.02 + 0.4) * (100 / 400) ** 2 + 2 * (0.01 + 0.2) * (100 / 500) ** 2 + 2 * (0.02 + 0.4) * (100 / 320) ** 2
         self.assertAlmostEqual(r.sum(flow=True).value, expect)
 
+    def test_shared_intermediates_match_fresh_fills(self):
+        hist = {'cut': {'granularity': 'eec:X', 'cuts': ['eec.dR > 0'], 'axes': [{'var': 'eec.dR', 'bins': 'b'}]},
+                'cut2': {'granularity': 'eec:X', 'cuts': ['eec.dR > 0'],
+                         'axes': [{'var': 'eec.dR', 'bins': 'b'}, {'var': 'eec.dR * jets.pt / 1000', 'bins': 'b', 'name': 'x'}]},
+                'nocut': {'granularity': 'eec:X', 'axes': [{'var': 'eec.dR', 'bins': 'b'}]},
+                'renorm': {'granularity': 'eec:X', 'cuts': ['eec.dR > 0'], 'renormalise': 'jets.pt',
+                           'axes': [{'var': 'eec.dR', 'bins': 'b'}]},
+                'jet': {'granularity': 'jet', 'axes': [{'var': 'jets.tau', 'bins': 'b'}]}}
+        cfg = config([], hist)
+        sel = lambda: cfg.regions['R'].select(syntheticEvents(), ak.Array([1.0, 2.0, 3.0]))[0]
+        calls = []
+        orig = Expr._eval
+
+        def spy(self, n, ns):
+            if n is self.tree:
+                calls.append(self.text)
+            return orig(self, n, ns)
+        Expr._eval = spy
+        try:
+            view = sel()
+            shared = {k: d.fill(view) for k, d in cfg.histograms.items()}
+        finally:
+            Expr._eval = orig
+        self.assertEqual(calls.count('eec.dR'), 1)
+        self.assertEqual(calls.count('eec.dR > 0'), 1)
+        for k, d in cfg.histograms.items():
+            fresh = d.fill(sel())
+            np.testing.assert_array_equal(shared[k].values(flow=True), fresh.values(flow=True))
+            np.testing.assert_array_equal(shared[k].variances(flow=True), fresh.variances(flow=True))
+        # the cut, the renormalisation and the weightless path must not share results with each other
+        self.assertNotEqual(shared['cut'].sum(flow=True).value, shared['nocut'].sum(flow=True).value)
+        self.assertNotEqual(shared['cut'].sum(flow=True).value, shared['renorm'].sum(flow=True).value)
+
     def test_mixed_granularity_axes(self):
         hist = {'h': {'granularity': 'jet', 'axes': [{'var': 'jets.tau', 'bins': 'b'},
                                                      {'var': 'boson.pt / 1000', 'bins': 'b', 'name': 'zpt'}]}}
