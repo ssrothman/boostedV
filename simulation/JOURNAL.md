@@ -23,6 +23,7 @@
 - 2026-11-15 Second-production manifest, ZX_test note, bvana back-to-back regions
 - 2026-11-15 Human review 1 of the ZX_test note: flags, JER order, frames, gen-jet flavour
 - 2026-11-15 Second ZX_test production `20261115_zxb2b` submitted
+- 2026-11-16 Corrupted `slimmedJetsAK8` pt (question for JME/PAT)
 
 ## 2026-11-11 A.2 setup and DataFormats
 - Plan: `stepA2_plan.md`. New local repos (remotes pending): `EECDataFormats` (pkg `SRothman/DataFormats`),
@@ -484,3 +485,6 @@ Plan and decisions: `notes/zxtest_AN/review1_plan.md`.
   with a pdgId 13 daughter). The `+muons` rule of `PATMETType1Producer` differs from Nano on exactly 4 jets (the standalone-only
   muon jets, factor 0.82, 0.89, 1.0, 0.82 vs Nano 0); production's MET dropped those, so central Nano's `muonSubtrFactor`
   has the same blind spot and a Nano-based Type-1 recomputation would not close on them. Not done: the MC file.
+
+## 2026-11-16 Corrupted `slimmedJetsAK8` pt (question for JME/PAT)
+- The two ZX_test jets with MiniAOD pt 88/165 GeV are ~340 GeV jets (gen jet, subjets, AK4 jet agree): the stored p4 is scaled by 0.27/0.51, not by any JEC (V4 L2L3 >= 1.06). None in 1.5M AK8 jets elsewhere. Daughters were dropped because of the corrupted pt. Written up in `pog_question_ak8_corrupt_pt.md`.
