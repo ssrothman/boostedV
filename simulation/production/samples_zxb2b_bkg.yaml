@@ -1,0 +1,146 @@
+# Fourth ZX_test production: WW, single top (t-, tW-, s-channel) and TTto2L2Nu, to complete the background set of
+# 20261116_zxb2b (DY, ZZ, WZ). Config ZX_test.yaml as in samples_zxb2b.yaml. TTto2L2Nu is rerun because the first
+# production predates the dilepton pT > 200 GeV and back-to-back selections.
+# Splitting: ~300k events/job (same as the ZZ/WZ/ttbar jobs of 20261113_zxtest/20261116_zxb2b); only base datasets
+# (no _ext1), as in the earlier productions. t-channel is the 4FS powheg-madspin set.
+outputBase: /store/user/srothman/boostedV
+storageSite: T3_US_FNALLPC
+eosRedirector: root://cmseos.fnal.gov
+inputRedirector: root://cmsxrootd.fnal.gov
+
+samples:
+  TTto2L2Nu_powheg:
+    input: {dataset: /TTto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EEMiniAODv4-130X_mcRun3_2022_realistic_postEE_v6-v2/MINIAODSIM}   # 74.30M events, 1388 files (54k/file): ~321k events/job
+    isMC: true
+    globalTag: 130X_mcRun3_2022_realistic_postEE_v6
+    config: ../configs/ZX_test.yaml
+    lumiMask: ''
+    backend: crab
+    splitting: {mode: files, unitsPerJob: 6}
+    maxJobs: -1
+  WWto2L2Nu_powheg:
+    input: {dataset: /WWto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EEMiniAODv4-130X_mcRun3_2022_realistic_postEE_v6-v2/MINIAODSIM}   # 22.43M events, 387 files (58k/file): ~290k events/job
+    isMC: true
+    globalTag: 130X_mcRun3_2022_realistic_postEE_v6
+    config: ../configs/ZX_test.yaml
+    lumiMask: ''
+    backend: crab
+    splitting: {mode: files, unitsPerJob: 5}
+    maxJobs: -1
+  TBbarQtoLNu-t-channel-4FS_powheg:
+    input: {dataset: /TBbarQtoLNu-t-channel-4FS_TuneCP5_13p6TeV_powheg-madspin-pythia8/Run3Summer22EEMiniAODv4-130X_mcRun3_2022_realistic_postEE_v6-v4/MINIAODSIM}   # 10.48M events, 368 files (28k/file): ~313k events/job
+    isMC: true
+    globalTag: 130X_mcRun3_2022_realistic_postEE_v6
+    config: ../configs/ZX_test.yaml
+    lumiMask: ''
+    backend: crab
+    splitting: {mode: files, unitsPerJob: 11}
+    maxJobs: -1
+  TbarBQtoLNu-t-channel-4FS_powheg:
+    input: {dataset: /TbarBQtoLNu-t-channel-4FS_TuneCP5_13p6TeV_powheg-madspin-pythia8/Run3Summer22EEMiniAODv4-130X_mcRun3_2022_realistic_postEE_v6-v4/MINIAODSIM}   # 5.24M events, 199 files (26k/file): ~290k events/job
+    isMC: true
+    globalTag: 130X_mcRun3_2022_realistic_postEE_v6
+    config: ../configs/ZX_test.yaml
+    lumiMask: ''
+    backend: crab
+    splitting: {mode: files, unitsPerJob: 11}
+    maxJobs: -1
+  TBbarQto2Q-t-channel-4FS_powheg:
+    input: {dataset: /TBbarQto2Q-t-channel-4FS_TuneCP5_13p6TeV_powheg-madspin-pythia8/Run3Summer22EEMiniAODv4-130X_mcRun3_2022_realistic_postEE_v6-v2/MINIAODSIM}   # 24.33M events, 835 files (29k/file): ~291k events/job
+    isMC: true
+    globalTag: 130X_mcRun3_2022_realistic_postEE_v6
+    config: ../configs/ZX_test.yaml
+    lumiMask: ''
+    backend: crab
+    splitting: {mode: files, unitsPerJob: 10}
+    maxJobs: -1
+  TbarBQto2Q-t-channel-4FS_powheg:
+    input: {dataset: /TbarBQto2Q-t-channel-4FS_TuneCP5_13p6TeV_powheg-madspin-pythia8/Run3Summer22EEMiniAODv4-130X_mcRun3_2022_realistic_postEE_v6-v2/MINIAODSIM}   # 12.17M events, 383 files (32k/file): ~286k events/job
+    isMC: true
+    globalTag: 130X_mcRun3_2022_realistic_postEE_v6
+    config: ../configs/ZX_test.yaml
+    lumiMask: ''
+    backend: crab
+    splitting: {mode: files, unitsPerJob: 9}
+    maxJobs: -1
+  TWminusto2L2Nu_powheg:
+    input: {dataset: /TWminusto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EEMiniAODv4-130X_mcRun3_2022_realistic_postEE_v6-v2/MINIAODSIM}   # 8.07M events, 179 files (45k/file): ~315k events/job
+    isMC: true
+    globalTag: 130X_mcRun3_2022_realistic_postEE_v6
+    config: ../configs/ZX_test.yaml
+    lumiMask: ''
+    backend: crab
+    splitting: {mode: files, unitsPerJob: 7}
+    maxJobs: -1
+  TWminustoLNu2Q_powheg:
+    input: {dataset: /TWminustoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EEMiniAODv4-130X_mcRun3_2022_realistic_postEE_v6-v2/MINIAODSIM}   # 16.69M events, 316 files (53k/file): ~317k events/job
+    isMC: true
+    globalTag: 130X_mcRun3_2022_realistic_postEE_v6
+    config: ../configs/ZX_test.yaml
+    lumiMask: ''
+    backend: crab
+    splitting: {mode: files, unitsPerJob: 6}
+    maxJobs: -1
+  TWminusto4Q_powheg:
+    input: {dataset: /TWminusto4Q_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EEMiniAODv4-130X_mcRun3_2022_realistic_postEE_v6-v2/MINIAODSIM}   # 13.46M events, 271 files (50k/file): ~298k events/job
+    isMC: true
+    globalTag: 130X_mcRun3_2022_realistic_postEE_v6
+    config: ../configs/ZX_test.yaml
+    lumiMask: ''
+    backend: crab
+    splitting: {mode: files, unitsPerJob: 6}
+    maxJobs: -1
+  TbarWplusto2L2Nu_powheg:
+    input: {dataset: /TbarWplusto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EEMiniAODv4-130X_mcRun3_2022_realistic_postEE_v6-v2/MINIAODSIM}   # 8.26M events, 169 files (49k/file): ~293k events/job
+    isMC: true
+    globalTag: 130X_mcRun3_2022_realistic_postEE_v6
+    config: ../configs/ZX_test.yaml
+    lumiMask: ''
+    backend: crab
+    splitting: {mode: files, unitsPerJob: 6}
+    maxJobs: -1
+  TbarWplustoLNu2Q_powheg:
+    input: {dataset: /TbarWplustoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EEMiniAODv4-130X_mcRun3_2022_realistic_postEE_v6-v2/MINIAODSIM}   # 16.49M events, 324 files (51k/file): ~305k events/job
+    isMC: true
+    globalTag: 130X_mcRun3_2022_realistic_postEE_v6
+    config: ../configs/ZX_test.yaml
+    lumiMask: ''
+    backend: crab
+    splitting: {mode: files, unitsPerJob: 6}
+    maxJobs: -1
+  TbarWplusto4Q_powheg:
+    input: {dataset: /TbarWplusto4Q_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EEMiniAODv4-130X_mcRun3_2022_realistic_postEE_v6-v2/MINIAODSIM}   # 13.45M events, 284 files (47k/file): ~284k events/job
+    isMC: true
+    globalTag: 130X_mcRun3_2022_realistic_postEE_v6
+    config: ../configs/ZX_test.yaml
+    lumiMask: ''
+    backend: crab
+    splitting: {mode: files, unitsPerJob: 6}
+    maxJobs: -1
+  TBbartoLplusNuBbar-s-channel-4FS_amcatnlo:
+    input: {dataset: /TBbartoLplusNuBbar-s-channel-4FS_TuneCP5_13p6TeV_amcatnlo-pythia8/Run3Summer22EEMiniAODv4-130X_mcRun3_2022_realistic_postEE_v6-v2/MINIAODSIM}   # 4.36M events, 91 files (48k/file): ~288k events/job
+    isMC: true
+    globalTag: 130X_mcRun3_2022_realistic_postEE_v6
+    config: ../configs/ZX_test.yaml
+    lumiMask: ''
+    backend: crab
+    splitting: {mode: files, unitsPerJob: 6}
+    maxJobs: -1
+  TbarBtoLminusNuB-s-channel-4FS_amcatnlo:
+    input: {dataset: /TbarBtoLminusNuB-s-channel-4FS_TuneCP5_13p6TeV_amcatnlo-pythia8/Run3Summer22EEMiniAODv4-130X_mcRun3_2022_realistic_postEE_v6-v2/MINIAODSIM}   # 2.76M events, 62 files (45k/file): ~312k events/job
+    isMC: true
+    globalTag: 130X_mcRun3_2022_realistic_postEE_v6
+    config: ../configs/ZX_test.yaml
+    lumiMask: ''
+    backend: crab
+    splitting: {mode: files, unitsPerJob: 7}
+    maxJobs: -1
+  TBbarto2Q-s-channel_powheg:
+    input: {dataset: /TBbarto2Q-s-channel_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EEMiniAODv4-130X_mcRun3_2022_realistic_postEE_v6-v3/MINIAODSIM}   # 3.23M events, 113 files (29k/file): ~286k events/job
+    isMC: true
+    globalTag: 130X_mcRun3_2022_realistic_postEE_v6
+    config: ../configs/ZX_test.yaml
+    lumiMask: ''
+    backend: crab
+    splitting: {mode: files, unitsPerJob: 10}
+    maxJobs: -1
