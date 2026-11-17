@@ -26,6 +26,16 @@ python3 plot.py out.coffea --hist E1CHelicity --region ZmumuReco --samples TT -o
   (bin edges), `--project`, `--norm area`, `--width linear|log`, `--stack`, `--ratio LEGEND`, `--ratio-sum PREFIX` (pad: (D + X)/D per other sample and for their sum, D = samples starting with PREFIX), `--group NAME=PREFIX` (sum samples into one curve; empty PREFIX = all), log axes. Two remaining
   axes give a map. Label: "CMS Simulation Work in progress".
 
+## LPC HTCondor (`condor.py`, design: `CONDOR_PLAN.md`)
+```
+python3 run.py CONFIG --tag TAG --lumi PB -o out.coffea --backend condor [--files-per-job 20] [--cpus 1] [--memory 2500] [--condor-name NAME] [--dryrun]
+python3 condor.py status work/NAME          # complete / running / idle / failed / unsubmitted per job
+python3 condor.py resubmit work/NAME        # failed or unsubmitted jobs
+python3 condor.py collect work/NAME [--allow-missing]   # accumulates the parts into the -o path
+```
+Jobs run in the cvmfs coffea container on a snapshot of `bvana/`, `run.py` and the config taken at submission, and need
+a grid proxy. `--backend local` (default) runs on this machine. `work/` is git-ignored.
+
 ## Configuration (`configs/zxtest.yaml`)
 - `variables`: named expressions, e.g. `tau21: jets.tau2 / jets.tau1`.
 - `binning`: `{regular: [n, lo, hi]}`, `{log: [n, lo, hi]}`, `{edges: [...]}`, `{integer: [lo, hi]}`, optional `label`.
