@@ -117,8 +117,7 @@ class Expr:
         if isinstance(n, ast.Name):
             return self.variables[n.id](ns) if n.id in self.variables else ns[n.id]
         if isinstance(n, ast.Attribute):
-            return getattr(self._eval(n.value, ns), n.attr) if not isinstance(n.value, ast.Name) \
-                else getattr(ns[n.value.id], n.attr)
+            return field(self._eval(n.value, ns) if not isinstance(n.value, ast.Name) else ns[n.value.id], n.attr)
         if isinstance(n, ast.BinOp):
             return BINARY[type(n.op)](self._eval(n.left, ns), self._eval(n.right, ns))
         if isinstance(n, ast.UnaryOp):
@@ -144,6 +143,13 @@ class Expr:
         if f in REDUCTIONS:
             return REDUCTIONS[f](args[0])
         return args[0].delta_r(args[1])
+
+
+def field(obj, name):
+    """Stored field if there is one, else the attribute: vector methods shadow fields (jets.tau2 is the proper time squared)."""
+    if isinstance(obj, ak.Array) and name in (obj.fields or ()):
+        return obj[name]
+    return getattr(obj, name)
 
 
 def asBool(x):

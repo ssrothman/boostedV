@@ -68,6 +68,14 @@ class Expressions(unittest.TestCase):
         v = compileVariables({'r': 'jets.pt / boson.pt', 'r2': 'r * 2'})
         self.assertEqual(Expr('r2', v)(ns).tolist(), [[1.0, 5.0], []])
 
+    def test_field_shadowed_by_vector_method(self):
+        import vector
+        vector.register_awkward()
+        jets = ak.zip({'pt': [[300.0]], 'eta': [[0.0]], 'phi': [[0.0]], 'mass': [[10.0]], 'tau2': [[0.25]]},
+                      with_name='Momentum4D')
+        self.assertEqual(Expr('jets.tau2')({'jets': jets}).tolist(), [[0.25]])   # getattr gives the proper time squared
+        self.assertAlmostEqual(Expr('jets.energy')({'jets': jets}).tolist()[0][0], np.hypot(300.0, 10.0))
+
 
 class Regions(unittest.TestCase):
     def test_chained_jet_cuts_and_eec_entries(self):
@@ -176,20 +184,29 @@ class Plotting(unittest.TestCase):
         with self.assertRaises(ValueError):
             plotting.reduce(h, [plotting.parseSlice('a=1.5:3')])
 
-    def test_ratio_sum_is_total_over_subset(self):
+    def test_ratio_sum_lines_per_sample_and_total(self):
         import hist
         hs = {}
-        for name, v in (('DYa', [2.0, 4.0]), ('DYb', [2.0, 4.0]), ('VV', [1.0, 3.0])):
+        for name, v in (('DYa', [2.0, 4.0]), ('DYb', [2.0, 4.0]), ('VV', [1.0, 3.0]), ('TT', [2.0, 4.0])):
             h = hist.Hist(makeAxis({'regular': [2, 0, 2]}, 'x', ''), storage='weight')
             h.fill([0.5, 1.5], weight=v)
             hs[name] = h
-        fig = plotting.plot1d(hs, stack=True, ratioSum=('DY', ['DYa', 'DYb']))
-        cont = fig.axes[1].containers[0]
-        np.testing.assert_allclose(cont[0].get_ydata(), [5 / 4, 11 / 8])
-        # err = sqrt(var VV) / den; each bin has one weighted entry of VV
-        np.testing.assert_allclose(cont[2][0].get_segments()[0][:, 1], [1.25 - 0.25, 1.25 + 0.25])
+        hs = plotting.group(hs, ['DY=DY'])
+        self.assertEqual(list(hs), ['DY', 'VV', 'TT'])
+        np.testing.assert_allclose(hs['DY'].values(), [4, 8])
+        fig = plotting.plot1d(hs, stack=True, ratioSum=('DY', ['DY']))
+        conts = fig.axes[1].containers[::2]                  # histplot adds two containers per curve
+        self.assertEqual(len(fig.axes[1].containers), 6)
+        self.assertEqual(len(conts), 3)                      # VV, TT, all
+        np.testing.assert_allclose(conts[0][0].get_ydata(), [5 / 4, 11 / 8])
+        np.testing.assert_allclose(conts[1][0].get_ydata(), [6 / 4, 12 / 8])
+        np.testing.assert_allclose(conts[2][0].get_ydata(), [7 / 4, 15 / 8])
+        # VV err = sqrt(var VV) / DY; each bin has one weighted entry
+        np.testing.assert_allclose(conts[0][2][0].get_segments()[0][:, 1], [1.25 - 0.25, 1.25 + 0.25])
         with self.assertRaises(ValueError):
-            plotting.plot1d(hs, norm='area', ratioSum=('DY', ['DYa']))
+            plotting.plot1d(hs, norm='area', ratioSum=('DY', ['DY']))
+        with self.assertRaises(ValueError):
+            plotting.group(hs, ['X=nomatch'])
 
 
 @unittest.skipUnless(os.environ.get('ANALYSIS_TEST_NANO'), 'set ANALYSIS_TEST_NANO')
