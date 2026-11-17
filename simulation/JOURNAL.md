@@ -24,6 +24,7 @@
 - 2026-11-15 Human review 1 of the ZX_test note: flags, JER order, frames, gen-jet flavour
 - 2026-11-15 Second ZX_test production `20261115_zxb2b` submitted
 - 2026-11-16 Corrupted `slimmedJetsAK8` pt (question for JME/PAT)
+- 2026-11-17 Background production `20261117_zxb2bbkg` submitted (TTto2L2Nu, WWto2L2Nu, single top)
 
 ## 2026-11-11 A.2 setup and DataFormats
 - Plan: `stepA2_plan.md`. New local repos (remotes pending): `EECDataFormats` (pkg `SRothman/DataFormats`),
@@ -488,3 +489,17 @@ Plan and decisions: `notes/zxtest_AN/review1_plan.md`.
 
 ## 2026-11-16 Corrupted `slimmedJetsAK8` pt (question for JME/PAT)
 - The two ZX_test jets with MiniAOD pt 88/165 GeV are ~340 GeV jets (gen jet, subjets, AK4 jet agree): the stored p4 is scaled by 0.27/0.51, not by any JEC (V4 L2L3 >= 1.06). None in 1.5M AK8 jets elsewhere. Daughters were dropped because of the corrupted pt. Written up in `pog_question_ak8_corrupt_pt.md`.
+
+## 2026-11-17 Background production `20261117_zxb2bbkg` submitted (TTto2L2Nu, WW, single top)
+- Manifest `production/samples_zxb2b_bkg.yaml` (boostedV 85ca453 at submission; ZX_test.yaml unchanged from 20261116_zxb2b): 15 CRAB tasks,
+  839 jobs, ~300k events/job, base datasets only (no `_ext1`). Samples: TTto2L2Nu_powheg (rerun with the pT > 200 and back-to-back
+  selections), WWto2L2Nu_powheg, t-channel 4FS powheg-madspin (top/antitop x LNu/2Q), tW powheg (TWminus/TbarWplus x 2L2Nu/LNu2Q/4Q),
+  s-channel (TBbartoLplusNuBbar, TbarBtoLminusNuB amcatnlo, TBbarto2Q powheg).
+- Dry run: all 15 test jobs exit 0, no exceptions; CRAB's runtime estimates (400-1700 min) come from an 11-event test and are not meaningful.
+- Gap (accepted by the user): the hadronic antitop s-channel sample does not exist in Summer22EE (`TBbarto2Q-s-channel` is top only: 3000/3000
+  events have a top, none an antitop; checked on the first MiniAOD file). It would be 4.534 x 0.6741 = 3.06 pb. To be neglected if the
+  selection acceptance of fully hadronic modes is negligible (to be checked on the new samples).
+- Cross sections (`analysis/xsec.yaml`): GEN wiki 13.6 TeV top-group inclusive NNLO values (t-channel 145.0/87.2, tW 87.9 for top+antitop,
+  s-channel 7.244/4.534 pb) x W BRs (lep 3 x 0.1086 = 0.3258, had 0.6741). Unverified assumptions: t/s-channel LNu/2Q refers to the top
+  decay (W BR alone); tW LNu2Q covers either W leptonic (factor 2); L includes tau.
+- ZZto4Q_powheg and WZto4Q_powheg cross sections are still null (not in this manifest).
