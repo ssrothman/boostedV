@@ -176,6 +176,21 @@ class Plotting(unittest.TestCase):
         with self.assertRaises(ValueError):
             plotting.reduce(h, [plotting.parseSlice('a=1.5:3')])
 
+    def test_ratio_sum_is_total_over_subset(self):
+        import hist
+        hs = {}
+        for name, v in (('DYa', [2.0, 4.0]), ('DYb', [2.0, 4.0]), ('VV', [1.0, 3.0])):
+            h = hist.Hist(makeAxis({'regular': [2, 0, 2]}, 'x', ''), storage='weight')
+            h.fill([0.5, 1.5], weight=v)
+            hs[name] = h
+        fig = plotting.plot1d(hs, stack=True, ratioSum=('DY', ['DYa', 'DYb']))
+        cont = fig.axes[1].containers[0]
+        np.testing.assert_allclose(cont[0].get_ydata(), [5 / 4, 11 / 8])
+        # err = sqrt(var VV) / den; each bin has one weighted entry of VV
+        np.testing.assert_allclose(cont[2][0].get_segments()[0][:, 1], [1.25 - 0.25, 1.25 + 0.25])
+        with self.assertRaises(ValueError):
+            plotting.plot1d(hs, norm='area', ratioSum=('DY', ['DYa']))
+
 
 @unittest.skipUnless(os.environ.get('ANALYSIS_TEST_NANO'), 'set ANALYSIS_TEST_NANO')
 class RealFile(unittest.TestCase):

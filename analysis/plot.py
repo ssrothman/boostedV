@@ -34,6 +34,8 @@ def main():
     ap.add_argument('--width', default='none', choices=['none', 'linear', 'log'])
     ap.add_argument('--stack', action='store_true')
     ap.add_argument('--ratio', metavar='LEGEND', help='ratio panel with this curve as denominator')
+    ap.add_argument('--ratio-sum', metavar='PREFIX',
+                    help='ratio panel of the sum of all samples to the sum of those starting with PREFIX')
     ap.add_argument('--logx', action='store_true')
     ap.add_argument('--logy', action='store_true')
     ap.add_argument('--logz', action='store_true')
@@ -68,7 +70,8 @@ def main():
     ndim = {len(h.axes) for h in curves.values()}
     if ndim == {1}:
         fig = plotting.plot1d(curves, norm=a.norm, width=a.width, stack=a.stack, ratio=a.ratio, logx=a.logx,
-                              logy=a.logy, lumi=a.lumi)
+                              logy=a.logy, lumi=a.lumi,
+                              ratioSum=(a.ratio_sum, [k for k in curves if k.startswith(a.ratio_sum)]) if a.ratio_sum else None)
         fig.savefig(a.output, bbox_inches='tight')
         print('wrote', a.output)
     elif ndim == {2}:

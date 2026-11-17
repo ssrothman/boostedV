@@ -65,10 +65,15 @@ def label(ax, lumi=None, fontsize=None):
 
 
 def plot1d(hists, norm='none', width='none', stack=False, ratio=None, logx=False, logy=False, xlabel=None,
-           ylabel=None, lumi=None):
-    """hists: {legend: 1D Hist}, all with the same binning; ratio: legend of the denominator, or None."""
+           ylabel=None, lumi=None, ratioSum=None):
+    """hists: {legend: 1D Hist}, all with the same binning; ratio: legend of the denominator, or None.
+
+    ratioSum: (label, legends); the ratio panel shows (sum of all curves) / (sum of those legends); it needs norm
+    'none' and excludes `ratio`."""
     hep.style.use('CMS')
-    if ratio is not None:
+    if ratioSum is not None and (ratio is not None or norm != 'none'):
+        raise ValueError('ratioSum needs norm none and no ratio')
+    if ratio is not None or ratioSum is not None:
         fig, (ax, rax) = plt.subplots(2, 1, sharex=True, gridspec_kw={'height_ratios': [3, 1], 'hspace': 0.05})
     else:
         fig, ax = plt.subplots()
@@ -82,7 +87,24 @@ def plot1d(hists, norm='none', width='none', stack=False, ratio=None, logx=False
     else:
         for n in names:
             hep.histplot(vals[n][0], edges, yerr=vals[n][1], label=n, ax=ax)
-    if rax is not None:
+    if ratioSum is not None:
+        rlabel, denNames = ratioSum
+        den = sum(vals[n][0] for n in denNames)
+        rest = [n for n in names if n not in denNames]
+        num = den + sum(vals[n][0] for n in rest)
+        # the rest is independent of the denominator, so ratio - 1 = rest / den
+        err = np.sqrt(sum(vals[n][1] ** 2 for n in rest)) / np.abs(den) if rest else np.zeros_like(den)
+        with np.errstate(divide='ignore', invalid='ignore'):
+            hep.histplot(num / den, edges, yerr=err, ax=rax, color='black')
+        rax.axhline(1, color='gray', lw=1)
+        with np.errstate(divide='ignore', invalid='ignore'):
+            r = (num / den)[np.isfinite(num / den) & (den > 0)]
+        if len(r):
+            pad = 0.1 * max(r.max() - r.min(), 0.02)
+            rax.set_ylim(min(r.min(), 1) - pad, r.max() + pad)
+        rax.set_ylabel('all / %s' % rlabel)
+        rax.set_xlabel(xlabel or first.axes[0].label)
+    elif rax is not None:
         den = vals[ratio][0]
         for n in names:
             if n == ratio:
