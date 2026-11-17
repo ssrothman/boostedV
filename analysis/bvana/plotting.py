@@ -38,6 +38,20 @@ def reduce(h, slices=(), project=None):
     return h
 
 
+def group(curves, specs):
+    """specs: 'NAME=PREFIX' strings; the curves whose legend starts with PREFIX are summed into NAME (others kept)."""
+    out = dict(curves)
+    for spec in specs:
+        name, prefix = spec.split('=', 1)
+        members = [k for k in out if k.startswith(prefix)]
+        if not members:
+            raise ValueError('group %s: no curve starts with %r' % (name, prefix))
+        total = sum((out[k] for k in members[1:]), out[members[0]].copy())
+        out = {(name if k == members[0] else k): (total if k == members[0] else v)
+               for k, v in out.items() if k not in members[1:]}
+    return out
+
+
 def values(h, norm='none', width='none'):
     """(values, errors) of a 1D histogram after the requested normalisation and bin-width division."""
     v, var = h.values(), h.variances()
@@ -65,11 +79,12 @@ def label(ax, lumi=None, fontsize=None):
 
 
 def plot1d(hists, norm='none', width='none', stack=False, ratio=None, logx=False, logy=False, xlabel=None,
-           ylabel=None, lumi=None, ratioSum=None):
+           ylabel=None, lumi=None, ratioSum=None, ylimRel=None):
     """hists: {legend: 1D Hist}, all with the same binning; ratio: legend of the denominator, or None.
 
-    ratioSum: (label, legends); the ratio panel shows (sum of all curves) / (sum of those legends); it needs norm
-    'none' and excludes `ratio`."""
+    ylimRel: (lo, hi) of the main-panel y axis as multiples of the largest bin of the (stacked) total.
+    ratioSum: (label, legends); the ratio panel shows (D + X) / D for each remaining curve X and for their sum, with D
+    the sum of those legends; it needs norm 'none' and excludes `ratio`."""
     hep.style.use('CMS')
     if ratioSum is not None and (ratio is not None or norm != 'none'):
         raise ValueError('ratioSum needs norm none and no ratio')
@@ -91,18 +106,23 @@ def plot1d(hists, norm='none', width='none', stack=False, ratio=None, logx=False
         rlabel, denNames = ratioSum
         den = sum(vals[n][0] for n in denNames)
         rest = [n for n in names if n not in denNames]
-        num = den + sum(vals[n][0] for n in rest)
-        # the rest is independent of the denominator, so ratio - 1 = rest / den
-        err = np.sqrt(sum(vals[n][1] ** 2 for n in rest)) / np.abs(den) if rest else np.zeros_like(den)
-        with np.errstate(divide='ignore', invalid='ignore'):
-            hep.histplot(num / den, edges, yerr=err, ax=rax, color='black')
+        colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+        lines = [(n, vals[n][0], vals[n][1], colors[names.index(n) % len(colors)]) for n in rest]
+        if len(rest) > 1:
+            lines.append(('all', sum(vals[n][0] for n in rest), np.sqrt(sum(vals[n][1] ** 2 for n in rest)), 'black'))
+        r = []
+        # each rest sample is independent of the denominator, so (den + rest) / den - 1 = rest / den
+        for n, v, e, c in lines:
+            with np.errstate(divide='ignore', invalid='ignore'):
+                ratio = 1 + v / den
+                hep.histplot(ratio, edges, yerr=e / np.abs(den), ax=rax, color=c)
+                r.append(ratio[np.isfinite(ratio) & (den > 0)])
         rax.axhline(1, color='gray', lw=1)
-        with np.errstate(divide='ignore', invalid='ignore'):
-            r = (num / den)[np.isfinite(num / den) & (den > 0)]
+        r = np.concatenate(r) if r else np.array([])
         if len(r):
             pad = 0.1 * max(r.max() - r.min(), 0.02)
             rax.set_ylim(min(r.min(), 1) - pad, r.max() + pad)
-        rax.set_ylabel('all / %s' % rlabel)
+        rax.set_ylabel('(%s + X) / %s' % (rlabel, rlabel))
         rax.set_xlabel(xlabel or first.axes[0].label)
     elif rax is not None:
         den = vals[ratio][0]
@@ -117,6 +137,9 @@ def plot1d(hists, norm='none', width='none', stack=False, ratio=None, logx=False
     else:
         ax.set_xlabel(xlabel or first.axes[0].label)
     ax.set_ylabel(ylabel or defaultYLabel(norm, width))
+    if ylimRel is not None:
+        top = sum(vals[n][0] for n in names).max() if stack else max(vals[n][0].max() for n in names)
+        ax.set_ylim(ylimRel[0] * top, ylimRel[1] * top)
     for a in (ax, rax):
         if a is not None and logx:
             a.set_xscale('log')

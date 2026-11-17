@@ -23,7 +23,7 @@ python3 plot.py out.coffea --hist E1CHelicity --region ZmumuReco --samples TT -o
 - `run.py` output: `hists[hist][region][sample]` (`hist.Hist`), `cutflow[region][sample][cut]` (`n`, `sumw`, `jets`),
   `sumw[sample]`.
 - `plot.py`: overlay samples (default), regions (`--regions`), or the bins of an axis (`--split`); `--slice AXIS=LO:HI`
-  (bin edges), `--project`, `--norm area`, `--width linear|log`, `--stack`, `--ratio LEGEND`, log axes. Two remaining
+  (bin edges), `--project`, `--norm area`, `--width linear|log`, `--stack`, `--ratio LEGEND`, `--ratio-sum PREFIX` (pad: (D + X)/D per other sample and for their sum, D = samples starting with PREFIX), `--group NAME=PREFIX` (sum samples into one curve; empty PREFIX = all), log axes. Two remaining
   axes give a map. Label: "CMS Simulation Work in progress".
 
 ## Configuration (`configs/zxtest.yaml`)

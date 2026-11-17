@@ -1,0 +1,128 @@
+# Boosted Z(mumu)+jet plotting analysis of the ZX_test NANO (simulation/configs/ZX_test.yaml): kinematics, E2C vs Delta R and
+# vs jet pT x Delta R (full and perturbative, pT x Delta R > 2 GeV), E2C in jet |eta| bins, E1C projections.
+# Syntax: bvana/config.py, bvana/expr.py, bvana/histograms.py.
+
+variables:
+  tau21: jets.tau2 / jets.tau1
+  dRjZ: deltaR(jets, boson)                     # jet-level
+  ptBalance: jets.pt / boson.pt                 # jet-level
+
+binning:
+  zpt: {regular: [60, 0, 1200], label: 'Z $p_T$ [GeV]'}
+  zmass: {regular: [60, 60, 122], label: '$m_{\ell\ell}$ [GeV]'}
+  lpt: {regular: [50, 0, 1000], label: 'lepton $p_T$ [GeV]'}
+  jetpt: {regular: [60, 200, 1400], label: 'jet $p_T$ [GeV]'}
+  jetptSlices: {edges: [200, 300, 400, 600, 1000, 3000], label: 'jet $p_T$ [GeV]'}
+  eta: {regular: [48, -2.4, 2.4], label: '$\eta$'}
+  msd: {regular: [50, 0, 250], label: '$m_{SD}$ [GeV]'}
+  unit: {regular: [50, 0, 1]}
+  njet: {integer: [0, 6], label: 'number of jets'}
+  dR: {log: [50, 1.0e-3, 1.0], label: '$\Delta R$'}
+  theta: {regular: [40, 0, 3.141592653589793], label: '$\theta$'}
+  logTheta: {log: [40, 1.0e-3, 1.0], label: '$\theta$ (jet axis)'}
+  logDRProjective: {log: [40, 1.0e-3, 1.0], label: '$\Delta R$'}   # E1CProjective theta is the (eta, phi) distance to the jet axis
+  absEta: {edges: [0, 0.5, 1.0, 1.5, 2.0], label: '$|\eta|$'}
+  xJetPt: {log: [90, 0.1, 2.0e+4], label: '$p_T^{jet}\,\Delta R$ [GeV]'}
+  xJetPtPert: {log: [72, 2.0, 2.0e+4], label: '$p_T^{jet}\,\Delta R$ [GeV]'}   # 18 bins/decade, same edges as xJetPt above 2 GeV
+  msdBins: {edges: [0, 30, 60, 100, 150, 250], label: '$m_{SD}$ [GeV]'}
+  scoreBins: {edges: [0, 0.2, 0.5, 0.8, 0.95, 1.0], label: 'ParT W/Z vs QCD'}
+  tau21Bins: {edges: [0, 0.2, 0.4, 0.6, 0.8, 1.0], label: '$\tau_2/\tau_1$'}
+  phi: {regular: [40, -3.141592653589793, 3.141592653589793], label: '$\phi$'}
+
+regions:
+  ZmumuBoostedReco:
+    level: reco
+    channel: Zmumu
+    cuts:
+      - all(leptons.mediumId)          # lepton cut: every selected muon
+      - boson.pt > 200
+      - jets.pt > 200                  # jet cut: drops jets and their EEC entries
+      - abs(jets.eta) < 2.0
+      - num(jets) >= 1                 # event cut
+
+histograms:
+  bosonPt: {axes: [{var: boson.pt, bins: zpt}]}
+  bosonMass: {axes: [{var: boson.mass, bins: zmass}]}
+  nJets: {axes: [{var: num(jets), bins: njet}]}
+  leptonPt: {granularity: lepton, axes: [{var: leptons.pt, bins: lpt}]}
+  jetPt: {granularity: jet, axes: [{var: jets.pt, bins: jetpt}]}
+  jetEta: {granularity: jet, axes: [{var: jets.eta, bins: eta}]}
+  jetMsd: {granularity: jet, axes: [{var: jets.msoftdrop, bins: msd}]}
+  jetTau21: {granularity: jet, axes: [{var: tau21, bins: unit}]}
+  jetWvsQCD: {granularity: jet, axes: [{var: jets.globalParT3_WvsQCD, bins: unit}]}
+  E2Cn1:
+    granularity: eec:E2Cn1
+    cuts: [eec.dR > 0]                 # drop the self-pair (dR = 0) entries
+    axes: [{var: eec.dR, bins: dR, name: dR}, {var: jets.pt, bins: jetptSlices, name: jetpt}]
+  E2Cn1_pert:
+    granularity: eec:E2Cn1
+    cuts: [eec.dR * jets.pt > 2]       # perturbative regime
+    axes: [{var: eec.dR, bins: dR, name: dR}, {var: jets.pt, bins: jetptSlices, name: jetpt}]
+  E2Cn1_xJetPt:
+    granularity: eec:E2Cn1
+    cuts: [eec.dR > 0]
+    axes: [{var: eec.dR * jets.pt, bins: xJetPt, name: x}, {var: jets.pt, bins: jetptSlices, name: jetpt}]
+  E2Cn1_xJetPt_pert:
+    granularity: eec:E2Cn1
+    cuts: [eec.dR * jets.pt > 2]
+    axes: [{var: eec.dR * jets.pt, bins: xJetPtPert, name: x}, {var: jets.pt, bins: jetptSlices, name: jetpt}]
+  E2Cn1_eta:
+    granularity: eec:E2Cn1
+    cuts: [eec.dR > 0]
+    axes: [{var: eec.dR, bins: dR, name: dR}, {var: jets.pt, bins: jetptSlices, name: jetpt}, {var: abs(jets.eta), bins: absEta, name: absEta}]
+  E2Cn2:
+    granularity: eec:E2Cn2
+    cuts: [eec.dR > 0]                 # drop the self-pair (dR = 0) entries
+    axes: [{var: eec.dR, bins: dR, name: dR}, {var: jets.pt, bins: jetptSlices, name: jetpt}]
+  E2Cn2_pert:
+    granularity: eec:E2Cn2
+    cuts: [eec.dR * jets.pt > 2]       # perturbative regime
+    axes: [{var: eec.dR, bins: dR, name: dR}, {var: jets.pt, bins: jetptSlices, name: jetpt}]
+  E2Cn2_xJetPt:
+    granularity: eec:E2Cn2
+    cuts: [eec.dR > 0]
+    axes: [{var: eec.dR * jets.pt, bins: xJetPt, name: x}, {var: jets.pt, bins: jetptSlices, name: jetpt}]
+  E2Cn2_xJetPt_pert:
+    granularity: eec:E2Cn2
+    cuts: [eec.dR * jets.pt > 2]
+    axes: [{var: eec.dR * jets.pt, bins: xJetPtPert, name: x}, {var: jets.pt, bins: jetptSlices, name: jetpt}]
+  E2Cn2_eta:
+    granularity: eec:E2Cn2
+    cuts: [eec.dR > 0]
+    axes: [{var: eec.dR, bins: dR, name: dR}, {var: jets.pt, bins: jetptSlices, name: jetpt}, {var: abs(jets.eta), bins: absEta, name: absEta}]
+  E2Cn1_msd:
+    granularity: eec:E2Cn1
+    cuts: [eec.dR > 0]
+    axes: [{var: eec.dR, bins: dR, name: dR}, {var: jets.msoftdrop, bins: msdBins, name: msd}]
+  E2Cn1_WvsQCD:
+    granularity: eec:E2Cn1
+    cuts: [eec.dR > 0]
+    axes: [{var: eec.dR, bins: dR, name: dR}, {var: jets.globalParT3_WvsQCD, bins: scoreBins, name: score}]
+  E2Cn1_tau21:
+    granularity: eec:E2Cn1
+    cuts: [eec.dR > 0]
+    axes: [{var: eec.dR, bins: dR, name: dR}, {var: tau21, bins: tau21Bins, name: tau21}]
+  E2Cn2_msd:
+    granularity: eec:E2Cn2
+    cuts: [eec.dR > 0]
+    axes: [{var: eec.dR, bins: dR, name: dR}, {var: jets.msoftdrop, bins: msdBins, name: msd}]
+  E2Cn2_WvsQCD:
+    granularity: eec:E2Cn2
+    cuts: [eec.dR > 0]
+    axes: [{var: eec.dR, bins: dR, name: dR}, {var: jets.globalParT3_WvsQCD, bins: scoreBins, name: score}]
+  E2Cn2_tau21:
+    granularity: eec:E2Cn2
+    cuts: [eec.dR > 0]
+    axes: [{var: eec.dR, bins: dR, name: dR}, {var: tau21, bins: tau21Bins, name: tau21}]
+  E1CLab:
+    granularity: eec:E1CLab
+    axes: [{var: eec.theta, bins: logTheta, name: theta}, {var: eec.phi, bins: phi, name: phi}]
+  E1CHelicity:
+    granularity: eec:E1CHelicity
+    axes: [{var: eec.theta, bins: theta, name: theta}, {var: eec.phi, bins: phi, name: phi}]
+  E1CCS:
+    granularity: eec:E1CCS
+    axes: [{var: eec.theta, bins: theta, name: theta}, {var: eec.phi, bins: phi, name: phi}]
+  E1CProjective:
+    granularity: eec:E1CProjective
+    axes: [{var: eec.theta, bins: logDRProjective, name: theta}, {var: eec.phi, bins: phi, name: phi}]
