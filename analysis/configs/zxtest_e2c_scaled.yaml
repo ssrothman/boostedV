@@ -1,0 +1,80 @@
+# E2C with the x axis scaled by a momentum: (jet pT, dilepton pT, jet energy, dilepton energy) x Delta R.
+# Dilepton-scaled variants also renormalise the EEC to the dilepton pT. Based on zxtest.yaml; the example analysis of the ZX_test NANO (simulation/configs/ZX_test.yaml): kinematics and the unbinned EECs.
+# Syntax: bvana/config.py, bvana/expr.py, bvana/histograms.py.
+
+variables:
+  tau21: jets.tau2 / jets.tau1
+  dRjZ: deltaR(jets, boson)                     # jet-level
+  ptBalance: jets.pt / boson.pt                 # jet-level
+
+binning:
+  zpt: {regular: [60, 0, 1200], label: 'Z $p_T$ [GeV]'}
+  zmass: {regular: [60, 60, 122], label: '$m_{\ell\ell}$ [GeV]'}
+  lpt: {regular: [50, 0, 1000], label: 'lepton $p_T$ [GeV]'}
+  jetpt: {regular: [60, 200, 1400], label: 'jet $p_T$ [GeV]'}
+  jetptSlices: {edges: [200, 300, 400, 600, 1000, 3000], label: 'jet $p_T$ [GeV]'}
+  eta: {regular: [48, -2.4, 2.4], label: '$\eta$'}
+  msd: {regular: [50, 0, 250], label: '$m_{SD}$ [GeV]'}
+  unit: {regular: [50, 0, 1]}
+  njet: {integer: [0, 6], label: 'number of jets'}
+  dR: {log: [50, 1.0e-3, 1.0], label: '$\Delta R$'}
+  theta: {regular: [40, 0, 3.141592653589793], label: '$\theta$'}
+  logTheta: {log: [40, 1.0e-3, 1.0], label: '$\theta$ (jet axis)'}
+  xJetPt: {log: [90, 0.1, 2.0e+4], label: '$p_T^{jet}\\,\\Delta R$ [GeV]'}
+  xLlPt: {log: [90, 0.1, 2.0e+4], label: '$p_T^{\\ell\\ell}\\,\\Delta R$ [GeV]'}
+  xJetE: {log: [90, 0.1, 2.0e+4], label: '$E^{jet}\\,\\Delta R$ [GeV]'}
+  xLlE: {log: [90, 0.1, 2.0e+4], label: '$E^{\\ell\\ell}\\,\\Delta R$ [GeV]'}
+  phi: {regular: [40, -3.141592653589793, 3.141592653589793], label: '$\phi$'}
+
+regions:
+  ZmumuReco: {level: reco, channel: Zmumu}
+  ZeeReco: {level: reco, channel: Zee}
+  ZmumuGen: {level: gen, channel: Zmumu}
+  ZeeGen: {level: gen, channel: Zee}
+  ZmumuBoostedReco:
+    level: reco
+    channel: Zmumu
+    cuts:
+      - all(leptons.mediumId)          # lepton cut: every selected muon
+      - boson.pt > 200
+      - jets.pt > 200                  # jet cut: drops jets and their EEC entries
+      - abs(jets.eta) < 2.0
+      - num(jets) >= 1                 # event cut
+
+histograms:
+  E2Cn1_xJetPt:
+    granularity: eec:E2Cn1
+    cuts: [eec.dR > 0]
+    axes: [{var: eec.dR * jets.pt, bins: xJetPt, name: x}, {var: jets.pt, bins: jetptSlices, name: jetpt}]
+  E2Cn1_xLlPt:
+    granularity: eec:E2Cn1
+    cuts: [eec.dR > 0]
+    renormalise: boson.pt + 0 * jets.pt      # jet-level expression required; the 0 * jets.pt term only sets the level
+    axes: [{var: eec.dR * boson.pt, bins: xLlPt, name: x}, {var: jets.pt, bins: jetptSlices, name: jetpt}]
+  E2Cn1_xJetE:
+    granularity: eec:E2Cn1
+    cuts: [eec.dR > 0]
+    axes: [{var: eec.dR * jets.energy, bins: xJetE, name: x}, {var: jets.pt, bins: jetptSlices, name: jetpt}]
+  E2Cn1_xLlE:
+    granularity: eec:E2Cn1
+    cuts: [eec.dR > 0]
+    renormalise: boson.pt + 0 * jets.pt      # jet-level expression required; the 0 * jets.pt term only sets the level
+    axes: [{var: eec.dR * boson.energy, bins: xLlE, name: x}, {var: jets.pt, bins: jetptSlices, name: jetpt}]
+  E2Cn2_xJetPt:
+    granularity: eec:E2Cn2
+    cuts: [eec.dR > 0]
+    axes: [{var: eec.dR * jets.pt, bins: xJetPt, name: x}, {var: jets.pt, bins: jetptSlices, name: jetpt}]
+  E2Cn2_xLlPt:
+    granularity: eec:E2Cn2
+    cuts: [eec.dR > 0]
+    renormalise: boson.pt + 0 * jets.pt      # jet-level expression required; the 0 * jets.pt term only sets the level
+    axes: [{var: eec.dR * boson.pt, bins: xLlPt, name: x}, {var: jets.pt, bins: jetptSlices, name: jetpt}]
+  E2Cn2_xJetE:
+    granularity: eec:E2Cn2
+    cuts: [eec.dR > 0]
+    axes: [{var: eec.dR * jets.energy, bins: xJetE, name: x}, {var: jets.pt, bins: jetptSlices, name: jetpt}]
+  E2Cn2_xLlE:
+    granularity: eec:E2Cn2
+    cuts: [eec.dR > 0]
+    renormalise: boson.pt + 0 * jets.pt      # jet-level expression required; the 0 * jets.pt term only sets the level
+    axes: [{var: eec.dR * boson.energy, bins: xLlE, name: x}, {var: jets.pt, bins: jetptSlices, name: jetpt}]
