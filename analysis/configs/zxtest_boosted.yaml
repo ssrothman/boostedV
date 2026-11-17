@@ -114,6 +114,38 @@ histograms:
     granularity: eec:E2Cn2
     cuts: [eec.dR > 0]
     axes: [{var: eec.dR, bins: dR, name: dR}, {var: tau21, bins: tau21Bins, name: tau21}]
+  E2Cn1_xJetPt_msd:
+    granularity: eec:E2Cn1
+    cuts: [eec.dR > 0]
+    axes: [{var: eec.dR * jets.pt, bins: xJetPt, name: x}, {var: jets.msoftdrop, bins: msdBins, name: msd}]
+  E2Cn1_xJetPt_WvsQCD:
+    granularity: eec:E2Cn1
+    cuts: [eec.dR > 0]
+    axes: [{var: eec.dR * jets.pt, bins: xJetPt, name: x}, {var: jets.globalParT3_WvsQCD, bins: scoreBins, name: score}]
+  E2Cn1_xJetPt_tau21:
+    granularity: eec:E2Cn1
+    cuts: [eec.dR > 0]
+    axes: [{var: eec.dR * jets.pt, bins: xJetPt, name: x}, {var: tau21, bins: tau21Bins, name: tau21}]
+  E2Cn1_xJetPt_eta:
+    granularity: eec:E2Cn1
+    cuts: [eec.dR > 0]
+    axes: [{var: eec.dR * jets.pt, bins: xJetPt, name: x}, {var: jets.pt, bins: jetptSlices, name: jetpt}, {var: abs(jets.eta), bins: absEta, name: absEta}]
+  E2Cn2_xJetPt_msd:
+    granularity: eec:E2Cn2
+    cuts: [eec.dR > 0]
+    axes: [{var: eec.dR * jets.pt, bins: xJetPt, name: x}, {var: jets.msoftdrop, bins: msdBins, name: msd}]
+  E2Cn2_xJetPt_WvsQCD:
+    granularity: eec:E2Cn2
+    cuts: [eec.dR > 0]
+    axes: [{var: eec.dR * jets.pt, bins: xJetPt, name: x}, {var: jets.globalParT3_WvsQCD, bins: scoreBins, name: score}]
+  E2Cn2_xJetPt_tau21:
+    granularity: eec:E2Cn2
+    cuts: [eec.dR > 0]
+    axes: [{var: eec.dR * jets.pt, bins: xJetPt, name: x}, {var: tau21, bins: tau21Bins, name: tau21}]
+  E2Cn2_xJetPt_eta:
+    granularity: eec:E2Cn2
+    cuts: [eec.dR > 0]
+    axes: [{var: eec.dR * jets.pt, bins: xJetPt, name: x}, {var: jets.pt, bins: jetptSlices, name: jetpt}, {var: abs(jets.eta), bins: absEta, name: absEta}]
   E1CLab:
     granularity: eec:E1CLab
     axes: [{var: eec.theta, bins: logTheta, name: theta}, {var: eec.phi, bins: phi, name: phi}]
