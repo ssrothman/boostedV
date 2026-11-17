@@ -65,7 +65,7 @@ def main():
     ap.add_argument('--name', default='local')
     ap.add_argument('--lumi', type=float)
     ap.add_argument('--workers', type=int, default=4)
-    ap.add_argument('--chunksize', type=int, default=200000)
+    ap.add_argument('--chunksize', type=int, default=20000, help='events per chunk; peak memory grows with it')
     ap.add_argument('-o', '--output', required=True)
     ap.add_argument('--export')
     ap.add_argument('--backend', default='local', choices=['local', 'condor'])

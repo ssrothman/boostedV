@@ -4,7 +4,7 @@ collect step that accumulates the per-job outputs.
 
   python3 run.py CONFIG --tag TAG [--lumi PB] -o out.coffea --backend condor [--files-per-job 20] [--cpus 1]
   python3 condor.py status  work/<name>
-  python3 condor.py resubmit work/<name>          jobs that ended without an output
+  python3 condor.py resubmit work/<name> [--memory MB] [--chunksize N]   jobs that ended without an output
   python3 condor.py collect work/<name> [--allow-missing]      writes the -o path given at submission
 Work directory work/<name>/: inputs/ (code snapshot, per-job filesets), parts/, logs/, state.json.
 """
@@ -86,6 +86,7 @@ def queue(workDir, state, jobs, dryrun):
     if not dryrun:
         c = parseSubmit(condorCommand('condor_submit', os.path.join(workDir, 'submit.jdl')))
         c['jobs'] = list(jobs)   # process k of the cluster runs job jobs[k]
+        c['chunksize'], c['memory'] = state['chunksize'], state['memory']
         state['clusters'].append(c)
     with open(os.path.join(workDir, 'state.json'), 'w') as f:
         json.dump(state, f, indent=1)
@@ -114,6 +115,14 @@ def submit(fileset, args):
     queue(workDir, state, range(len(jobs)), args.dryrun)
     print('%s: %d jobs %s' % (workDir, len(jobs), '(dry run)' if args.dryrun else 'submitted'))
     return workDir
+
+
+def removeFromQueue(state, jobs):
+    """condor_rm every recorded process of these jobs; held jobs stay queued otherwise and would run twice."""
+    for c in state['clusters']:
+        procs = ['%d.%d' % (c['cluster'], p) for p, j in enumerate(c['jobs']) if j in jobs]
+        if procs:   # processes that already left the queue make condor_rm fail, which is fine here
+            subprocess.run(['sh', '-c', '"$0" "$@"', 'condor_rm', '-name', c['schedd']] + procs, capture_output=True)
 
 
 def load(workDir):
@@ -177,6 +186,8 @@ def main():
     ap.add_argument('workdir')
     ap.add_argument('--allow-missing', action='store_true')
     ap.add_argument('--dryrun', action='store_true', help='resubmit: write the JDL, submit nothing')
+    ap.add_argument('--memory', type=int, help='resubmit: new request_memory in MB')
+    ap.add_argument('--chunksize', type=int, help='resubmit: new chunk size (events)')
     a = ap.parse_args()
     state = load(a.workdir)
     st = status(a.workdir)
@@ -193,6 +204,10 @@ def main():
         if not jobs:
             raise SystemExit('nothing to resubmit')
         state['proxy'] = proxyPath()
+        state['memory'] = a.memory or state['memory']
+        state['chunksize'] = a.chunksize or state['chunksize']
+        if not a.dryrun:
+            removeFromQueue(state, jobs)
         queue(a.workdir, state, jobs, a.dryrun)
         print('resubmitted %d jobs: %s' % (len(jobs), ' '.join(map(str, jobs))))
     else:
