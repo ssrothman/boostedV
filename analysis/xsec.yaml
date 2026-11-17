@@ -36,3 +36,13 @@ TbarWplusto4Q_powheg: {xsec: 19.97, source: 'GEN wiki 13.6 TeV top-group table: 
 TBbartoLplusNuBbar-s-channel-4FS_amcatnlo: {xsec: 2.36, source: 'GEN wiki 13.6 TeV top-group table: s-channel top NNLO 7.244 pb x W BR (W->lnu); BR(W->lnu, e+mu+tau)=3x0.1086=0.3258, BR(W->qq)=0.6741'}
 TbarBtoLminusNuB-s-channel-4FS_amcatnlo: {xsec: 1.477, source: 'GEN wiki 13.6 TeV top-group table: s-channel antitop NNLO 4.534 pb x W BR (W->lnu); BR(W->lnu, e+mu+tau)=3x0.1086=0.3258, BR(W->qq)=0.6741'}
 TBbarto2Q-s-channel_powheg: {xsec: 4.883, source: 'GEN wiki 13.6 TeV top-group table: s-channel top NNLO 7.244 pb x W BR (W->qq); BR(W->lnu, e+mu+tau)=3x0.1086=0.3258, BR(W->qq)=0.6741; the dataset holds top only (3000/3000 events have a top, none an antitop)'}
+ZH_Hto2B_Zto2L_powheg: {xsec: null, source: ''}
+ZH_Hto2C_Zto2L_powheg: {xsec: null, source: ''}
+ZH_Hto2Glu_Zto2L_minlo: {xsec: null, source: ''}
+ZH_Zto2L_Hto2Wto4Q_minlo-jhugen: {xsec: null, source: ''}
+ZH_Zto2L_Hto2WtoLNu2Q_minlo-jhugen: {xsec: null, source: ''}
+ggZH_Hto2B_Zto2L_powheg: {xsec: null, source: ''}
+ggZH_Hto2C_Zto2L_powheg: {xsec: null, source: ''}
+ggZH_Hto2Glu_Zto2L_powheg: {xsec: null, source: ''}
+GluGluZH_Zto2L_Hto2Wto4Q_powheg-jhugen: {xsec: null, source: ''}
+GluGluZH_Zto2L_Hto2WtoLNu2Q_powheg-jhugen: {xsec: null, source: ''}
