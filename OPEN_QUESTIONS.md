@@ -44,11 +44,3 @@ Details: `simulation/EventSelection/README.md` § "Muon corrections: points to c
 3. **Coupling conventions.** Get a stated conversion between CMS g′_q, ATLAS axial-vector g_q and the flavour-universal g_q before quoting any comparison (`literature/checkin.md` §6.2).
 4. **Literature ranges and the `plan.tex` step-4 edit.** Decide on the proposal in `literature/checkin.md` §4 and §6.6.
 
-## Not yet verified
-1. CRAB grid sites reading the `/cvmfs/cms-griddata.cern.ch` correction files (only LPC condor workers are checked).
-
-## Literature survey
-Full list: `literature/checkin.md` §6 and `literature/limits.md` §5.
-1. Full texts are missing for ins335604, ins355978 and ins298412 (abstract and HEPData only). Can you provide the PDFs?
-2. Text and HEPData disagree for 1606.00689, 1806.00843, 2607.20246, 2603.21965 and 2606.03222. These are flagged in the tables.
-3. High-pT V+jets cross sections, needed for a Run-3 event-count scale, have not been extracted yet. The proposal is to do this at the start of step 2.
