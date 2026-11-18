@@ -61,7 +61,30 @@ Each expression has a level, which decides what a cut does:
   keeps only the selected jets), and otherwise the jets not vetoed for its channel (`veto<channel>`).
 - A missing value, such as `max()` over no jets, fails a cut and goes to the overflow bin of an axis.
 - EEC entries are filled with event weight × `weight` × `symfactor`.
-- Columns present only at reco level (`msoftdrop`, taggers) need `regions:` limited to reco regions.
+- Columns present only at reco level (`msoftdrop`, taggers) need `regions:` limited to reco regions.- `restFrame: {axis: jet | <axis name>, mass: axis | <GeV>}` (EEC histograms of an E1C with weight Pt, n = 1, frame
+  `jetAxis` about that axis, e.g. `E1CLabSoftDrop` with `axisSoftDrop`). Adds `eec.thetaRest`, `eec.phiRest`,
+  `eec.cosThetaRest` and `eec.ERest` (rest-frame energy / M). `mass: axis` uses the axis' own mass; a number is the
+  boson-mass hypothesis. Every particle is given m_π±. For rest-frame energy weights use
+  `weight: eec.ERest / eec.weight`. See `bvana/frames.py`; the closure against the C++ `E1CHelicity` is in
+  `tests/test_frames.py`.
+
+## Truth spin-density matrix (`truthRho.py`)
+```
+cmsRun ../simulation/configs/lheNano_cfg.py inputFiles=file:in.root outputFile=lhe.root   # LHE tables, every event
+python3 truthRho.py lhe*.root -o rho.json [--absy-max 0.5] [--pt-edges ...]
+```
+ρ of each LHE W/Z (helicity frame, fermion = the decay product with pdgId > 0) per boson, decay mode (lep/had) and V pT
+bin, by spherical-harmonic moments (`bvana/spin.py`). Mass windows: Z 66–116 GeV, W 60–100 GeV.
+
+## Jet-axis study (`axisStudy.py`, `axisDeltaR.py`)
+```
+python3 axisStudy.py nano*.root --rho-json rho.json [--level Reco|Gen] -o axes.md   # rest-frame E1C moments per axis
+python3 axisDeltaR.py nano*.root -o outdir                                            # dR(axis, truth V) plots and table
+```
+Signal NANOs with the axis columns and `E1CLab<axis>` tables. Jets matched to a truth W/Z inside its mass window
+(low-mass gamma* would dominate the rest-frame weights). `axisStudy.py` also needs LHEPart and the unselected truth rho
+of `truthRho.py` (hadronic bins of the same bosons) for the L/T reweighting; it prints paired differences of the
+sensitivity between axes. Documented in the ZX_test AN, Appendix B.
 
 ## Tests
 ```
