@@ -240,6 +240,8 @@ class LoaderRejects(unittest.TestCase):
         self.assertRejected(lambda c: c['observables']['E2C'].update(weight='Charge', n=1.5),
                             'observables/E2C: charge weights need an integer n')
         self.assertRejected(lambda c: c['observables']['E2C'].update(weight='ChargePt'), 'observables/E2C')
+        self.assertRejected(lambda c: c['selection']['reco']['channels']['Zmumu'].pop('vetoes'),
+                            'selection/reco/channels/Zmumu')
         self.assertRejected(lambda c: c['jets']['collections']['Reco']['variations']['TrkDrop'].update(
             dropProbability=1.5), 'jets/collections/Reco/variations/TrkDrop')
 
@@ -733,6 +735,8 @@ class BuiltProcess(unittest.TestCase):
         cfg['aggregation']['channels'] = ['Wmunu']
         p = buildProcess(cfg)
         self.assertEqual(p.ZmumuSel.massMin.value(), 81.0)
+        self.assertEqual(labels(p.ZmumuSel.vetoSrcs), ['vetoMuons', 'vetoElectrons'])
+        self.assertEqual(labels(p.genZeeSel.vetoSrcs), ['genVetoMuons', 'genVetoElectrons'])
         self.assertEqual(p.ZeeSel.massMin.value(), 71.0)
         self.assertEqual(p.ZmumuSel.pairPtMin.value(), 0.0)
         self.assertEqual(p.genZeeSel.pairPtMin.value(), 120.0)

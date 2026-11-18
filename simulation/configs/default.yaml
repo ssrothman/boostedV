@@ -248,6 +248,7 @@ selection:
         triggers: ['HLT_IsoMu24_v*']
         allowMissingTriggers: false
         objects: tightMuons
+        vetoes: [vetoMuons, vetoElectrons]
         leadPtMin: 26.0
         subleadPtMin: 15.0
         massMin: 71.0
@@ -261,6 +262,7 @@ selection:
         triggers: ['HLT_Ele32_WPTight_Gsf_v*']
         allowMissingTriggers: false
         objects: tightElectrons
+        vetoes: [vetoMuons, vetoElectrons]
         leadPtMin: 35.0
         subleadPtMin: 15.0
         massMin: 71.0
@@ -346,6 +348,7 @@ selection:
       Zmumu:
         type: dilepton
         objects: genTightMuons
+        vetoes: [genVetoMuons, genVetoElectrons]
         leadPtMin: 26.0
         subleadPtMin: 15.0
         massMin: 71.0
@@ -357,6 +360,7 @@ selection:
       Zee:
         type: dilepton
         objects: genTightElectrons
+        vetoes: [genVetoMuons, genVetoElectrons]
         leadPtMin: 35.0
         subleadPtMin: 15.0
         massMin: 71.0

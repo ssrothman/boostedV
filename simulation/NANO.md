@@ -124,9 +124,13 @@ are empty otherwise.
 | `SelectionMET`, `GenSelectionMET` | singleton | `pt`, `phi` of the MET the leptonMET selectors use |
 
 The channel types, with the YAML keys of each:
-- `dilepton` (`objects`, `leadPtMin`, `subleadPtMin`, `massMin`, `massMax`, `oppositeCharge`, `targetMass`,
+- `dilepton` (`objects`, `vetoes`, `leadPtMin`, `subleadPtMin`, `massMin`, `massMax`, `oppositeCharge`, `targetMass`,
   `pairPtMin`): the pair passing the cuts with mass closest to `targetMass`; the channel fails if that pair's pt is
-  below `pairPtMin` (a lower-pt pair is not replaced by another). `ZX_test.yaml` uses 200 GeV at reco and gen.
+  below `pairPtMin` (a lower-pt pair is not replaced by another), or if any candidate of the `vetoes` collections lies
+  farther than ΔR = 0.01 from both selected leptons (the pair itself, also present in a same-flavour veto collection,
+  is not vetoed). `ZX_test.yaml` uses 200 GeV at reco and gen, and vetoes `vetoMuons`/`vetoElectrons` (loose ID and
+  isolation, pt > 10) at reco and their gen equivalents. With reco dressing, each collection is dressed on its own, so a
+  selected lepton and its copy in a veto collection can differ (as for `leptonMET`); both configurations dress nothing.
 - `leptonMET` (`objects`, `vetoes`, `ptMin`, `metMin`, `mtMin`, `neutrino`): exactly one `objects` lepton above `ptMin`, no
   other object in `vetoes`, MET > `metMin`, m_T > `mtMin`. `neutrino: {type, ...}` names the neutrino reconstruction
   module (`WMassNeutrinoProducer`: `wMass`; `ZeroPzNeutrinoProducer`: none); it does not affect the selection.

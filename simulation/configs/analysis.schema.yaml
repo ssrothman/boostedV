@@ -81,13 +81,14 @@ definitions:
     oneOf:
       - type: object
         additionalProperties: false
-        required: [type, triggers, allowMissingTriggers, objects, leadPtMin, subleadPtMin, massMin, massMax,
+        required: [type, triggers, allowMissingTriggers, objects, vetoes, leadPtMin, subleadPtMin, massMin, massMax,
                    oppositeCharge, targetMass, pairPtMin, backToBack]
         properties:
           type: {const: dilepton}
           triggers: {$ref: '#/definitions/strList', minItems: 1}
           allowMissingTriggers: {type: boolean}
           objects: {$ref: '#/definitions/str'}
+          vetoes: {$ref: '#/definitions/strList'}   # any candidate not within dR 0.01 of the selected pair fails the event
           leadPtMin: {$ref: '#/definitions/num'}
           subleadPtMin: {$ref: '#/definitions/num'}
           massMin: {$ref: '#/definitions/num'}
@@ -127,11 +128,12 @@ definitions:
     oneOf:
       - type: object
         additionalProperties: false
-        required: [type, objects, leadPtMin, subleadPtMin, massMin, massMax,
+        required: [type, objects, vetoes, leadPtMin, subleadPtMin, massMin, massMax,
                    oppositeCharge, targetMass, pairPtMin, backToBack]
         properties:
           type: {const: dilepton}
           objects: {$ref: '#/definitions/str'}
+          vetoes: {$ref: '#/definitions/strList'}
           leadPtMin: {$ref: '#/definitions/num'}
           subleadPtMin: {$ref: '#/definitions/num'}
           massMin: {$ref: '#/definitions/num'}
