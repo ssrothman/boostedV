@@ -45,7 +45,8 @@ def restFrame(theta, phi, pt, axisPt, axisEta, axisPhi, M, particleMass=M_PION):
 def addRestFrame(entries, perJet, jets, axis, mass, particleMass=M_PION):
     """entries [event][jet][entry] (fields theta, phi, weight), the per-jet table (E_jet, n) and jets aligned with them.
     axis: 'jet' or an axis name (jet columns <axis>Pt/Eta/Phi/Mass); mass: 'axis' (the axis' own mass), a number
-    (GeV) or a per-jet array. Returns entries with the restFrame() fields added."""
+    (GeV) or a per-jet array; it must be >= 2 particleMass for every jet with entries. Returns entries with the restFrame()
+    fields added."""
     if not ak.all(ak.flatten(perJet.n) == 1):
         raise ValueError('restFrame needs E1C weights with n = 1')
     if axis == 'jet':
@@ -58,9 +59,13 @@ def addRestFrame(entries, perJet, jets, axis, mass, particleMass=M_PION):
         return ak.to_numpy(ak.flatten(ak.broadcast_arrays(x, entries.weight)[0], axis=None)).astype(float)
 
     flat = lambda f: ak.to_numpy(ak.flatten(entries[f], axis=None)).astype(float)
+    Mflat = perEntry(M)
+    # Below two particle masses no system of these particles has this rest frame (e.g. a massless parton axis).
+    if np.any(~(Mflat >= 2 * particleMass)):
+        raise ValueError('restFrame: boost mass below 2 x particleMass (%g GeV) for axis %s; use a fixed mass hypothesis'
+                         % (particleMass, axis))
     pt = flat('weight') * perEntry(perJet.E_jet)
-    out = restFrame(flat('theta'), flat('phi'), pt, perEntry(apt), perEntry(aeta), perEntry(aphi), perEntry(M),
-                    particleMass)
+    out = restFrame(flat('theta'), flat('phi'), pt, perEntry(apt), perEntry(aeta), perEntry(aphi), Mflat, particleMass)
     counts1, counts2 = ak.num(entries.weight, axis=1), ak.flatten(ak.num(entries.weight, axis=2))
     for k, v in out.items():
         entries = ak.with_field(entries, ak.unflatten(ak.unflatten(v, counts2), counts1), k)

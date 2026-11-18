@@ -59,6 +59,26 @@ class RestFrameRoundTrip(unittest.TestCase):
         self.assertGreater(np.max(np.abs(out['cosThetaRest'] - cosT)), 1e-3)
 
 
+class AddRestFrameMassGuard(unittest.TestCase):
+    """A massless axis (e.g. a parton truth axis) with mass='axis' raises; jets without entries are not checked."""
+
+    @staticmethod
+    def inputs(masses):
+        entries = ak.Array([[[{'theta': 0.1, 'phi': 0.2, 'weight': 0.5}], []]])
+        perJet = ak.Array([[{'E_jet': 400.0, 'n': 1}, {'E_jet': 300.0, 'n': 1}]])
+        jets = ak.Array([[{'pt': 400.0, 'eta': 0.3, 'phi': 0.1, 'mass': m} for m in masses]])
+        return entries, perJet, jets
+
+    def test_guard(self):
+        with self.assertRaises(ValueError):
+            frames.addRestFrame(*self.inputs([0.0, 90.0]), 'jet', 'axis')
+        with self.assertRaises(ValueError):
+            frames.addRestFrame(*self.inputs([0.2, 90.0]), 'jet', 'axis')
+        out = frames.addRestFrame(*self.inputs([90.0, 0.0]), 'jet', 'axis')
+        self.assertEqual(ak.num(out.thetaRest, axis=2).tolist(), [[1, 0]])
+        frames.addRestFrame(*self.inputs([0.0, 0.0]), 'jet', 91.19)
+
+
 @unittest.skipUnless(os.environ.get('ANALYSIS_TEST_NANO'), 'set ANALYSIS_TEST_NANO (a ZX_test NANO with writeConstituents=1)')
 class ClosureAgainstCpp(unittest.TestCase):
     def test_e1clab_boosted_equals_e1chelicity(self):
