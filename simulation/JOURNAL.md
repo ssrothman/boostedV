@@ -28,6 +28,8 @@
 - 2026-11-17 Alternative jet axes, subjet JEC/JER soft-drop mass, charge/energy correlators
 - 2026-11-18 Truth-rho details: generator sin²θ_W, selection bias, plain charge weight
 - 2026-11-18 Truth axis: gamma/Z/W/H bosons, hard-process parton fallback
+- 2026-11-18 AN review 2: vertex boundaries, 150 GeV gen jets, extra-jet veto, E1C frame scheme, veto-map occupancy
+- 2026-11-18 Truth rho: realistic window, full tables, joint helicities, shape validation, singly-resonant Z->4f
 
 ## 2026-11-11 A.2 setup and DataFormats
 - Plan: `stepA2_plan.md`. New local repos (remotes pending): `EECDataFormats` (pkg `SRothman/DataFormats`),
@@ -578,3 +580,34 @@ with the 2026-11-17 NANOs was wiped, so the inputs were regenerated there).
   previously unmatched reco jets get status 3. DY PTLL 400-600: all 388 reco jets get status 3.
 - Parton masses in the record: 0 for gluons and MadGraph light quarks; Powheg u/d 0.33, s 0.5, b 4.8 GeV.
   `addRestFrame` raises only below 2 m_π, so parton axes must be boosted with a fixed mass.
+
+## 2026-11-18 AN review 2: vertex boundaries, 150 GeV gen jets, extra-jet veto, E1C frame scheme, veto-map occupancy
+- **goodVertex:** `|z| <= 24`, `rho <= 2`, exactly the NanoAOD `goodPvCut`. The same applies to `npvsGood` and the MET XY
+  vertex count. A boundary module test fails with `<`.
+- **Gen AK8 jets:** one threshold of 150 GeV (translator and jet cuts; placeholder), for migrations. The analysis
+  jet-pT binnings now start at 150.
+- **Extra-jet veto:** `backToBack.extraJetAlphaMax` is mandatory. The event fails if another selected, non-overlapping
+  jet has pt >= alpha * pt_V; negative disables it, 0 is the strictest. It is -1 everywhere. Four mutations are each
+  caught.
+- **E1C frames:** ZX_test writes only lab tables (jet and per axis), projective and CS. Helicity is computed offline
+  (`restFrame: {axis: jet, mass: axis}`); `E1CHelicity` was dropped.
+- **Veto-map occupancy** (`analysis/jetVetoMapOccupancy.py`, three DY 200-400 files copied with xrdcp; never the EOS FUSE
+  mount): events passing a gen channel, 85 409; 5.45% fail the veto. AK8 jets: 4.5% removed; AK4 jets: 6.2%. The
+  region eta 1.5-2.0, phi 1.8-2.7 is fully removed.
+- **Cutflow regeneration with all processes:** pending the user's go-ahead (long cmsRun jobs).
+
+## 2026-11-18 Truth rho: realistic window, full tables, joint helicities, shape validation, singly-resonant Z->4f
+Reply to the Appendix A comments of `notes/zxtest_AN/human-review-2.md`; study `axisStudy_20261118/truthStudy.py`
+(outputs in `truthStudy/`, LaTeX rows from `truthStudyTables.py`).
+- `truthRho.py --window self|both|leptonic|none` (replaces `--both-in-window`); `leptonic` = leptonic boson in the
+  selection's 61.19-121.19 window, nothing on the hadronic one (the truth of the measurement). `--joint`: diagonal of
+  the joint helicity density from per-decay projector functions (`spin.helicityWeights`, `spin.jointDiagonal`).
+- Frame bug: the fermion was boosted as massless. Powheg quarks have 0.33-4.8 GeV, so hadronic bosons below ~10 GeV
+  got wrong angles (l=3,4 chi2 237/16 -> 13/16 with the LHE mass). Bosons in the window: rho00 changes <= 0.004.
+- Shape test (`spin.higherMoments`, l=3,4 moments vanish for spin 1; 2D histogram vs `spin.binnedPrediction`): all bins
+  pass except the ZZ leptonic Z at pT < 50, caused by singly-resonant Z->4f (m4f within 5 GeV of mZ; 21.5% of that bin;
+  the ll pair is not from one propagator). 0.35% of leptonic Z above 200 GeV, absent in WZ.
+- PDG 2025 (Table 10.2): on-shell 0.22342(9), MSbar 0.23122(6), effective 0.23154(6). The old 0.2229 row was an
+  on-shell guess with mW = 80.385. Lep/had chi2 at pT < 100: Powheg 15.7/8, PDG on-shell 17.5, MSbar 66.7.
+- Hadronic Z in window given the leptonic Z in the selection window: 0.94 above 200 GeV.
+

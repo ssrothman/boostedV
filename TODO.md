@@ -28,11 +28,13 @@ Open questions for outside groups and decisions are in `OPEN_QUESTIONS.md`; this
 - [ ] Electron energy scale (data) and smearing (MC): recommended by the EGM POG for Run 3 (Run3/SaS), not applied in-job.
 - [ ] Study the impact of each muon momentum correction (assignment, MuonScaRe, kappa_b, smearing) and of their systematic variations on the selection and the correlators (review 1, 2026-11-15).
 - [ ] Study the impact of reco-level lepton dressing (`dressing.mode`) and its systematics (review 1; deferred).
-- [ ] E1C with other jet-axis definitions (e.g. winner-take-all) (review 1; to explore).
+- [x] E1C with other jet-axis definitions (e.g. winner-take-all) (review 1): implemented and studied (AN Appendix B, 2026-11-18); the axis choice is open.
 - [x] Compare our AK8 jet ID (`PFJetIDSelectionFunctor`) with the JME correctionlib jet ID (`JME/.../jetid.json.gz`, `AK8PUPPI_Tight`/`_TightLeptonVeto`) on MiniAOD jets.
 - [x] Soft-drop mass per JME: re-apply AK4 JEC and JER to both soft-drop subjets and recompute (`RecoJet_axisSoftDropMass`, nominal; `simulation/NANO.md` 4.5).
 - [ ] Soft-drop mass systematics: subjet JES/JER variations, JMS ±1 %, JMR ±2 % (`notes/zxtest_AN/jme_review.md` item 6).
 - [ ] MET per JME: recompute Type-1 PUPPI MET with the V4 AK4 JEC (and optionally JER and XY) before any MET use (`jme_review.md` item 7).
 - [ ] Before jet systematics: switch JES from `Total` to the `Regrouped_*` sources (`jme_review.md` item 5).
-- [ ] Jet veto map: document its effect on the jet (eta, phi) occupancy and the observables (JME requirement); rerun the cutflow with the new cleaning flags.
+- [ ] Jet veto map: document its effect on the observables (JME requirement); the (eta, phi) occupancy is done (`analysis/jetVetoMapOccupancy.py`, AN Fig. "vetomap", 2026-11-18).
+- [ ] Regenerate the AN cutflow with the current configuration (veto map, extra-lepton veto, 150 GeV gen jets) and all produced processes (signal, DY, ttbar, WW, single top, ZH) (review 2).
+- [ ] Analysis configs: switch from the MiniAOD `msoftdrop` to `axisSoftDropMass` once a production contains it.
 - [ ] Report the `PFJetIDSelectionFunctor` TIGHTLEPVETO NHF bug (CMSSW_15_0_22) to JME / CMSSW.
