@@ -16,6 +16,7 @@ such a NANO holds only back-to-back jets, so another channel's or level's event 
 import awkward as ak
 
 from . import eec as eecTools
+from . import frames
 from .expr import MEMO, Expr, asBool
 
 LEVELS = {'reco': dict(flags='Selection', prefix='', collection='Reco', met='PuppiMET'),
@@ -107,11 +108,18 @@ class View:
             self._eec[observable] = (nested[self.jetIdx], perJet[self.jetIdx])
         return self._eec[observable]
 
-    def namespace(self, observable=None):
-        """Built once per observable; the weight is not part of it, so reweighting a view keeps it valid."""
-        if observable not in self._ns:
-            self._ns[observable] = self._namespace(observable)
-        return self._ns[observable]
+    def namespace(self, observable=None, restFrame=None):
+        """Built once per (observable, restFrame); the weight is not part of it, so reweighting a view keeps it valid.
+        restFrame (axis, mass): eec gets the bvana/frames.py rest-frame fields."""
+        key = (observable, restFrame)
+        if key not in self._ns:
+            ns = self._namespace(observable)
+            if restFrame is not None:
+                ns = dict(ns)
+                ns[MEMO] = {}
+                ns['eec'] = frames.addRestFrame(ns['eec'], self.entries(observable)[1], ns['jets'], *restFrame)
+            self._ns[key] = ns
+        return self._ns[key]
 
     def _namespace(self, observable):
         ev, ch, p = self.events, self.region.channel, self._L['prefix']

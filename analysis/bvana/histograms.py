@@ -5,7 +5,9 @@ Binning spec (named under `binning:` or inline): {regular: [n, lo, hi]}, {log: [
 Histogram spec: granularity event | jet | lepton | eec:<observable>; axes [{var: <expr>, bins: <name or spec>,
 name: <axis name>}]; optional cuts (at the histogram's granularity or coarser, e.g. `eec.dR > 0`), `weight`
 (an extra factor, any compatible level) and, for EEC histograms, `renormalise: <jet-level expr>` (weights times
-(E_jet/E')^(nN)). Fill weight: event weight, times weight x symfactor for EEC entries.
+(E_jet/E')^(nN)) and `restFrame: {axis: jet | <axis name>, mass: axis | <GeV>}` (an E1C with weight Pt, n = 1, frame
+jetAxis about that axis: adds eec.thetaRest, phiRest, cosThetaRest, ERest from bvana/frames.py).
+Fill weight: event weight, times weight x symfactor for EEC entries.
 """
 import re
 
@@ -52,7 +54,7 @@ def axisName(var):
 class HistDef:
     def __init__(self, name, spec, binnings, variables):
         self.name = name
-        unknown = set(spec) - {'granularity', 'axes', 'cuts', 'weight', 'renormalise', 'regions'}
+        unknown = set(spec) - {'granularity', 'axes', 'cuts', 'weight', 'renormalise', 'regions', 'restFrame'}
         if unknown:
             raise HistError('histogram %s: unknown keys %s' % (name, sorted(unknown)))
         g = spec.get('granularity', 'event')
@@ -82,6 +84,13 @@ class HistDef:
         self.renorm = Expr(spec['renormalise'], variables) if 'renormalise' in spec else None
         if self.renorm is not None and (self.level != 'eec' or self.renorm.level != 'jet'):
             raise HistError('histogram %s: renormalise needs an eec histogram and a jet-level expression' % name)
+        rf = spec.get('restFrame')
+        self.restFrame = None
+        if rf is not None:
+            if self.level != 'eec' or set(rf) != {'axis', 'mass'} or not (rf['mass'] == 'axis' or
+                                                                            isinstance(rf['mass'], (int, float))):
+                raise HistError('histogram %s: restFrame needs an eec histogram and {axis, mass: axis | <GeV>}' % name)
+            self.restFrame = (rf['axis'], rf['mass'])
 
     def _compatible(self, e, what):
         if combine(e.level, self.level, e.text) != self.level:
@@ -92,7 +101,7 @@ class HistDef:
         return hist.Hist(*self.axes, storage='weight')
 
     def fill(self, view):
-        ns = view.namespace(self.observable)
+        ns = view.namespace(self.observable, self.restFrame)
         if self.level == 'event':
             template = view.weight
         elif self.level == 'jet':
@@ -102,7 +111,7 @@ class HistDef:
         else:
             template = ns['eec'].weight
         # Intermediates shared by histograms of the same level and observable (and cuts) are cached on the view.
-        cache, level = view.cache, (self.level, self.observable)
+        cache, level = view.cache, (self.level, self.observable, self.restFrame)
         if ('wEvent',) + level not in cache:
             cache[('wEvent',) + level] = ak.broadcast_arrays(view.weight, template)[0]
         w = cache[('wEvent',) + level]
