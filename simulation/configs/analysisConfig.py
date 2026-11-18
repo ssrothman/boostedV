@@ -101,8 +101,10 @@ def crossCheck(cfg):
         where = 'jets/collections/%s/table/extraVariables' % name
         if extra and not (c['level'] == 'reco' and c['mode'] == 'pat'):
             p.append('%s: only for reco pat jets' % where)
-        if len(set(extra)) != len(extra) or base & set(extra):
-            p.append('%s: duplicate or reserved column names %s' % (where, sorted(base & set(extra))))
+        axisCols = {d['name'] + x for d in c.get('axes', {'definitions': []})['definitions']
+                    for x in ('Pt', 'Eta', 'Phi', 'Mass', 'Status')}
+        if len(set(extra)) != len(extra) or (base | axisCols) & set(extra):
+            p.append('%s: duplicate or reserved column names %s' % (where, sorted((base | axisCols) & set(extra))))
     out = cfg['output']
     ak4 = [v['name'] for v in out['ak4Jets']['variables']]
     reserved = {'pt', 'eta', 'phi', 'mass', 'rawPt', 'jecFactor', 'jetId', 'srcIdx', 'jesUncTotal'}
@@ -165,6 +167,17 @@ def crossCheck(cfg):
             D = 1 if o['kind'] == 'penc' else 2
             if len(o['table'].get('coordNames', [])) != D or 'coordPrecision' not in o['table']:
                 p.append('observables/%s/table: unbinned output needs %d coordNames and coordPrecision' % (name, D))
+    for name, o in cfg['observables'].items():
+        if o['weight'] == 'Charge' and (o['n'] != int(o['n']) or (o['kind'] == 'penc' and o['angle'] != 'DeltaR')):
+            p.append('observables/%s: charge weights need an integer n (and angle DeltaR for penc)' % name)
+        if 'axis' in o:
+            if o['frame'] != 'jetAxis':
+                p.append('observables/%s: axis needs frame jetAxis' % name)
+            if name in cfg['aggregation']['observables']:
+                p.append('observables/%s: axis observables (nominal jets only) cannot be aggregated' % name)
+            for cname, c in cfg['jets']['collections'].items():
+                if o['axis'] not in [d['name'] for d in c.get('axes', {'definitions': []})['definitions']]:
+                    p.append('observables/%s: axis %s is not defined for jets/collections/%s' % (name, o['axis'], cname))
     tables = {}
     jetCutKeys = set(['ptMin', 'absEtaMax', 'idMask', 'minConstituents'])
     constCutKeys = set(['ptMin', 'chargedOnly', 'keepAbsPdgIds', 'dropAbsPdgIds', 'minPuppiWeight'])
@@ -181,6 +194,17 @@ def crossCheck(cfg):
             p.append('%s: reco MiniAOD jets need a jerc block (JER smearing in MC)' % where)
         if recoPat != ('jec' in c):
             p.append('%s: a jec block is needed exactly for reco MiniAOD jets' % where)
+        if 'axes' in c:
+            axisNames = [d['name'] for d in c['axes']['definitions']]
+            if len(set(axisNames)) != len(axisNames):
+                p.append('%s/axes: duplicate axis names' % where)
+            corrected = any(d.get('corrected') for d in c['axes']['definitions'])
+            if (c['level'] == 'reco' and corrected) != ('subjetJec' in c['axes']):
+                p.append('%s/axes: subjetJec is needed exactly for reco jets with a corrected softDrop axis' % where)
+            if 'subjetJer' in c['axes'] and 'subjetJec' not in c['axes']:
+                p.append('%s/axes: subjetJer needs subjetJec' % where)
+            if c['level'] == 'gen' and corrected:
+                p.append('%s/axes: gen axes cannot be corrected' % where)
         for v, spec in c.get('variations', {}).items():
             if spec['type'] in ('jes', 'jer') and not recoPat:
                 p.append('%s/variations/%s: JES/JER need reco MiniAOD jets' % (where, v))

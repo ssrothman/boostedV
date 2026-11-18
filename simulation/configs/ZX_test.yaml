@@ -334,6 +334,28 @@ jets:
                                # minConstituents >= 2 (schema): a one-particle jet has no E1C frame
       constituentCuts: {ptMin: 0.0, chargedOnly: true, keepAbsPdgIds: [], dropAbsPdgIds: [], minPuppiWeight: 0.0}
       cleaningDR: 0.8
+      axes:                    # nominal jets; from all PUPPI-weighted constituents (before constituentCuts)
+        definitions:           # Status 2: unavailable, axis = jet p4; softDrop Status 1: one subjet (axis = that subjet)
+          - {name: axisSoftDrop, type: softDrop, beta: 0.0, zcut: 0.1, R0: 0.8, corrected: true}   # as MiniAOD SoftDropPuppi
+          - {name: axisSoftDropB1, type: softDrop, beta: 1.0, zcut: 0.1, R0: 0.8, corrected: false}
+          - {name: axisSoftDropZ005, type: softDrop, beta: 0.0, zcut: 0.05, R0: 0.8, corrected: false}
+          - {name: axisTrim, type: trimming, Rsub: 0.2, fcut: 0.03}   # as CMSSW ak8PFJetsCHSTrimmed
+          - {name: axisWtaCA, type: wta, algorithm: ca}
+          - {name: axisWtaKT, type: wta, algorithm: kt}
+          - {name: axisRecoil, type: recoil}   # phi of the back-to-back boson + pi, jet eta
+          - {name: axisTruth, type: truth}     # nearest hadronic last-copy W/Z within R (MC)
+        subjetJec:             # V4 AK4 PUPPI on each subjet (its L1 is 1, so the missing subjet area does not matter)
+          correctionFile: /cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-22EFGSep23-Summer22EE-NanoAODv12/2026-06-05/jet_jerc.json.gz
+          mcKey: Summer22EE_22Sep2023_V4_MC_L1L2L3Res_AK4PFPuppi
+          dataKey: Summer22EE_22Sep2023_V4_DATA_L1L2L3Res_AK4PFPuppi
+          rho: fixedGridRhoFastjetAll
+        subjetJer:             # MC: AK4 PUPPI hybrid JER of each JEC-corrected subjet (JME soft-drop mass prescription)
+          correctionFile: /cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-22EFGSep23-Summer22EE-NanoAODv12/2026-06-05/jet_jerc.json.gz
+          scaleFactorKey: Summer22EE_22Sep2023_JRV2_MC_ScaleFactor_AK4PFPuppi
+          resolutionKey: Summer22EE_22Sep2023_JRV2_MC_PtResolution_AK4PFPuppi
+          genSubjets: slimmedGenJetsAK8SoftDropSubJets
+          R: 0.4
+          seedSalt: 11
       retag:                   # taggers not stored in this MiniAOD, run on a copy of src
         taggers: [GlobalParT]   # GlobalParticleTransformer AK8 (GloParT 3, model V03)
         vertices: offlineSlimmedPrimaryVertices
@@ -501,6 +523,16 @@ jets:
       jetCuts: {ptMin: 200.0, absEtaMax: 2.4, idMask: 0, minConstituents: 2}
       constituentCuts: {ptMin: 0.0, chargedOnly: true, keepAbsPdgIds: [], dropAbsPdgIds: [], minPuppiWeight: 0.0}
       cleaningDR: 0.8
+      axes:
+        definitions:
+          - {name: axisSoftDrop, type: softDrop, beta: 0.0, zcut: 0.1, R0: 0.8, corrected: false}
+          - {name: axisSoftDropB1, type: softDrop, beta: 1.0, zcut: 0.1, R0: 0.8, corrected: false}
+          - {name: axisSoftDropZ005, type: softDrop, beta: 0.0, zcut: 0.05, R0: 0.8, corrected: false}
+          - {name: axisTrim, type: trimming, Rsub: 0.2, fcut: 0.03}   # as CMSSW ak8PFJetsCHSTrimmed
+          - {name: axisWtaCA, type: wta, algorithm: ca}
+          - {name: axisWtaKT, type: wta, algorithm: kt}
+          - {name: axisRecoil, type: recoil}   # phi of the back-to-back boson + pi, jet eta
+          - {name: axisTruth, type: truth}     # nearest hadronic last-copy W/Z within R (MC)
       table: {name: GenJet, precision: -1, extraVariables: []}
 
 # Computed for every jet collection and variation; NANO tables are named <Collection><Variation><observable>.
@@ -531,6 +563,31 @@ observables:                 # charged constituents only (jets.collections.*.con
     norm: jetPt
     output: Unbinned
     table: {weightPrecision: -1, coordPrecision: -1, coordNames: [theta, phi]}
+  # Lab-frame E1C about each alternative jet axis (jets.collections.*.axes); nominal jets only, not aggregated.
+  E1CLabSoftDrop:
+    {kind: e1c, n: 1.0, weight: Pt, frame: jetAxis, axis: axisSoftDrop, norm: jetPt, output: Unbinned,
+     table: {weightPrecision: -1, coordPrecision: -1, coordNames: [theta, phi]}}
+  E1CLabSoftDropB1:
+    {kind: e1c, n: 1.0, weight: Pt, frame: jetAxis, axis: axisSoftDropB1, norm: jetPt, output: Unbinned,
+     table: {weightPrecision: -1, coordPrecision: -1, coordNames: [theta, phi]}}
+  E1CLabSoftDropZ005:
+    {kind: e1c, n: 1.0, weight: Pt, frame: jetAxis, axis: axisSoftDropZ005, norm: jetPt, output: Unbinned,
+     table: {weightPrecision: -1, coordPrecision: -1, coordNames: [theta, phi]}}
+  E1CLabTrim:
+    {kind: e1c, n: 1.0, weight: Pt, frame: jetAxis, axis: axisTrim, norm: jetPt, output: Unbinned,
+     table: {weightPrecision: -1, coordPrecision: -1, coordNames: [theta, phi]}}
+  E1CLabWtaCA:
+    {kind: e1c, n: 1.0, weight: Pt, frame: jetAxis, axis: axisWtaCA, norm: jetPt, output: Unbinned,
+     table: {weightPrecision: -1, coordPrecision: -1, coordNames: [theta, phi]}}
+  E1CLabWtaKT:
+    {kind: e1c, n: 1.0, weight: Pt, frame: jetAxis, axis: axisWtaKT, norm: jetPt, output: Unbinned,
+     table: {weightPrecision: -1, coordPrecision: -1, coordNames: [theta, phi]}}
+  E1CLabRecoil:
+    {kind: e1c, n: 1.0, weight: Pt, frame: jetAxis, axis: axisRecoil, norm: jetPt, output: Unbinned,
+     table: {weightPrecision: -1, coordPrecision: -1, coordNames: [theta, phi]}}
+  E1CLabTruth:
+    {kind: e1c, n: 1.0, weight: Pt, frame: jetAxis, axis: axisTruth, norm: jetPt, output: Unbinned,
+     table: {weightPrecision: -1, coordPrecision: -1, coordNames: [theta, phi]}}
   E1CHelicity:
     kind: e1c
     n: 1.0

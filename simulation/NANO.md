@@ -229,6 +229,23 @@ The names follow the NanoAODv12 `FatJet` table where it has them.
   identical per jet, so this comes from how CMSSW stores the model outputs, not from this job. Build discriminants as
   sig/(sig + bkg), as the NanoAOD docs say.
 
+**Alternative jet axes (nominal table only; `jets.collections.<C>.axes`).** `EECJetAxisProducer` computes each axis
+from all (PUPPI-weighted) constituents before `constituentCuts`. Columns per axis `<name>`: `<name>Pt`, `<name>Eta`,
+`<name>Phi`, `<name>Mass` (float) and `<name>Status` (uint8). Status 2 always means unavailable, with the axis equal to
+the jet four-momentum.
+- `softDrop` (β, z_cut, R0; C/A declustering as MiniAOD `SoftDropPuppi`): the sum of the subjets. Status 1: the groomed
+  jet is one particle (axis = that subjet).
+  - `corrected: true`: each subjet gets the `subjetJec` (AK4 PUPPI), then in MC the AK4 hybrid JER (`subjetJer`)
+    against the MiniAOD gen soft-drop subjets. `<name>Mass` is then the JME-prescription soft-drop mass.
+  - With the production parameters and the MiniAOD subjet JEC factors, this reproduces `groomedMass('SoftDropPuppi')`.
+    Clustering is identical where the constituents agree; 0.6% of jets differ by MiniAOD packing
+    (`JetSetup/test/validation/checkSoftDrop.py`).
+- `trimming` (kt subjets of R_sub with pt fraction > f_cut, as `ak8PFJets*Trimmed`): sum of the kept subjets,
+  uncorrected.
+- `wta`: winner-take-all axis (C/A or kt, `WTA_pt_scheme`). Its mass is that of the winning particle.
+- `recoil`: η of the jet, φ of the first passing back-to-back channel's boson + π. Status 2 without one.
+- `truth`: four-momentum of the nearest last-copy hadronic W/Z in `prunedGenParticles` within ΔR < R (MC).
+
 - Variations exist in MC only. JES and JER variations change only the jet four-momentum (on the pat::Jet, before the
   translator); constituent variations
   (`constScale`, `constDrop`) change the constituents and so the EECs. See `JetSetup/README.md`.
@@ -262,6 +279,9 @@ For each jet collection `<C>`, variation `<v>` and observable `<obs>` (name `<C>
   (`lab`, `jetAxis`, `jetHelicity`, `jetCS`, `jetProjective`; see `EECs/interface/Config.h`). The jet frames take the
   beam on the jet side (sign of the jet pz) as reference; `jetProjective` has θ = ΔR to the jet axis and φ the
   direction in the (η, φ) plane, 0 toward that beam.
+- E1C with `axis: <axis name>` (frame `jetAxis` only): θ, φ about that axis instead of the jet; the normalisation
+  still uses the jet. Nominal jets only (no table for variations).
+- Charge weight (`Charge`; pENC with `DeltaR` only): the constituent charge, not scaled by the PUPPI weight.
 - To use another normalisation E′, multiply the weights by (E_jet / E′)^(n·N).
 - Definitions and conventions: `EECs/docs/guide.md`.
 

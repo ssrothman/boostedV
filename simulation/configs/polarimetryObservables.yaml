@@ -1,0 +1,15 @@
+# Charge- and energy-weighted correlators, held back until the jet axis for polarimetry is chosen
+# (simulation/axesPolarimetry_plan.md). To run them, merge these entries into the `observables` of a configuration,
+# adding `axis: <axis name>` to the E1C entries for the chosen axis.
+E2CEn1Energy:                # energy weights, Delta R
+  {kind: penc, N: 2, n: 1.0, weight: Energy, angle: DeltaR, norm: jetE, output: Unbinned,
+   table: {weightPrecision: -1, coordPrecision: -1, coordNames: [dR]}}
+E2CCharge:                   # sum_ij Q_i Q_j
+  {kind: penc, N: 2, n: 1.0, weight: Charge, angle: DeltaR, norm: unity, output: Unbinned,
+   table: {weightPrecision: -1, coordPrecision: -1, coordNames: [dR]}}
+E1CLabEnergy:                # arXiv:2610.38688 Eq. D8 normalisation (E / E_jet)
+  {kind: e1c, n: 1.0, weight: Energy, frame: jetAxis, norm: jetE, output: Unbinned,
+   table: {weightPrecision: -1, coordPrecision: -1, coordNames: [theta, phi]}}
+E1CLabCharge:                # charge flux F of arXiv:2610.38688 Eq. D1 (weight = charge)
+  {kind: e1c, n: 1.0, weight: Charge, frame: jetAxis, norm: unity, output: Unbinned,
+   table: {weightPrecision: -1, coordPrecision: -1, coordNames: [theta, phi]}}

@@ -97,9 +97,18 @@ for (lev, ch), f in b2bFlags.items():
     flagTable.srcs.append(f)
 
 # ---- EECs ----
+# Axis observables exist for the nominal jets only, which are the ones carrying EECJet::axes.
+nominalAxes = {name: [d['name'] for d in spec.get('axes', {'definitions': []})['definitions']]
+               for name, spec in cfg['jets']['collections'].items()}
 for prefix, jets in collections:
     for obs, spec in cfg['observables'].items():
-        addObservable(process, 'eec%s%s' % (prefix, obs), jets, spec, prefix + obs, task)
+        if 'axis' in spec:
+            if prefix not in nominalAxes:
+                continue
+            addObservable(process, 'eec%s%s' % (prefix, obs), jets, spec, prefix + obs, task,
+                          axisIndex=nominalAxes[prefix].index(spec['axis']))
+        else:
+            addObservable(process, 'eec%s%s' % (prefix, obs), jets, spec, prefix + obs, task)
 
 agg = cfg['aggregation']
 genInfo = inputs['genEventInfo'] if isMC else ''

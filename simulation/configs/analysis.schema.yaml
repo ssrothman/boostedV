@@ -7,6 +7,7 @@ additionalProperties: false
 required: [inputs, selection, jets, observables, aggregation, output]
 
 definitions:
+  axisName: {type: string, pattern: '^axis[A-Z][A-Za-z0-9]*$'}
   str: {type: string, minLength: 1}
   strList: {type: array, items: {$ref: '#/definitions/str'}}
   intList: {type: array, items: {type: integer}}
@@ -300,6 +301,66 @@ definitions:
       variations:
         type: object
         additionalProperties: {$ref: '#/definitions/variation'}
+      axes:                  # nominal jets only; all constituents, before constituentCuts
+        type: object
+        additionalProperties: false
+        required: [definitions]
+        properties:
+          definitions:
+            type: array
+            items:
+              oneOf:
+                - type: object
+                  additionalProperties: false
+                  required: [name, type, beta, zcut, R0, corrected]
+                  properties:
+                    name: {$ref: '#/definitions/axisName'}
+                    type: {const: softDrop}
+                    beta: {type: number, minimum: 0}
+                    zcut: {type: number, exclusiveMinimum: 0, exclusiveMaximum: 0.5}
+                    R0: {type: number, exclusiveMinimum: 0}
+                    corrected: {type: boolean}   # subjetJec (and subjetJer in MC) on each subjet
+                - type: object
+                  additionalProperties: false
+                  required: [name, type, Rsub, fcut]
+                  properties:
+                    name: {$ref: '#/definitions/axisName'}
+                    type: {const: trimming}
+                    Rsub: {type: number, exclusiveMinimum: 0}
+                    fcut: {type: number, exclusiveMinimum: 0, exclusiveMaximum: 1}
+                - type: object
+                  additionalProperties: false
+                  required: [name, type, algorithm]
+                  properties:
+                    name: {$ref: '#/definitions/axisName'}
+                    type: {const: wta}
+                    algorithm: {enum: [ca, kt]}
+                - type: object
+                  additionalProperties: false
+                  required: [name, type]
+                  properties:
+                    name: {$ref: '#/definitions/axisName'}
+                    type: {enum: [recoil, truth]}
+          subjetJec:           # reco only: correctionlib compound JEC of the subjets
+            type: object
+            additionalProperties: false
+            required: [correctionFile, mcKey, dataKey, rho]
+            properties:
+              correctionFile: {$ref: '#/definitions/str'}
+              mcKey: {$ref: '#/definitions/str'}
+              dataKey: {$ref: '#/definitions/str'}
+              rho: {$ref: '#/definitions/str'}
+          subjetJer:           # reco only, applied in MC: AK4 hybrid JER of each corrected subjet
+            type: object
+            additionalProperties: false
+            required: [correctionFile, scaleFactorKey, resolutionKey, genSubjets, R, seedSalt]
+            properties:
+              correctionFile: {$ref: '#/definitions/str'}
+              scaleFactorKey: {$ref: '#/definitions/str'}
+              resolutionKey: {$ref: '#/definitions/str'}
+              genSubjets: {$ref: '#/definitions/str'}
+              R: {type: number, exclusiveMinimum: 0}   # gen match dR < R/2
+              seedSalt: {$ref: '#/definitions/uint'}
 
   observable:
     oneOf:
@@ -310,7 +371,7 @@ definitions:
           kind: {const: penc}
           N: {type: integer, minimum: 2, maximum: 6}
           n: {$ref: '#/definitions/num'}
-          weight: {enum: [Energy, Pt]}
+          weight: {enum: [Energy, Pt, Charge]}   # charge weights: DeltaR only
           angle: {enum: [DeltaR, Angle3D]}
           norm: {enum: [sumE, sumPt, jetE, jetPt, unity]}
           output: {enum: [Dense, SparseMerged, SparseUnmerged, Unbinned]}
@@ -322,11 +383,12 @@ definitions:
         properties:
           kind: {const: e1c}
           n: {$ref: '#/definitions/num'}
-          weight: {enum: [Energy, Pt]}
+          weight: {enum: [Energy, Pt, Charge]}
           frame: {enum: [lab, jetAxis, jetHelicity, jetCS, jetProjective]}
           norm: {enum: [sumE, sumPt, jetE, jetPt, unity]}
           output: {enum: [Dense, SparseMerged, SparseUnmerged, Unbinned]}
           axes: {type: array, items: {$ref: '#/definitions/axis'}, minItems: 2, maxItems: 2}
+          axis: {$ref: '#/definitions/axisName'}   # frame jetAxis about this jet axis; nominal jets only
           table: {$ref: '#/definitions/obsTable'}
 
   obsTable:

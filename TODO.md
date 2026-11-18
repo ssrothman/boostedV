@@ -30,7 +30,8 @@ Open questions for outside groups and decisions are in `OPEN_QUESTIONS.md`; this
 - [ ] Study the impact of reco-level lepton dressing (`dressing.mode`) and its systematics (review 1; deferred).
 - [ ] E1C with other jet-axis definitions (e.g. winner-take-all) (review 1; to explore).
 - [x] Compare our AK8 jet ID (`PFJetIDSelectionFunctor`) with the JME correctionlib jet ID (`JME/.../jetid.json.gz`, `AK8PUPPI_Tight`/`_TightLeptonVeto`) on MiniAOD jets.
-- [ ] Soft-drop mass per JME: re-apply AK4 JEC and JER to both soft-drop subjets and recompute; JMS ±1 %, JMR ±2 % (`notes/zxtest_AN/jme_review.md` item 6).
+- [x] Soft-drop mass per JME: re-apply AK4 JEC and JER to both soft-drop subjets and recompute (`RecoJet_axisSoftDropMass`, nominal; `simulation/NANO.md` 4.5).
+- [ ] Soft-drop mass systematics: subjet JES/JER variations, JMS ±1 %, JMR ±2 % (`notes/zxtest_AN/jme_review.md` item 6).
 - [ ] MET per JME: recompute Type-1 PUPPI MET with the V4 AK4 JEC (and optionally JER and XY) before any MET use (`jme_review.md` item 7).
 - [ ] Before jet systematics: switch JES from `Total` to the `Regrouped_*` sources (`jme_review.md` item 5).
 - [ ] Jet veto map: document its effect on the jet (eta, phi) occupancy and the observables (JME requirement); rerun the cutflow with the new cleaning flags.

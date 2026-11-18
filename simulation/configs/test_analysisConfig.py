@@ -108,6 +108,32 @@ class LoaderRejects(unittest.TestCase):
         self.assertRejected(lambda c: c['jets']['collections']['Gen'].update(jec=c['jets']['collections']['Reco']['jec']),
                             'jets/collections/Gen: a jec block is needed exactly for reco MiniAOD jets')
 
+    def test_axis_checks(self):
+        sd = {'name': 'axisSoftDrop', 'type': 'softDrop', 'beta': 0.0, 'zcut': 0.1, 'R0': 0.8, 'corrected': True}
+        jec = {'correctionFile': 'f', 'mcKey': 'k', 'dataKey': 'k', 'rho': 'fixedGridRhoFastjetAll'}
+        def axes(c, recoDefs, genDefs, recoJec=True):
+            c['jets']['collections']['Reco']['axes'] = dict({'definitions': recoDefs}, **({'subjetJec': jec} if recoJec else {}))
+            c['jets']['collections']['Gen']['axes'] = {'definitions': genDefs}
+        gen = dict(sd, corrected=False)
+        self.assertRejected(lambda c: axes(c, [sd], [gen], recoJec=False), 'Reco/axes: subjetJec is needed exactly')
+        self.assertRejected(lambda c: axes(c, [sd], [sd]), 'Gen/axes: gen axes cannot be corrected')
+        self.assertRejected(lambda c: axes(c, [sd, sd], [gen]), 'Reco/axes: duplicate axis names')
+        self.assertRejected(lambda c: axes(c, [dict(sd, name='softDrop')], [gen]), 'jets/collections/Reco/axes')
+        def e1cAxis(c, frame='jetAxis', agg=False):
+            axes(c, [sd], [gen])
+            c['observables']['E1CSD'] = dict(c['observables']['E1C'], axis='axisSoftDrop', frame=frame)
+            if agg:
+                c['aggregation']['observables'].append('E1CSD')
+        self.assertRejected(lambda c: e1cAxis(c, frame='jetHelicity'), 'observables/E1CSD: axis needs frame jetAxis')
+        self.assertRejected(lambda c: e1cAxis(c, agg=True), 'axis observables (nominal jets only) cannot be aggregated')
+        def missingOnGen(c):
+            e1cAxis(c)
+            c['jets']['collections']['Gen']['axes'] = {'definitions': [dict(gen, name='axisOther')]}
+        self.assertRejected(missingOnGen, 'axis axisSoftDrop is not defined for jets/collections/Gen')
+        cfg = loadDefault()
+        e1cAxis(cfg)
+        analysisConfig.load(writeTmp(cfg))   # the valid combination loads
+
     def test_default_is_valid(self):
         analysisConfig.load(DEFAULT)
 
@@ -208,7 +234,12 @@ class LoaderRejects(unittest.TestCase):
     def test_wrong_types_and_values(self):
         self.assertRejected(lambda c: c['selection']['reco']['channels']['Zmumu'].update(massMin='71'), 'selection/reco/channels/Zmumu')
         self.assertRejected(lambda c: c['observables']['E2C'].update(N=7), 'observables/E2C')
-        self.assertRejected(lambda c: c['observables']['E2C'].update(weight='Charge'), 'observables/E2C')
+        self.assertRejected(lambda c: c['observables']['E2C'].update(weight='Mass'), 'observables/E2C')
+        self.assertRejected(lambda c: c['observables']['E2C'].update(weight='Charge', angle='Angle3D'),
+                            'observables/E2C: charge weights need an integer n')
+        self.assertRejected(lambda c: c['observables']['E2C'].update(weight='Charge', n=1.5),
+                            'observables/E2C: charge weights need an integer n')
+        self.assertRejected(lambda c: c['observables']['E2C'].update(weight='ChargePt'), 'observables/E2C')
         self.assertRejected(lambda c: c['jets']['collections']['Reco']['variations']['TrkDrop'].update(
             dropProbability=1.5), 'jets/collections/Reco/variations/TrkDrop')
 
