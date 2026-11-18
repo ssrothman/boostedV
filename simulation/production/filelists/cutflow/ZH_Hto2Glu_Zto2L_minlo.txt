@@ -1,0 +1,1 @@
+/store/mc/Run3Summer22EEMiniAODv4/ZH_Hto2Glu_Zto2L_M-125_TuneCP5_13p6TeV_powheg-minlo-pythia8/MINIAODSIM/130X_mcRun3_2022_realistic_postEE_v6-v2/2550000/0702dddb-cd23-44ff-8673-dae2ab2c5c5f.root

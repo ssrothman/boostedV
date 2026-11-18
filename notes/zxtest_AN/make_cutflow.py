@@ -1,7 +1,8 @@
-"""Cutflow of the ZX_test selection from NANO files produced with ZX_loose2.yaml (ZX_test.yaml with pairPtMin 0,
-backToBack disabled and jetCuts relaxed except minConstituents >= 2), which writes every event passing a channel at
-either level, with all jets above the translator threshold (reco 200 GeV after JEC and JER, gen 180 GeV). Jets without
-MiniAOD daughters are not in the table, so their blocking of the back-to-back requirement is not modelled.
+"""Cutflow of the ZX_test selection from NANO files produced with ZX_cutflow.yaml (written by make_cutflow_config.py:
+ZX_test.yaml with pairPtMin 0, backToBack disabled and jetCuts relaxed except minConstituents >= 2), which writes every
+event passing a dilepton selection (including the extra-lepton veto) at either level, with all jets above the
+translator threshold (reco 200 GeV after JEC and JER, gen 150 GeV). The extra-jet veto is disabled in ZX_test and not
+modelled.
 
 Usage: python3 make_cutflow.py OUT.tex NAME=nano.root [NAME=nano.root ...]
 Steps per (level, channel), cumulative, as unweighted counts and genWeight-weighted fractions of the processed events
@@ -16,15 +17,16 @@ import awkward as ak
 import numpy as np
 import uproot
 
-PT_MIN, JET_PT, JET_ETA, JET_ID, DPHI_MIN, ASYM_MAX = 200.0, 200.0, 2.4, 3, 2.8, 0.3
+PT_MIN, JET_ETA, JET_ID, DPHI_MIN, ASYM_MAX = 200.0, 2.4, 3, 2.8, 0.3
+JET_PT = {'reco': 200.0, 'gen': 150.0}
 LEVELS = {'reco': ('', 'RecoJet'), 'gen': ('Gen', 'GenJet')}
 CHANNELS = ('Zmumu', 'Zee')
 CLEANING = ('goodVertex', 'metFilters', 'ecalBadCalib', 'jetVetoMap')
-STEPS = {'reco': [r'dilepton (\code{<c>Sel}, no $\ptll$ cut)', r'+ trigger', r'+ event cleaning',
+STEPS = {'reco': [r'dilepton and lepton veto (no $\ptll$ cut)', r'+ trigger', r'+ event cleaning',
                   r'$\ptll \geq 200\GeV$', r'jet $\pt \geq 200\GeV$', r'jet $|\eta| \leq 2.4$',
                   r'jet ID tight + lepton veto', r'jet not overlapping a lepton', r'$\Delta\phi > 2.8$',
                   r'asymmetry $< 0.3$'],
-         'gen': [r'dilepton (\code{<c>Sel}, no $\ptll$ cut)', r'$\ptll \geq 200\GeV$', r'jet $\pt \geq 200\GeV$',
+         'gen': [r'dilepton and lepton veto (no $\ptll$ cut)', r'$\ptll \geq 200\GeV$', r'jet $\pt \geq 150\GeV$',
                  r'jet $|\eta| \leq 2.4$', r'jet not overlapping a lepton', r'$\Delta\phi > 2.8$',
                  r'asymmetry $< 0.3$']}
 
@@ -46,7 +48,7 @@ def steps(ev, level, ch):
     out.append(out[-1] & (np.asarray(bpt) >= PT_MIN))
     fields = ['pt', 'eta', 'phi', 'veto' + ch] + (['jetId'] if level == 'reco' else [])
     jets = ak.zip({k: ev[J + '_' + k] for k in fields})
-    cuts = [jets.pt >= JET_PT, abs(jets.eta) <= JET_ETA]
+    cuts = [jets.pt >= JET_PT[level], abs(jets.eta) <= JET_ETA]
     if level == 'reco':
         cuts.append((jets.jetId & JET_ID) == JET_ID)
     cuts.append(~jets['veto' + ch])
