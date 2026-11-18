@@ -24,3 +24,17 @@ __pycache__/
 
 # Local cutflow NANO files (notes/zxtest_AN/make_cutflow.py inputs)
 /cutflow_zxtest/
+
+# ZX_test note build outputs
+/notes/zxtest_AN/zxtest_AN.aux
+/notes/zxtest_AN/zxtest_AN.bbl
+/notes/zxtest_AN/zxtest_AN.bcf
+/notes/zxtest_AN/zxtest_AN.blg
+/notes/zxtest_AN/zxtest_AN.log
+/notes/zxtest_AN/zxtest_AN.out
+/notes/zxtest_AN/zxtest_AN.pdf
+/notes/zxtest_AN/zxtest_AN.run.xml
+/notes/zxtest_AN/zxtest_AN.toc
+
+# Axis/truth study inputs and outputs (LHE and NANO copies, plots)
+/axisStudy_20261118/
