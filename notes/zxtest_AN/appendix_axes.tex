@@ -1,0 +1,128 @@
+%=======================================================================================================================
+\section{Jet axis for the one-point correlator}
+\label{app:axes}
+
+The one-point correlator (E1C) in the rest frame of the hadronically decaying boson is the energy flow of its decay,
+which is sensitive to the parity-even part of its spin-density matrix (Appendix~\ref{app:truth:decay}
+and Ref.~\cite[App.~D]{Gao:2026bvp}). The boson direction is not observed, and the frame has to be built from an axis
+of the jet. This appendix describes the axes that are implemented, the lab-to-rest-frame conversion, the method used
+to compare the axes, and the results so far.
+
+%-----------------------------------------------------------------------------------------------------------------------
+\subsection{Strategy: lab-frame tables and the boost offline}
+\label{app:axes:strategy}
+The boost from the lab to a rest frame along an axis acts on each particle separately and leaves the azimuth $\phi$
+about the axis unchanged (Ref.~\cite[App.~D]{Gao:2026bvp}). An unbinned lab-frame E1C about a given axis, together with
+that axis and the jet momentum, therefore determines the rest-frame E1C for any boson-mass hypothesis. The expensive
+step, recomputing the polar angles about each axis from the constituents, runs in the production (one table per
+axis); the boost runs in the analysis, which allows the mass hypothesis and the frame to be changed without
+reprocessing.
+
+%-----------------------------------------------------------------------------------------------------------------------
+\subsection{Axis definitions}
+\label{app:axes:definitions}
+\code{EECJetAxisProducer} (\code{JetSetup}) computes each axis of \code{jets.collections.<C>.axes} for the nominal jets,
+from all PUPPI-weighted constituents before the constituent selection (i.e.\ including neutral particles), and stores
+the four-momentum and a status per axis in the jet table (Section~\ref{sec:axes}). Status 2 means that the axis is not
+available; the axis is then the jet four-momentum.
+\begin{description}[style=nextline]
+\item[\code{jet}] the jet four-momentum after JEC and JER (the existing \code{E1CLab} frame).
+\item[\code{axisSoftDrop}] soft drop~\cite{Larkoski:2014wba} with the parameters of the MiniAOD \code{SoftDropPuppi}
+  subjets ($\beta = 0$, $z_\mathrm{cut} = 0.1$, $R_0 = 0.8$; the constituents are reclustered with
+  Cambridge--Aachen and declustered); the axis is the sum of the two subjets, each corrected with the AK4 PUPPI JEC and,
+  in simulation, the AK4 hybrid JER (Section~\ref{sec:axes}). Status 1: grooming ended on a single particle, which
+  is then the axis.
+\item[\code{axisSoftDropB1}, \code{axisSoftDropZ005}] lighter grooming: $\beta = 1$, $z_\mathrm{cut} = 0.1$; and
+  $\beta = 0$, $z_\mathrm{cut} = 0.05$. Uncorrected subjets.
+\item[\code{axisTrim}] trimming~\cite{Krohn:2009th}: $k_\mathrm{T}$ subjets of radius $R_\mathrm{sub} = 0.2$, keeping
+  those with more than $f_\mathrm{cut} = 3\%$ of the jet $\pt$, the parameters of the CMSSW \code{ak8PFJetsCHSTrimmed}
+  configuration; the axis is the sum of the kept subjets, uncorrected.
+\item[\code{axisWtaCA}, \code{axisWtaKT}] winner-take-all axis~\cite{Larkoski:2014uqa}: the constituents are reclustered
+  into one jet with Cambridge--Aachen or $k_\mathrm{T}$ and the \textsc{FastJet} recombination scheme
+  \code{WTA\_pt\_scheme}, in which a merged object takes the rapidity, azimuth and mass of the input with the larger
+  $\pt$ and the sum of the two $\pt$ (\textsc{FastJet} 3.4.1, \code{JetDefinition.hh}). This scheme is boost-invariant
+  along the beam, consistent with the $(y,\phi)$ clustering metric; \code{WTA\_modp\_scheme} (the direction of the
+  larger $|\vec p|$) is not used.
+\item[\code{axisRecoil}] the azimuth of the boson of the first passing back-to-back channel (in the order of the
+  configuration: \code{Zmumu}, then \code{Zee}) plus $\pi$, and the jet pseudorapidity; status 2 without such a boson.
+\item[\code{axisTruth}] in simulation, the four-momentum of the nearest last-copy $W$ or $Z$ boson in
+  \code{prunedGenParticles} with a quark or gluon daughter, within $\Delta R < 0.8$; status 2 in data or without a match.
+\end{description}
+Gen jets get the same axes without corrections. The groomers and the WTA axis are tested with constructed jets
+(\code{JetSetup/test/test\_axes.cc}: a soft wide-angle particle groomed away, a single-particle result, an empty jet,
+the trimming threshold, the winner of the WTA recombination); deliberately altered versions fail 3 of 7 and 5 of 17
+assertions.
+
+%-----------------------------------------------------------------------------------------------------------------------
+\subsection{Per-axis lab-frame tables}
+\label{app:axes:tables}
+For each axis, an unbinned E1C with $\pt$ weights ($n = 1$, normalised to the jet $\pt$) in the \code{jetAxis} frame
+about that axis is written for the nominal jets (\code{E1CLab<Axis>}; Section~\ref{sec:eec}). The normalisation still
+uses the jet, so the weight of each entry is $\pt^i/\ptj$ for every axis. On Drell--Yan events, where the truth axis
+falls back to the jet, \code{E1CLabTruth} equals \code{E1CLab} entry by entry.
+
+%-----------------------------------------------------------------------------------------------------------------------
+\subsection{Lab-to-rest-frame conversion}
+\label{app:axes:boost}
+The conversion is in \code{analysis/bvana/frames.py} and is exposed in the histogram configuration as
+\code{restFrame: \{axis, mass\}} (the axis name and either the axis mass or a fixed boson-mass hypothesis). For each
+entry $(\theta', \phi)$ of \code{E1CLab<Axis>}, with axis direction $\hat a$, frame axis $\hat x$ (towards the beam on
+the side of the axis, orthogonalised) and $\hat y = \hat a\times\hat x$:
+\begin{enumerate}
+\item The particle direction is $\hat n = \sin\theta'\cos\phi\,\hat x + \sin\theta'\sin\phi\,\hat y + \cos\theta'\,\hat a$,
+  its transverse momentum is $\pt^i = w_i\,\ptj$, and $p = \pt^i/|\hat n_\perp|$.
+\item Every particle is given the charged-pion mass, at reco and gen level alike, so that the observable is defined
+  identically at both levels: $E = (p^2 + m_\pi^2)^{1/2}$. (Reco charged PF candidates carry $m_\pi$; using massless
+  particles instead changes the rest-frame angles measurably, which the closure test below detects.)
+\item The boost is along $\hat a$, with the axis momentum $P = \pt^\mathrm{axis}\cosh\eta^\mathrm{axis}$ and the mass
+  hypothesis $M$: $E_a = (P^2+M^2)^{1/2}$, $\gamma = E_a/M$, $\beta = P/E_a$. The longitudinal rest-frame momentum
+  $p^*_\parallel = \gamma(p\cos\theta' - \beta E)$ is computed without cancellation as
+  \begin{equation}
+    p^*_\parallel = \gamma\left[(1-\beta)E - \frac{m_\pi^2}{E + p} - 2p\sin^2\frac{\theta'}{2}\right],
+    \qquad 1 - \beta = \frac{M^2}{E_a(E_a + P)},
+  \end{equation}
+  which follows from $p\cos\theta' - \beta E = (p - E) + (1-\beta)E - 2p\sin^2(\theta'/2)$ and $E - p = m_\pi^2/(E+p)$.
+  Then $p^*_\perp = p\sin\theta'$, $E^* = \gamma(E - \beta p\cos\theta')$, $\theta^* = \operatorname{atan2}(p^*_\perp,
+  p^*_\parallel)$ and $\phi^* = \phi$. The rest-frame energy weight is $E^*/M$.
+\end{enumerate}
+Tests (\code{analysis/tests/test\_frames.py}): a round trip through an explicit Lorentz boost closes to $10^{-9}$; the
+massless hypothesis is distinguished from the pion mass; and, on a NANO with constituents, the boost of \code{E1CLab}
+about the jet with the jet mass is compared entry by entry with the C++ \code{E1CHelicity}, which boosts the stored
+four-vectors. For unit-PUPPI-weight pions with stored mass $m_\pi$ and $p^* > 0.5\GeV$ the 99\% quantile of
+$|\Delta\theta^*|$ is below $10^{-4}$ (maximum $1.1\times10^{-4}$) and $|\Delta\phi^*| < 10^{-5}$. The comparison is
+restricted to these particles because the C++ scales the whole four-vector by the PUPPI weight (mass $w\,m_\pi$), and
+for $p^* \to 0$ the rest-frame direction is undefined (such particles have small weights).
+
+%-----------------------------------------------------------------------------------------------------------------------
+\subsection{Comparison method}
+\label{app:axes:method}
+\code{analysis/axisStudy.py} uses reco or gen jets of the signal samples \code{ZZto2L2Q} and \code{WZto2L2Q} that are
+matched to a truth boson (\code{axisTruthStatus} 0) whose mass lies in the window of the truth definition
+(Appendix~\ref{app:truth}: $66$--$116\GeV$ for the $Z$, $60$--$100\GeV$ for the $W$), and to an LHE hadronic boson within
+$\Delta R < 0.4$. The jet weight $w_j$ is the generator weight, times the reweighting factor below where it applies. For
+each axis:
+\begin{itemize}
+\item the distance $\Delta R$ between the axis and the truth boson (Section~\ref{app:axes:dr});
+\item the rest-frame E1C with the truth boson mass as $M$, so that only the axis differs, weighted by the rest-frame
+  energy $E^*/M$; its moments $\langle P_2(\cos\theta^*)\rangle$, $\langle\sin^2\theta^*\cos2\phi^*\rangle$,
+  $\langle\sin2\theta^*\cos\phi^*\rangle$ and $\langle\cos\theta^*\rangle$, computed as ratios of sums over jets
+  ($R = \sum_j w_j N_j / \sum_j w_j D_j$, with $N_j = \sum_{i\in j} e_i g(\theta_i,\phi_i)$ and $D_j = \sum_{i\in j} e_i$),
+  with delta-method uncertainties from the per-jet influence $w_j(N_j - R D_j)/\sum w D$, which keeps the correlations
+  of the entries of a jet;
+\item the same moments with the jets reweighted to pure longitudinal or pure transverse bosons
+  (Appendix~\ref{app:truth:reweighting}), with the truth $\rho_{00}$ of the unselected LHE sample in the LHE boson $\pt$
+  bin. The \emph{sensitivity} $S = \langle P_2\rangle_T - \langle P_2\rangle_L$ is the response of the observable to
+  $\rho_{00}$; an axis that degrades the information on the boson direction reduces $S$.
+\end{itemize}
+All axes are evaluated on the same jets, so the difference of the sensitivities of two axes has an uncertainty from
+the difference of their per-jet influences, which includes their (large) correlation.
+
+%-----------------------------------------------------------------------------------------------------------------------
+\subsection{Distance to the truth boson}
+\label{app:axes:dr}
+\input{appendix_axes_dr.tex}
+
+%-----------------------------------------------------------------------------------------------------------------------
+\subsection{Sensitivity to $\rho_{00}$}
+\label{app:axes:results}
+\input{appendix_axes_results.tex}

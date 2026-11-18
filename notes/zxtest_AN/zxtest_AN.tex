@@ -45,11 +45,15 @@ the reconstruction-level and generator-level event selections, the muon momentum
 jet processing (jet energy corrections re-applied from the raw momentum, jet energy resolution smearing, PUPPI-weighted
 constituents, jet identification, lepton--jet overlap flags and the back-to-back requirement), the energy correlator
 observables and their output format, the order in which corrections and selections are applied, the event weights
-stored, a cutflow, and the regions of the columnar analysis. Each correction and identification is related to the
-corresponding CMS physics object group (POG) recommendation, and deviations from it are stated. It
-describes the simulation code of the boostedV commit that introduces this revision of the note (EventSelection
-\code{75644f1}, JetSetup \code{9f87b81}, EECs \code{ef60354}), CMSSW\_15\_0\_22, and the columnar analysis as of 15 November 2026, applied to Run~3 2022 simulation
-with post-EE conditions. Values marked \emph{placeholder} are development choices, not CMS recommendations. Open points
+stored, a cutflow, and the regions of the columnar analysis. Two appendices document the generator-level spin-density
+matrix of the vector bosons (its extraction, the generators' electroweak couplings, $\gamma^*/Z$ interference and the
+bias introduced by the selection) and the study of the jet axis for the one-point correlator. Each correction and identification is related to the
+corresponding CMS physics object group (POG) recommendation, and deviations from it are stated. The note
+describes the simulation code of EventSelection \code{bea1839}, JetSetup \code{2582ad1}, EECs \code{ef60354} and
+DataFormats \code{ba63f3f} together with the uncommitted changes of 17--18 November 2026 (alternative jet axes and the
+corrected soft-drop mass, per-axis and charge-weighted correlators, the extra-lepton veto of the dilepton channels),
+CMSSW\_15\_0\_22, and the columnar analysis as of 18 November 2026, applied to Run~3 2022 simulation with post-EE
+conditions. Values marked \emph{placeholder} are development choices, not CMS recommendations. Open points
 are collected in Section~\ref{sec:issues}.
 \end{abstract}
 
@@ -67,11 +71,13 @@ anti-$k_\mathrm{T}$~\cite{Cacciari:2008gp,Cacciari:2011ma} jet of distance param
 from particle-flow candidates~\cite{CMS:2017yfk} weighted with PUPPI~\cite{Bertolini:2014bba,CMS:2020ebo}. In $ZZ\to\ell\ell q\bar q$ and $WZ\to q\bar q'\ell\ell$ events this
 jet is frequently the hadronically decaying boson; in $Z$+jets events it is a quark or gluon jet. For each selected jet,
 the configuration stores the two-point projected energy correlator (E2C)~\cite{Chen:2020vvp} with energy weights of power
-$n = 1$ and $n = 2$, and the one-point correlator (E1C) in four reference frames, all computed from the charged jet constituents
-and stored without binning.
+$n = 1$ and $n = 2$, and the one-point correlator (E1C) in four reference frames and, in the laboratory frame, about
+eight alternative jet axes, all computed from the charged jet constituents and stored without binning. A longer-term
+goal is the measurement of the polarisation of the hadronically decaying boson from the E1C in its rest
+frame~\cite{Gao:2026bvp}; Appendices~\ref{app:truth} and~\ref{app:axes} document the studies made for it so far.
 
-The reconstruction-level selection is deliberately loose: leptons are required to pass kinematic criteria only, without
-identification or isolation, so that these requirements and the trigger can be studied offline from the stored lepton
+The reconstruction-level selection is deliberately loose: the selected leptons are required to pass kinematic criteria
+only, without identification or isolation (only the veto of additional leptons uses identified and isolated leptons), so that these requirements and the trigger can be studied offline from the stored lepton
 properties (Section~\ref{sec:objects}). Every selection step is evaluated both at reconstruction level (\emph{reco})
 and at generator level (\emph{gen}) with the same channel definitions, and an event is retained if it passes at either
 level.
@@ -109,7 +115,8 @@ tables are written) are command-line arguments. Configuration keys, module label
   \code{analysis/configs/zxtest.yaml}, which defines regions, cuts, binnings and histograms (Section~\ref{sec:regions}).
 \end{description}
 
-\paragraph{Resources.} Measured locally on Drell--Yan simulation with the configuration described here: a start-up time
+\paragraph{Resources.} Measured locally on Drell--Yan simulation with the configuration of 13 November, before the
+alternative jet axes were added (their cost has not been measured separately): a start-up time
 of 28\,s, then about 5\,ms per event for inclusive events and 42\,ms per event for events with $\ptll$ between 400 and
 600\GeV; peak resident memory 1.9\,GB; about 6.5\,kB of output per input event for the high-$\ptll$ events. Each NANO file
 also contains a fixed 2.5\,MB \code{ParameterSets} tree.
@@ -127,13 +134,16 @@ Step & Modules & Section \\
 \midrule
 Event filters & \code{goodVertexFlag}, \code{metFilterFlag}, \code{ecalBadCalibFlag}, \code{jetVetoMapJets} $\to$ \code{jetVetoMapFlag}, \code{<c>Trigger} & \ref{sec:trigger}, \ref{sec:vertex} \\
 Muon momentum & \code{correctedMuons} (\code{MuonCorrectionProducer}) & \ref{sec:muoncorr} \\
-Lepton objects & \code{looseMuons}, \code{looseElectrons}; gen: \code{genParticleLevel}, \code{genTightMuons},
-  \code{genTightElectrons} & \ref{sec:objects}, \ref{sec:gen} \\
-Dilepton & \code{<c>Sel} (\code{DileptonSelector}) & \ref{sec:dilepton} \\
+Lepton objects & \code{looseMuons}, \code{looseElectrons}, \code{vetoMuons}, \code{vetoElectrons}; gen:
+  \code{genParticleLevel}, \code{genTightMuons}, \code{genTightElectrons}, \code{genVetoMuons},
+  \code{genVetoElectrons} & \ref{sec:objects}, \ref{sec:gen} \\
+Dilepton & \code{<c>Sel} (\code{DileptonSelector}, with the extra-lepton veto) & \ref{sec:dilepton} \\
+MET corrections & \code{metType1}, \code{metXY}, \code{correctedMET} (configured, not applied in \code{ZX\_test}) & \ref{sec:met} \\
 Reco jets & \code{jetsRecoJEC} $\to$ \code{jetsRecoJER} $\to$ \code{jetsRecoRaw} $\to$ \code{jetsRecoConst} $\to$
   \code{jetsReco} & \ref{sec:recojets} \\
 Gen jets & \code{jetsGenRaw} $\to$ \code{jetsGenConst} $\to$ \code{jetsGen}; flavour: \code{jetsGenPartons},
   \code{jetsGenFlavourInfos} & \ref{sec:genjets} \\
+Jet axes & \code{jetsRecoAxes}, \code{jetsGenAxes} (\code{EECJetAxisProducer}; nominal jets) & \ref{sec:axes} \\
 Overlap flags & \code{jetsRecoOverlap}, \code{jetsGenOverlap} (\code{EECJetOverlapProducer}) & \ref{sec:veto} \\
 Back-to-back & \code{jets<Coll>BackToBack<c>} (\code{BackToBackSelector}, flag \code{<c>B2B}) $\to$ \code{jets<Coll>B2B}
   (\code{EECJetMaskSelector}) & \ref{sec:b2b} \\
@@ -151,23 +161,31 @@ Tables & jet, lepton, event, weight and generator tables & \ref{sec:output} \\
 
 All samples are Run3Summer22EE MiniAODv4 simulation (conditions of the 2022 eras E, F and G), processed with the global
 tag \code{130X\_mcRun3\_2022\_realistic\_postEE\_v6}. No collision data have been processed with \code{ZX\_test}.
-Table~\ref{tab:samples} lists the samples of the next production (manifest
-\code{simulation/production/samples\_zxb2b.yaml}, not yet submitted) and those of the first production (tag
+Table~\ref{tab:samples} lists the samples of the signal and Drell--Yan production (manifest
+\code{simulation/production/samples\_zxb2b.yaml}) and those of the first production (tag
 \code{20261113\_zxtest}), which used an earlier version of the configuration without the dilepton $\pt$ and back-to-back
-requirements.
+requirements. The manifest was first submitted as \code{20261115\_zxb2b}, whose jobs failed on AK8 jets without PF
+information (Section~\ref{sec:recojets}), and then, with the fix, as \code{20261116\_zxb2b} (374 jobs: \code{ZZto2L2Q} 149,
+\code{WZto2L2Q} 47, Drell--Yan 74, 50 and 54). Background samples ($t\bar t\to2\ell2\nu$, $WW$ and single top; manifest
+\code{samples\_zxb2b\_bkg.yaml}, 15 tasks, 839 jobs) were submitted as \code{20261117\_zxb2bbkg}, and $ZH$ samples with
+$Z\to\ell\ell$ and $H\to b\bar b$, $c\bar c$, $gg$ and $WW$ (manifest \code{samples\_zh.yaml}) as \code{20261117\_zh}.
+These productions use the configuration of 15--17 November: they contain neither the alternative jet axes nor the
+extra-lepton veto of this note, and their $\ptll \geq 200\GeV$, back-to-back and jet requirements are as described here.
+The fully hadronic antitop $s$-channel sample does not exist in Summer22EE (the \code{TBbarto2Q-s-channel} dataset contains
+tops only); this gap is accepted if the acceptance of fully hadronic modes is negligible.
 
 \begin{table}[htbp]
 \centering
 \caption{Samples. Event and file counts from DAS. For \code{20261113\_zxtest}, the processed fraction is the
 \code{genEventCount} of the merged jobs divided by the DAS event count; the missing jobs are discussed in
-Section~\ref{sec:issues}. For the next production, the splitting is given in input files per CRAB job.}
+Section~\ref{sec:issues}. For \code{20261116\_zxb2b}, the splitting is given in input files per CRAB job.}
 \label{tab:samples}
 \small
 \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}Xrrl}
 \toprule
 Dataset (\code{/<name>/Run3Summer22EEMiniAODv4-\allowbreak{}130X\_\allowbreak{}...\_\allowbreak{}postEE\_\allowbreak{}v6-\allowbreak{}v*/MINIAODSIM}) & Events & Files & Jobs \\
 \midrule
-\multicolumn{4}{l}{\emph{Next production, manifest \code{samples\_\allowbreak{}zxb2b.yaml} (configuration of this note)}} \\
+\multicolumn{4}{l}{\emph{Production \code{20261116\_\allowbreak{}zxb2b}, manifest \code{samples\_\allowbreak{}zxb2b.yaml}}} \\
 \code{ZZto2L2Q\_\allowbreak{}TuneCP5\_\allowbreak{}13p6TeV\_\allowbreak{}powheg-\allowbreak{}pythia8} & 49\,084\,483 & 891 & 6 files/job \\
 \code{WZto2L2Q\_\allowbreak{}TuneCP5\_\allowbreak{}13p6TeV\_\allowbreak{}powheg-\allowbreak{}pythia8} & 14\,954\,528 & 278 & 6 files/job \\
 \code{DYto2L-\allowbreak{}4Jets\_\allowbreak{}MLL-\allowbreak{}50\_\allowbreak{}PTLL-\allowbreak{}200to400\_\allowbreak{}TuneCP5\_\allowbreak{}13p6TeV\_\allowbreak{}madgraphMLM-\allowbreak{}pythia8} & 6\,439\,323 & 286 & 4 files/job \\
@@ -200,10 +218,16 @@ samples with the inclusive one requires an overlap removal in that variable.
 \code{genEventSumw} and \code{genEventSumw2} summed over all processed events (the weight table is scheduled on its own
 path, independent of the event filter). A sample is normalised with
 $w = \code{genWeight}\cdot\sigma\cdot L/\code{genEventSumw}$, where \code{genEventSumw} is summed over the merged jobs
-only, so that missing jobs do not bias the normalisation. No 13.6\TeV cross sections have been collected yet
-(\code{analysis/xsec.yaml}); plots produced so far are normalised to unit area. For \code{ZZto2L2Q} and
-\code{WZto2L2Q}, a cross section derived from an inclusive one with branching fractions must account for the $\tau$
-decays and the low-mass $\gamma^*$ included in these samples.
+only, so that missing jobs do not bias the normalisation. The 13.6\TeV cross sections, with their sources, are
+collected in \code{analysis/xsec.yaml}, and \code{analysis/rescale.py} applies $\sigma L$ to an unnormalised analysis
+output. For the samples of Table~\ref{tab:samples}: \code{ZZto2L2Q} 6.788\,pb and \code{WZto2L2Q} 7.568\,pb (the NLO
+values of the generator, not higher-order values; they include the $\tau$ decays and the low-mass $\gamma^*$ of these
+samples); Drell--Yan with \code{PTLL} 200--400, 400--600 and $> 600\GeV$: 7.784, 0.4468 and 0.07976\,pb (the FEWZ
+NNLO QCD + NLO EW inclusive cross section for $m_{\ell\ell} > 50\GeV$, 6372\,pb, times the ratio of the generator's
+LO cross sections of the bin and of the inclusive sample); inclusive Drell--Yan 6372\,pb; $t\bar t\to2\ell2\nu$
+98.04\,pb (NNLO+NNLL, times the leptonic branching fractions); inclusive \code{ZZ} and \code{WZ} (\textsc{Pythia}~8) 12.75
+and 29.1\,pb (the generator's LO values). The top and $ZH$ values are documented in the file;
+those of \code{ZZto4Q} and \code{WZto4Q} are still missing.
 
 %=======================================================================================================================
 \section{Event selection: overview}
@@ -237,7 +261,7 @@ Flag & Levels & Definition \\
 \code{ecalBadCalib} & reco & rerun ECAL bad-calibration filter passes (Section~\ref{sec:vertex}) \\
 \code{jetVetoMap} & reco & no selected AK4 jet in a vetoed region (Section~\ref{sec:vertex}) \\
 \code{<c>Trigger} & reco & any of the channel's HLT paths fired (Section~\ref{sec:trigger}) \\
-\code{<c>Sel} & both & dilepton selection, including $\ptll \geq 200\GeV$ (Section~\ref{sec:dilepton}) \\
+\code{<c>Sel} & both & dilepton selection, including $\ptll \geq 200\GeV$ and the extra-lepton veto (Section~\ref{sec:dilepton}) \\
 \code{<c>B2B} & both & \code{<c>Sel} AND a back-to-back jet at the same level (Section~\ref{sec:b2b}) \\
 \code{<c>} & both & reco: \code{<c>Sel} AND \code{<c>B2B} AND \code{<c>Trigger} AND \code{goodVertex} AND
   \code{metFilters} AND \code{ecalBadCalib} AND \code{jetVetoMap}; gen: \code{<c>Sel} AND \code{<c>B2B} \\
@@ -342,6 +366,20 @@ MiniAOD four-momentum, which includes the energy regression of the reconstructio
 addition, for Run~3, an energy scale correction in data and a resolution smearing in simulation~\cite{EGMsas}; these are
 \emph{not} applied in \code{ZX\_test} and are to be implemented in a later version (Section~\ref{sec:issues}).
 
+\subsection{Missing transverse momentum}
+\label{sec:met}
+The selection of \code{ZX\_test} does not use the missing transverse momentum (MET), which is stored for offline use
+(Section~\ref{sec:weights}). Corrections of the PUPPI MET following the JetMET POG are implemented and configured
+(\code{selection.reco.metCorrections}), but not applied in \code{ZX\_test} (\code{apply: false}); they are used by the
+single-lepton channels of \code{default.yaml}. In that order: the Type-1 correction recomputed with the V4 AK4 PUPPI
+JEC (raw MET minus the sum over the muon-subtracted AK4 PUPPI jets with corrected $\pt > 15\GeV$, $|\eta| < 5.2$ and
+electromagnetic fraction below 0.9 of $\pt^\mathrm{corr} - \pt^\mathrm{L1}$), optionally with the nominal JER factor of
+each jet; the XY shift; and the replacement of the PF muon $\pt$ by the corrected muon $\pt$. The modules agree with an
+independent FWLite and correctionlib recomputation to $10^{-5}\GeV$ on 2000 simulated and 2000 data events, and the
+Type-1 MET recomputed with the production corrections reproduces \code{slimmedMETsPuppi} within $8\times10^{-3}\GeV$ in
+all simulated events (details in \code{JetSetup/README.md} and \code{simulation/JOURNAL.md}). The JES, JER and
+unclustered-energy variations, and electrons and photons, are not propagated.
+
 \subsection{Lepton objects}
 \label{sec:objects}
 Leptons are not dressed with photons at reco level (\code{dressing.mode: none}); the impact of reco-level dressing,
@@ -351,7 +389,16 @@ and its systematic uncertainty, is to be studied. The object selections are kine
 \item \code{looseElectrons}: $\pt > 15\GeV$ and supercluster pseudorapidity $|\eta_\mathrm{SC}| < 2.5$, excluding the
   barrel--endcap transition $1.4442 < |\eta_\mathrm{SC}| < 1.566$.
 \end{itemize}
-No identification, isolation or impact-parameter requirement is applied. For offline studies, the selected leptons carry
+No identification, isolation or impact-parameter requirement is applied to them. The veto of additional leptons
+(Section~\ref{sec:dilepton}) uses identified and isolated leptons, as in \code{default.yaml}:
+\begin{itemize}
+\item \code{vetoMuons}: corrected muons with $\pt > 10\GeV$, $|\eta| < 2.4$, the loose cut-based identification and the
+  loose PF isolation (\code{CutBasedIdLoose}, \code{PFIsoLoose})~\cite{MUOrecommendations};
+\item \code{vetoElectrons}: $\pt > 10\GeV$, the $\eta_\mathrm{SC}$ requirements above and the veto working point of the
+  RunIIIWinter22 V1 cut-based identification~\cite{EGMcutid}.
+\end{itemize}
+The veto objects are identified and isolated so that non-prompt leptons inside the recoiling jet (for example from
+semileptonic $b$ and $c$ decays) rarely veto the event. Veto leptons are not stored. For offline studies, the selected leptons carry
 the properties of Table~\ref{tab:leptoncols}, taken from the PAT object matched to each selected lepton (the nearest
 object of the same charge within $\Delta R < 0.1$).
 
@@ -392,6 +439,17 @@ $\ptll \geq 200\GeV$ (\code{pairPtMin}, placeholder, equal to the jet $\pt$ thre
 has a larger $\pt$. The $Z$ candidate (table \code{<c>Boson}) is the sum of the two lepton four-momenta, and the two
 leptons (table \code{<c>Leptons}) are stored with the leading one first.
 
+\paragraph{Extra-lepton veto.} Finally, the event fails the channel if any lepton of \code{vetoMuons} or
+\code{vetoElectrons} (key \code{vetoes}) lies farther than $\Delta R = 0.01$ from both selected leptons. Both channels
+veto both flavours, so the two channels cannot both pass, and no identified and isolated lepton besides the pair is
+allowed (further leptons failing the veto identification or isolation are not vetoed). The selected pair itself,
+which is also present in the veto collection of its own flavour if it passes the veto requirements, is not counted:
+both collections derive from the same corrected leptons, so a selected lepton and its copy in the veto collection have
+identical directions. This is the rule of the single-lepton channels of \code{default.yaml}. On the 1000 events of the
+\code{PTLL}-400--600 Drell--Yan test file, no event passed both channels before the veto; with the veto, the reco
+\code{Zmumu} (\code{Zee}) channel keeps 187 of 192 (174 of 176) events, the gen channels 214 of 214 (205 of 206), and
+no event is gained. If the pair vetoed itself, no event would pass.
+
 The $\ptll$ requirement strongly reduces the number of written events. In the first production, which did not apply it,
 the generator-weighted fraction of selected $Z\to\mu\mu$ events with $\ptll > 150\GeV$ was 0.5\% for inclusive
 Drell--Yan, 2.5\% for $t\bar t\to 2\ell2\nu$ and about 5\% for the inclusive $WZ$ and $ZZ$ samples.
@@ -411,9 +469,10 @@ runs on the merged \code{prunedGenParticles} and \code{packedGenParticles}, conv
 \end{itemize}
 from input particles with $|\eta| < 5$ and no $\pt$ threshold. The gen objects mirror the reco kinematic requirements:
 \code{genTightMuons} ($|\mathrm{PDG\,ID}| = 13$, $\pt > 15\GeV$, $|\eta| < 2.4$) and \code{genTightElectrons}
-($|\mathrm{PDG\,ID}| = 11$, $\pt > 15\GeV$, $|\eta| < 2.5$ outside $1.4442 < |\eta| < 1.566$). The gen channels use the
-same dilepton selection as reco (lepton $\pt$ thresholds, mass window, choice of the pair closest to $m_Z$ and
-$\ptll \geq 200\GeV$), without any trigger, vertex or MET-filter requirement. The removal of gen electrons in the
+($|\mathrm{PDG\,ID}| = 11$, $\pt > 15\GeV$, $|\eta| < 2.5$ outside $1.4442 < |\eta| < 1.566$), and for the veto
+\code{genVetoMuons} and \code{genVetoElectrons} (the same with $\pt > 10\GeV$). The gen channels use the
+same dilepton selection as reco (lepton $\pt$ thresholds, mass window, choice of the pair closest to $m_Z$,
+$\ptll \geq 200\GeV$ and the extra-lepton veto), without any trigger, vertex or MET-filter requirement. The removal of gen electrons in the
 barrel--endcap transition mirrors the reco supercluster requirement on the gen pseudorapidity; whether this is
 appropriate for a particle-level definition is to be checked with the EGamma POG.
 
@@ -424,7 +483,7 @@ appropriate for a particle-level definition is to be checked with the EGamma POG
 One reco and one gen AK8 jet collection are built, both from MiniAOD jets with the jet daughters as constituents. Jets
 keep the order of the MiniAOD collection, and the index in that collection is stored as \code{srcIdx}. The processed
 jets are stored in the \code{EECJet} format (four-momentum, raw $\pt$, \code{srcIdx}, jet identification bits, JER
-factor and constituents).
+factor, constituents and, for the nominal jets, the alternative axes).
 
 \subsection{Reconstructed AK8 jets}
 \label{sec:recojets}
@@ -467,9 +526,12 @@ the JetMET POG for Summer22EE~\cite{JMEjerc}; the methods are described in Ref.~
   keeps the daughters of \code{slimmedJetsAK8} only for jets above $170\GeV$ with the MiniAOD correction, but after
   the V4 correction and the smearing such a jet can pass the threshold: in 10\,508 events of the
   \code{PTLL}-200--400 Drell--Yan sample, 14 events have a daughterless jet above $180\GeV$ and one above $200\GeV$ (at $205\GeV$).
-  Such a jet is kept without constituents, with a warning; it then fails the jet selection (at least two
-  constituents), and it makes the back-to-back requirement fail if it would be the leading jet
-  (Section~\ref{sec:b2b}). The jet
+  Such a jet is kept without constituents, with a warning. MiniAOD also drops the PF-specific information (energy
+  fractions and multiplicities) of these jets (\code{dropSpecific}, same threshold), on which the identification
+  depends; the first submission of the production (\code{20261115\_zxb2b}) failed on them. Such a jet now receives only bit 2 of
+  \code{jetId} (value 4, ``no PF information''), so it fails the identification and the jet selection, can be counted
+  in the \code{jetId} column, and does not affect the back-to-back requirement (Section~\ref{sec:b2b}). Two such jets
+  of the first production whose stored MiniAOD momentum is corrupted are discussed in Section~\ref{sec:issues}. The jet
   identification bits are bit 0 for the Tight and bit 1 for the TightLeptonVeto criteria of the JetMET POG Run~3 PUPPI
   jet identification~\cite{JMEjetid}, evaluated with its correctionlib file (\code{jetid.json.gz}, keys
   \code{AK8PUPPI\_Tight} and \code{AK8PUPPI\_TightLeptonVeto}) on the \code{pat::Jet} energy fractions and
@@ -493,17 +555,53 @@ nominal JER smearing, and a JER variation replaces the nominal smearing; each va
 selected on its own.
 
 \paragraph{Stored jet properties.} The table \code{RecoJet} contains $\pt$, $\eta$, $\phi$ and mass after all
-corrections, \code{rawPt}, \code{srcIdx}, \code{jetId} (the two bits), \code{nConstituents} (after the constituent
+corrections, \code{rawPt}, \code{srcIdx}, \code{jetId} (the three bits), \code{nConstituents} (after the constituent
 selection) and \code{jerFactor}. From the re-corrected PAT jet, it also contains \code{jecPt}, \code{jecFactor},
 \code{area}, \code{rawFactor}, the $N$-subjettiness variables $\tau_1$--$\tau_4$~\cite{Thaler:2010tr}, the $N_2$ and $N_3$
 variables~\cite{Moult:2016cvt} with $\beta = 1$, the PUPPI soft-drop~\cite{Larkoski:2014wba} mass \code{msoftdrop}, the
 ParticleNet~\cite{Qu:2019gqs} scores stored in MiniAOD, energy fractions and
 multiplicities, the soft-drop subjet indices, and in simulation the hadron and parton flavour and the numbers of $b$ and
-$c$ hadrons. The Global Particle Transformer (GloParT~3, based on the Particle Transformer architecture~\cite{Qu:2022mxj})
+$c$ hadrons. The four-momenta and status flags of the alternative jet axes (Section~\ref{sec:axes}) are added for the
+nominal jets, among them the corrected soft-drop mass \code{axisSoftDropMass}. The Global Particle Transformer (GloParT~3, based on the Particle Transformer architecture~\cite{Qu:2022mxj})
 scores, which are absent from this MiniAOD, are computed in the
 job by re-running the tagger on a copy of the jets (\code{updateJetCollection} with the global-tag AK8PFPuppi
 corrections, as in NanoAOD); this copy only provides the 23 \code{globalParT3\_*} columns, matched by \code{srcIdx}, and
 does not enter the selection.
+
+\subsection{Alternative jet axes and the corrected soft-drop mass}
+\label{sec:axes}
+For the nominal jets of both collections, \code{EECJetAxisProducer} computes eight alternative axes from all
+PUPPI-weighted constituents, before the charged-constituent selection (\code{jets.collections.<C>.axes}): three
+soft-drop variants, a trimmed axis, two winner-take-all axes, the recoil direction of the $Z$ candidate and the
+generated boson. Their definitions and their study are given in Appendix~\ref{app:axes}. The jet tables store, per
+axis \code{<name>}, the columns \code{<name>Pt}, \code{<name>Eta}, \code{<name>Phi}, \code{<name>Mass} and
+\code{<name>Status} (0 available; 1 for soft drop ending on a single particle, which is then the axis; 2 unavailable,
+the axis being the jet four-momentum).
+
+\paragraph{Soft drop and its mass.} The production-like axis \code{axisSoftDrop} reclusters the constituents with
+Cambridge--Aachen and applies soft drop~\cite{Larkoski:2014wba} with $\beta = 0$, $z_\mathrm{cut} = 0.1$ and
+$R_0 = 0.8$, the parameters of the MiniAOD \code{SoftDropPuppi} subjets. Following the JetMET POG prescription for the
+soft-drop mass~\cite{JMEjerc}, each of the (up to two) subjets is corrected with the AK4 PUPPI V4 JEC
+(\code{Summer22EE\_22Sep2023\_V4\_MC\_L1L2L3Res\_AK4PFPuppi}, or the \code{DATA} key; the subjet area is not computed,
+which is harmless because the AK4 PUPPI L1 correction is identically one) and, in simulation, smeared with the AK4 PUPPI
+hybrid JER (JRV2 keys; matching to the MiniAOD gen soft-drop subjets \code{slimmedGenJetsAK8SoftDropSubJets} with
+$\Delta R < 0.2$ and $|\Delta\pt| < 3\sigma\pt$; random numbers seeded per event, jet and subjet). The axis is the sum of
+the corrected subjets, and \code{axisSoftDropMass} is the corrected soft-drop mass, which replaces the MiniAOD
+\code{msoftdrop} (production JEC, no JER) for physics use. Validation on the 1000 events of the \code{PTLL}-400--600
+Drell--Yan test file (\code{JetSetup/\allowbreak{}test/\allowbreak{}validation/\allowbreak{}checkSoftDrop.py}):
+\begin{itemize}
+\item for 2071 of the 2083 jets with MiniAOD subjets, our subjets consist of exactly the MiniAOD subjet daughters, and
+  their summed momenta agree to $7\times10^{-16}$: the clustering is identical. The 12 others differ in subjet
+  membership; all 12 change their clustering under perturbations of the inputs of the size of the MiniAOD packing
+  precision, against 3.1\% of the agreeing jets, so the differences are attributed to the packing;
+\item with the MiniAOD subjet JEC factors, the soft-drop mass agrees with \code{groomedMass("SoftDropPuppi")} within
+  1.7\%; with the V4 correction, the ratio to the MiniAOD value has a median of 1.0001; the subjet JER changes the subjet
+  $\pt$ by 1.7\% (r.m.s.);
+\item 57 jets pass the MiniAOD soft-drop input requirements (raw $\pt > 100\GeV$, $|y| < 2.4$) but have no MiniAOD
+  subjets; all have raw $\pt < 170\GeV$ and fail the jet selection.
+\end{itemize}
+The other axes are not corrected, since they are built from the raw constituents. The systematic variations of the
+soft-drop mass (subjet JES and JER, JMS and JMR) are not implemented.
 
 \subsection{Generator-level AK8 jets}
 \label{sec:genjets}
@@ -537,7 +635,8 @@ For each channel with \code{backToBack.enabled} (all four channels of \code{ZX\_
 \item among the jets of that level passing the jet selection and without \code{veto<c>}, the jet with the highest $\pt$
   is taken; if a reco jet without constituents (step~3 of Section~\ref{sec:recojets}) that passes the $\pt$, $|\eta|$
   and identification requirements and lies at $\Delta R \geq 0.8$ from the channel's selected leptons has a higher
-  $\pt$, the requirement fails;
+  $\pt$, the requirement fails (since such jets lack the PF information and fail the identification, this does not
+  happen in practice);
 \item $\Delta\phi(\text{jet}, Z) > 2.8$ (\code{dPhiMin}) is required, with $\Delta\phi$ folded into $[0,\pi]$;
 \item the $\pt$ asymmetry $A = |\ptj - \ptll| / (\ptj + \ptll) < 0.3$ (\code{asymmetryMax}) is required.
 \end{enumerate}
@@ -604,15 +703,39 @@ $p_z$ (the $+z$ beam if $p_z = 0$). The four frames are:
   for constituents close to the jet axis.
 \end{description}
 A jet that is not timelike, or whose axes are degenerate (a jet along the beam), stops the job with an error (not for
-\code{jetProjective}). Other choices of the jet axis for the E1C, such as the winner-take-all axis, are to be
-explored. The
+\code{jetProjective}). The
 minimum of two constituents per jet excludes single-particle jets, in whose rest frame the constituent direction is
 undefined.
+
+\paragraph{E1C about the alternative axes.} For each axis of Section~\ref{sec:axes}, an E1C in the \code{jetAxis}
+frame about that axis is stored for the nominal jets: \code{E1CLabSoftDrop}, \code{E1CLabSoftDropB1},
+\code{E1CLabSoftDropZ005}, \code{E1CLabTrim}, \code{E1CLabWtaCA}, \code{E1CLabWtaKT}, \code{E1CLabRecoil} and
+\code{E1CLabTruth}. The frame is built from the axis four-momentum ($\hat z$ along the axis, $\hat x$ towards beam $A$
+of the axis), while the weights are still normalised to the jet $\pt$. Together with the axis four-momentum, these
+tables determine the E1C in the rest frame along any of the axes for any boson-mass hypothesis; the boost is done in the
+analysis (Appendix~\ref{app:axes}). These observables cannot be aggregated (the configuration rejects it).
+
+\paragraph{Charge- and energy-weighted correlators (not run).} The library and the configuration also support the
+weight \code{Charge} (the constituent charge $Q_i$, not scaled by the PUPPI weight; integer $n$; for the E2C only with
+$\Delta R$) and energy weights normalised to the jet energy. The following observables are defined in
+\code{simulation/configs/polarimetryObservables.yaml}, to be merged into the configuration once the axis for
+polarimetry is chosen: \code{E2CCharge} ($w_{ij} = Q_iQ_j$, $\Delta R$, normalisation one, so that
+$\sum_{i\le j} s_{ij}w_{ij} = (\sum_i Q_i)^2$), \code{E2CEn1Energy} ($w_{ij} = E_iE_j/E_\mathrm{jet}^2$, $\Delta R$),
+\code{E1CLabCharge} (the charge flux of Ref.~\cite[App.~D]{Gao:2026bvp}: weight $Q_i$, \code{jetAxis}) and
+\code{E1CLabEnergy} (weight $E_i/E_\mathrm{jet}$, \code{jetAxis}). On the 1000 Drell--Yan test events
+(395 reco jets), the stored \code{E2CCharge} entries satisfy $\sum s_{ij}w_{ij} = (\sum Q_i)^2$ exactly and
+$\sum s_{ij} w_{ij}\Delta R_{ij} = \sum_{i\ne j} Q_iQ_j\Delta R_{ij}$, recomputed from the stored constituents, to
+$10^{-5}$; the energy-weighted sums satisfy the corresponding sum rules to floating-point precision. Charged
+constituents with a fractional PUPPI weight count fully in the charge weights: on the same events, 16.5\% of the charged
+constituents have $0 < w < 1$, but their median weight is 0.996, only 2.5\% of all charged constituents have $w < 0.9$
+(median $\pt$ 0.9\GeV), and the per-jet charge changes by 0.15 on average (r.m.s.\ of the jet charge 3.4) if the
+charges are weighted; no PUPPI-weight threshold is applied.
 
 \paragraph{Output.} For each observable and collection (\code{Reco}, \code{Gen}) there are a per-jet table
 \code{<Coll><obs>} with \code{E\_jet} ($= \ptj$), \code{n}, \code{N} and \code{nEntries}, and an entries table
 \code{<Coll><obs>Entries} with \code{iJet}, the coordinates (\code{dR}, or \code{theta} and \code{phi}), \code{weight}
-and \code{symfactor}, all at full floating-point precision. The weights can be renormalised to another jet scale $E'$
+and \code{symfactor}, all at full floating-point precision. For the per-axis E1C, the tables exist for the nominal jets
+only. The weights can be renormalised to another jet scale $E'$
 with the factor $(E_\mathrm{jet}/E')^{nN}$, where $N = 2$ for E2C and $N = 1$ for E1C. With \code{writeConstituents=1},
 the constituents are stored in \code{RecoJetConstituents} and \code{GenJetConstituents} (\code{iJet}, $\pt$, $\eta$,
 $\phi$, energy, charge, PDG identifier, the PUPPI weight applied, and \code{srcIdx}).
@@ -641,20 +764,21 @@ All are independent of the corrections below, and are combined with the dilepton
   and $|\eta| < 2.4$, the $\kappa_b$ shift, then (simulation) the smearing.
 \item Object selection ($\pt > 15\GeV$, $|\eta| < 2.4$) on the corrected muons.
 \item Dilepton selection on the corrected muons: lepton $\pt$ thresholds, opposite charge, mass window, choice of the
-  pair closest to $m_Z$, then $\ptll \geq 200\GeV$ on the chosen pair.
+  pair closest to $m_Z$, then $\ptll \geq 200\GeV$ on the chosen pair, then the veto of further identified and isolated
+  muons and electrons (corrected muons).
 \end{enumerate}
 
 \paragraph{Electrons.}
 \begin{enumerate}[label=E\arabic*.]
 \item The MiniAOD four-momentum is used (energy regression of the reconstruction; no scale or smearing correction).
 \item Object selection ($\pt > 15\GeV$, $|\eta_\mathrm{SC}| < 2.5$ outside the transition region), then the dilepton
-  selection as for muons.
+  selection and the extra-lepton veto as for muons.
 \end{enumerate}
 
 \paragraph{Generator-level leptons.}
 \begin{enumerate}[label=G\arabic*.]
 \item Rivet particle level: prompt leptons dressed with the photons within $\Delta R < 0.1$.
-\item Object selection on the dressed leptons, then the dilepton selection as at reco level.
+\item Object selection on the dressed leptons, then the dilepton selection and the extra-lepton veto as at reco level.
 \end{enumerate}
 
 \paragraph{Reconstructed AK8 jets.}
@@ -667,24 +791,27 @@ All are independent of the corrections below, and are combined with the dilepton
   constituents.
 \item The constituents are PUPPI-weighted; the jet identification bits are computed (from energy fractions, which J2
   and J3 do not change).
+\item Alternative axes (nominal jets) from all PUPPI-weighted constituents of J5; the soft-drop subjets of
+  \code{axisSoftDrop} receive the AK4 JEC and, in simulation, the AK4 JER.
 \item Only charged constituents are kept.
 \item Jet selection: $\pt \geq 200\GeV$ after J2 and J3, $|\eta| \leq 2.4$, TIGHT and TIGHTLEPVETO identification, at
   least two charged constituents.
 \item Overlap flags \code{veto<c>}: $\Delta R$ between the jet axis and the selected leptons of M5 or E2. Neither the
   JEC nor the JER changes the jet direction, and the muon corrections do not change the muon direction.
 \item Back-to-back requirement: the leading jet by $\pt$ after J2 and J3, unless a jet without constituents from J4
-  passing the J7 $\pt$, $|\eta|$ and identification requirements and not overlapping the leptons leads; $\Delta\phi$
+  passing the J8 $\pt$, $|\eta|$ and identification requirements and not overlapping the leptons leads; $\Delta\phi$
   and the asymmetry use that jet $\pt$ and the $\ptll$ of the corrected leptons.
-\item Only the selected jets are kept, and the correlators are computed from their constituents after J5 and J6
+\item Only the selected jets are kept, and the correlators are computed from their constituents after J5 and J7
   (PUPPI-weighted, charged, without JEC or JER), normalised to the jet $\pt$ after J2 and J3; the E1C frames use the jet
-  four-momentum after J2 and J3.
+  four-momentum after J2 and J3, or the axis four-momentum of J6 for the per-axis E1C.
 \end{enumerate}
 The GloParT re-tagging runs on a separate copy of the MiniAOD jets with the global-tag corrections, and does not
 feed any step above.
 
 \paragraph{Generator-level AK8 jets.} $\pt \geq 180\GeV$; charged constituents; $\pt \geq 200\GeV$,
-$|\eta| \leq 2.4$ and at least two charged constituents; overlap flags against the dressed gen leptons of G2;
-back-to-back requirement against the gen $Z$ candidate; correlators as for reco jets.
+$|\eta| \leq 2.4$ and at least two charged constituents; alternative axes (uncorrected) from all constituents;
+overlap flags against the dressed gen leptons of G2; back-to-back requirement against the gen $Z$ candidate;
+correlators as for reco jets.
 
 \paragraph{Event filter and analysis.} The event is written if any channel flag \code{<c>} (which includes
 \code{<c>B2B}) is true. In the analysis, the region's channel flag, then its cuts are applied, all on the stored
@@ -707,14 +834,16 @@ Muon object and dilepton cuts (M4, M5) & muon $\pt$, $\eta$, $m_{\ell\ell}$, $\p
   high-regime correction and smearing \\
 Electron object and dilepton cuts (E2) & electron $\pt$, $\eta_\mathrm{SC}$, $m_{\ell\ell}$, $\ptll$ & none beyond
   reconstruction \\
+Extra-lepton veto (M5, E2) & veto lepton $\pt$, $\eta$, identification, isolation; directions & muon corrections \\
 Gen lepton and dilepton cuts (G2) & dressed lepton momenta & photon dressing \\
 JER scale factor, resolution, matching (J3) & jet $\pt$, $\eta$, $\rho$ & V4 JEC \\
 Jet $\pt \geq 200\GeV$ (J4) & jet $\pt$ & V4 JEC, JER \\
-Jet selection (J7) & jet $\pt$, $\eta$, ID, constituent count & V4 JEC, JER; PUPPI weights; charged selection \\
-Overlap flags (J8) & jet and lepton directions & lepton corrections (directions unchanged) \\
-Back-to-back (J9) & jet $\pt$, $\phi$; $\ptll$, $\phi_{\ell\ell}$ & V4 JEC, JER; lepton corrections \\
-Correlator weights (J10) & constituent $\pt$; jet $\pt$ & constituents: PUPPI weights only; jet: V4 JEC, JER \\
-E1C frames (J10) & jet four-momentum & V4 JEC, JER \\
+Jet selection (J8) & jet $\pt$, $\eta$, ID, constituent count & V4 JEC, JER; PUPPI weights; charged selection \\
+Overlap flags (J9) & jet and lepton directions & lepton corrections (directions unchanged) \\
+Soft-drop mass and axis (J6) & subjet four-momenta & AK4 V4 JEC, AK4 JER (subjets); PUPPI weights \\
+Back-to-back (J10) & jet $\pt$, $\phi$; $\ptll$, $\phi_{\ell\ell}$ & V4 JEC, JER; lepton corrections \\
+Correlator weights (J11) & constituent $\pt$; jet $\pt$ & constituents: PUPPI weights only; jet: V4 JEC, JER \\
+E1C frames (J11) & jet four-momentum, or the axis & jet: V4 JEC, JER; \code{axisSoftDrop}: subjet corrections \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -745,19 +874,23 @@ Pileup weights & stored (\code{Pileup\_weight}, \code{Pileup\_weightUp}, \code{P
   \code{Collisions2022\_359022\_362760\_eraEFG\_GoldenJson} at the in-time true number of interactions); not applied \\
 Muon momentum & applied: hybrid assignment, MuonScaRe (medium regime), $\kappa_b$ and smearing (high
   regime)~\cite{MUOcorrections,MUOscare} \\
-Muon efficiency corrections & none (\code{muonScaleFactors: \{\}}): no identification or isolation is required \\
+Muon efficiency corrections & none (\code{muonScaleFactors: \{\}}): the selected muons have no identification or
+  isolation requirement; the veto muons have, but no scale factors are applied for them \\
 Electron energy scale, resolution and efficiency corrections & none; the Run~3 scale (data) and smearing (simulation)
   recommended by the EGamma POG~\cite{EGMsas} are not applied \\
 Trigger efficiency corrections & none \\
 AK8 jet energy correction & re-applied (V4 L1L2L3Res)~\cite{JMEjerc} \\
 AK8 jet energy resolution & nominal hybrid smearing applied in simulation (JRV2), before the jet
   requirements~\cite{JMEjerc} \\
+Soft-drop mass & recomputed (\code{axisSoftDropMass}): AK4 V4 JEC and, in simulation, AK4 JRV2 JER on each subjet; no
+  JMS, JMR or subjet JES/JER variations \\
 JES and JER uncertainties & not evaluated (no variations) \\
 Jet identification & TIGHT and TIGHTLEPVETO required~\cite{JMEjetid} \\
 AK4 PUPPI jets & stored only (\code{AK4Jet}: V4 correction re-applied, $\pt > 20\GeV$, $|\eta| < 4.7$, with
   \code{jesUncTotal} and flavour-tagging scores) \\
 Missing transverse momentum & stored only: PF (\code{MET}, \code{RawMET}), PUPPI (\code{PuppiMET},
-  \code{RawPuppiMET}) and \code{GenMET} \\
+  \code{RawPuppiMET}) and \code{GenMET}; the V4 Type-1, XY and muon corrections are implemented but not applied
+  (Section~\ref{sec:met}) \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -780,8 +913,10 @@ are unweighted, and the percentages are generator-weighted fractions of all proc
 if it passes \code{<c>} (with the dilepton $\pt$ and back-to-back requirements disabled) for some channel and level, so
 the first two reco steps count only the events that are written; they are lower bounds. From the vertex and MET-filter
 step on, the counts are exact. The jet steps require at least one jet passing all jet requirements so far, and the
-back-to-back steps use the leading such jet. A jet without MiniAOD daughters would block the back-to-back requirement
-(Section~\ref{sec:recojets}); such jets are not in the jet table, so this effect is not included.
+back-to-back steps use the leading such jet. At the time, a jet without MiniAOD daughters could block the back-to-back
+requirement; such jets are not in the jet table, so this effect is not included (they no longer block it,
+Section~\ref{sec:recojets}). The cutflow also predates the extra-lepton veto; it is to be regenerated with the
+configuration of this note (Section~\ref{sec:issues}).
 
 \paragraph{Diboson acceptance.} At gen level, 7.7\% (7.0\%) of the $ZZ\to2\ell2q$ events pass the $\mu\mu$ ($ee$)
 dilepton selection, and 0.26\% (0.20\%) also have $\ptll \geq 200\GeV$. A generator-level breakdown with bare
@@ -854,7 +989,8 @@ channel at one level, optionally narrowed by further cuts, and is built as follo
   lepton-level cut removes the event if any selected lepton fails. Cuts on individual correlator entries are allowed in
   histogram definitions only.
 \end{enumerate}
-The event weight is \code{genWeight}, multiplied by $\sigma L/\code{genEventSumw}$ once cross sections are available;
+The event weight is \code{genWeight}; the normalisation $\sigma L/\code{genEventSumw}$ is applied afterwards with
+\code{rescale.py} (Section~\ref{sec:samples});
 correlator entries are filled with the event weight times \code{weight} times \code{symfactor}.
 
 \begin{table}[htbp]
@@ -876,6 +1012,14 @@ Region & Level & Channel & Additional cuts, in order \\
 \bottomrule
 \end{tabularx}
 \end{table}
+
+Two further analysis configurations exist. \code{analysis/configs/zxtest\_boosted.yaml} defines only the
+\code{ZmumuBoostedReco} region of Table~\ref{tab:regions}, with the histograms below and, in addition, the E2C versus $\ptj\Delta R$ (full and
+restricted to the perturbative region $\ptj\Delta R > 2\GeV$), the E2C in bins of $|\eta^\mathrm{jet}|$, of the
+soft-drop mass, of the GloParT score and of $\tau_{21}$, and the E1C projections; \code{zxtest\_e2c\_scaled.yaml}
+has the regions of Table~\ref{tab:regions} and histograms the E2C against $\Delta R$ scaled by the jet or dilepton $\pt$ or energy. Histograms can also be filled in
+the rest frame along any stored axis (option \code{restFrame}, Appendix~\ref{app:axes:boost}). The analysis runs locally
+or on the LPC HTCondor pool (\code{run.py --backend condor}).
 
 The histograms are: $\ptll$, $m_{\ell\ell}$, the number of jets, lepton $\pt$, jet $\pt$ and $\eta$, and, at reco level
 only, the jet soft-drop mass, $\tau_{21} = \tau_2/\tau_1$ and the GloParT $W$-versus-QCD score; E2C ($n = 1, 2$) versus
@@ -917,7 +1061,7 @@ The following checks were made on the implementation; details are recorded in \c
   $(f-1)/(\sigma\sqrt{s^2-1})$ have mean $0.14$ and $-0.07$ and width $1.09$ and $1.04$ (ours and central), both
   compatible with a unit Gaussian within the statistical uncertainty. Scaling the scale factor by 1.02 in the check makes
   it fail.
-\item Regression against the code before this revision, run in a separate release area on the same 1000 events: for
+\item Regression of the revision of 15 November against the code before it, run in a separate release area on the same 1000 events: for
   the 388 reco and 420 gen jets selected in both versions, all jet columns are identical except \code{rawPt}, which
   differs by at most one float unit ($1.2\times10^{-7}$ relative; 64 jets) because of the additional correction level
   of the JER step; all E2C, E1C (\code{jetCS}) entries are identical, and the \code{jetAxis} and \code{jetHelicity}
@@ -927,7 +1071,7 @@ The following checks were made on the implementation; details are recorded in \c
   and of the \code{jetProjective} coordinates, orientation and small-angle agreement with \code{jetAxis}; the
   \code{checkUnbinned.py} recomputation agrees for \code{jetAxis} and \code{jetProjective} within $9\times10^{-5}$. For
   the rest frames, 4--18 of about $10^4$ entries per table exceed its $10^{-4}$ tolerance on the coordinates (at most
-  $6\times10^{-4}$); the same entries do so with the code and checker before this revision.
+  $6\times10^{-4}$); the same entries do so with the code and checker before the revision of 15 November.
 \item Cutflow script: on the same 1000 events, the last step of \code{make\_cutflow.py} on the loose run selects exactly
   the events with \code{<c>} in the full configuration, for all four level--channel pairs (206, 182, 214 and 206
   events); shifting the asymmetry, $\Delta\phi$ or identification requirement changes 12, 51 and 1 events.
@@ -952,6 +1096,19 @@ The following checks were made on the implementation; details are recorded in \c
   and without \code{Run3} and \code{run3\_nanoAOD\_pre142X}.
 \item Columnar analysis: histogram integrals agree with an independent uproot computation; synthetic tests of the
   region jet choice.
+\item Jets without PF information: the module test fails with the previous identification code (exception) and passes
+  with bit 2.
+\item Extra-lepton veto: module tests with the selected pair present in the same-flavour veto collection (the event
+  passes), with a third same-flavour lepton and with a lepton of the other flavour (the event fails); configuration tests
+  of the wiring and of the required \code{vetoes} key; each fails when the corresponding part of the change is
+  removed. An end-to-end check is reported in Section~\ref{sec:dilepton}.
+\item Soft drop and the corrected soft-drop mass against MiniAOD (Section~\ref{sec:axes}); unit tests of the groomers and
+  of the WTA axis (Appendix~\ref{app:axes:definitions}); \code{E1CLabTruth} equals \code{E1CLab} entry by entry when the
+  truth axis falls back to the jet.
+\item Charge and energy weights: sum rules on the stored entries (Section~\ref{sec:eec}).
+\item MET corrections (Section~\ref{sec:met}).
+\item Rest-frame conversion in the analysis against the C++ \code{E1CHelicity} (Appendix~\ref{app:axes:boost}), and the
+  spin-density-matrix estimator (Appendix~\ref{app:truth:moments}).
 \end{itemize}
 
 %=======================================================================================================================
@@ -959,19 +1116,21 @@ The following checks were made on the implementation; details are recorded in \c
 \label{sec:issues}
 
 \begin{enumerate}
-\item \textbf{AK8 jets without daughters.} MiniAOD stores no daughters for \code{slimmedJetsAK8} jets below $170\GeV$
-  (MiniAOD correction), and such jets can pass the $200\GeV$ threshold after the V4 correction and the smearing. They are
-  kept without constituents and block the back-to-back requirement when they would lead (Section~\ref{sec:recojets}).
-  In 3 of the 232 $t\bar t$ jobs of the first production, such a jet had an anomalous MiniAOD correction: MiniAOD $\pt$
-  below $170\GeV$ but raw $\pt$ $326.8\GeV$ (in both events inspected), about $348\GeV$ after the V4 correction. The
-  identical raw $\pt$ in independent events suggests a MiniAOD artefact; its cause is to be understood.
-\item \textbf{Cutflow and the new event-cleaning flags.} The cutflow of Table~\ref{tab:cutflow} was produced before
-  the ECAL bad-calibration rerun and the jet veto map were added, and does not include them; the veto alone removes
-  2--7\% of the events of the test files. It is to be regenerated.
-\item \textbf{Soft-drop mass and MET (future).} \code{RecoJet\_msoftdrop} is the MiniAOD value (production JEC on the
-  subjets, no JER); the POG recommends re-applying the AK4 JEC and JER to both subjets, with residual JMS and JMR
-  uncertainties of 1\% and 2\%. The stored PUPPI MET is the MiniAOD Type-1 MET with the production JEC; with the V4
-  JEC it is to be recomputed. Neither is used in a selection of this note.
+\item \textbf{AK8 jets without daughters.} MiniAOD stores no daughters and no PF information for \code{slimmedJetsAK8}
+  jets below $170\GeV$ (MiniAOD correction), and such jets can pass the $200\GeV$ threshold after the V4 correction and
+  the smearing. They now fail the identification (bit 2 of \code{jetId}) and no longer affect the back-to-back
+  requirement (Section~\ref{sec:recojets}). In the first production, two such jets had a MiniAOD $\pt$ of 88 and
+  $165\GeV$ but are about $340\GeV$ jets (the gen jet, the subjets and the AK4 jet agree): their stored four-momentum is
+  scaled by 0.27 and 0.51, which corresponds to no jet energy correction. None was found in 1.5\,M other AK8 jets. The
+  question has been written up for the JetMET and PAT experts (\code{pog\_question\_ak8\_corrupt\_pt.md}).
+\item \textbf{Cutflow.} The cutflow of Table~\ref{tab:cutflow} was produced before the ECAL bad-calibration rerun, the
+  jet veto map, the identification bit for jets without PF information and the extra-lepton veto were added, and does
+  not include them; the jet veto map alone removes 2--7\% of the events of the test files. It is to be regenerated.
+\item \textbf{Soft-drop mass and MET.} The corrected soft-drop mass (\code{axisSoftDropMass}, AK4 JEC and JER on the
+  subjets) is available for the nominal jets; its systematic variations (subjet JES and JER, and the residual JMS and JMR
+  uncertainties of 1\% and 2\% recommended by the POG) are not implemented. The analysis configurations still bin in the
+  MiniAOD \code{msoftdrop}. The MET corrections are implemented but not applied in \code{ZX\_test}, and their
+  variations are not propagated (Section~\ref{sec:met}).
 \item \textbf{JES uncertainty scheme.} Only the \code{Total} source is configured; the POG default is the reduced set
   (\code{Regrouped\_*} keys, available for AK8), the single source needs POG approval. To be changed before
   variations are enabled.
@@ -981,8 +1140,9 @@ The following checks were made on the implementation; details are recorded in \c
   variations, the scale correction above $200\GeV$, the definition of the resolution variation, the $\pt$ that decides
   the regime and the use of the TuneP direction are to be clarified with the MUO POG (\code{OPEN\_QUESTIONS.md}). The
   impact of each correction and of its variations is to be studied.
-\item \textbf{Lepton identification, isolation, trigger and corrections.} By design, none is applied at reco level;
-  all lepton and trigger efficiency corrections are still missing. The Run~3 electron energy scale (data) and smearing
+\item \textbf{Lepton identification, isolation, trigger and corrections.} By design, the selected leptons have no
+  identification or isolation requirement (only the veto leptons have); all lepton and trigger efficiency corrections
+  are still missing. The Run~3 electron energy scale (data) and smearing
   (simulation) recommended by the EGamma POG~\cite{EGMsas} are not applied (deferred). The muon scale and resolution
   corrections are applied to muons without identification or isolation, although they were derived for tightly
   identified and isolated muons~\cite{MUOscare}. Reco-level dressing and its systematic uncertainty are to be studied.
@@ -993,12 +1153,34 @@ The following checks were made on the implementation; details are recorded in \c
 \item \textbf{POG cross-checks.} The MET-filter list against the current JetMET POG page; our jet identification
   against the JetMET correctionlib implementation; the removal of gen electrons in the ECAL transition with the EGamma
   POG.
-\item \textbf{Cross sections.} No 13.6\TeV cross sections have been collected (Section~\ref{sec:samples}). Combining the
+\item \textbf{Cross sections.} The diboson cross sections are the generators' LO or NLO values, not higher-order
+  predictions, and those of \code{ZZto4Q} and \code{WZto4Q} are missing (Section~\ref{sec:samples}). Combining the
   \code{PTLL}-binned Drell--Yan samples with the inclusive one requires a generator-level overlap removal, and the
   definition of \code{PTLL} is to be confirmed from the generator configuration.
 \item \textbf{Placeholder values.} $\ptll \geq 200\GeV$, $\Delta\phi > 2.8$ and $A < 0.3$ are development choices.
-\item \textbf{E1C jet axis.} Other axis definitions (for example winner-take-all) are to be explored.
+\item \textbf{Productions and the configuration of this note.} The productions \code{20261116\_zxb2b},
+  \code{20261117\_zxb2bbkg} and \code{20261117\_zh} contain neither the alternative axes nor the extra-lepton veto. The
+  veto has not yet been run end to end on a large sample; its effect on the selected events is to be quantified.
+\item \textbf{Extra-lepton veto with dressing.} With reco-level dressing, each lepton collection is dressed on its
+  own, so a selected lepton and its copy in a veto collection could differ in direction (as for the single-lepton
+  channels). No configuration dresses at reco level.
+\item \textbf{E1C jet axis.} The winner-take-all and recoil axes lose 32--45\% of the sensitivity to $\rho_{00}$ and
+  are not suitable. The jet, soft-drop and trimmed axes are at least as sensitive as the truth axis, the groomed ones
+  slightly more than the jet axis, which sensitivity alone cannot justify (Appendix~\ref{app:axes:results}). The choice
+  among them is open, as is the decision to run the charge- and energy-weighted observables.
+\item \textbf{Polarimetry and the selection.} Below a boson $\pt$ of about $300\GeV$ the jet requirements bias the
+  decay angles of the hadronic boson, and any soft-drop mass or two-prong requirement biases them at all $\pt$
+  (Appendix~\ref{app:truth:bias}). The phase space and the use of groomed-mass requirements for a polarisation measurement
+  are to be decided.
+\item \textbf{Truth spin-density matrix.} A dedicated production of unselected LHE information is needed for precise
+  truth values at high $\pt$; the sign convention of the off-diagonal elements has not been compared with another
+  extraction; pure-polarisation samples (or a full-matrix reweighting) are not available
+  (Appendix~\ref{app:truth}).
 \end{enumerate}
+
+\appendix
+\input{appendix_truth.tex}
+\input{appendix_axes.tex}
 
 \printbibliography[heading=bibintoc]
 

@@ -1,0 +1,433 @@
+%=======================================================================================================================
+\section{Truth spin-density matrix of the vector bosons from LHE information}
+\label{app:truth}
+
+This appendix defines the generator-level (``truth'') spin-density matrix $\rho$ of the $W$ and $Z$ bosons, derives the
+estimator used to extract it from the decay angles, and documents the studies of its definition: the electroweak
+couplings of the generators, the consistency of leptonic and hadronic decays, the off-shell and $\gamma^*/Z$
+contributions, and the bias introduced by the event selection. The code is \code{analysis/bvana/spin.py} (formalism and
+estimator), \code{analysis/truthRho.py} (extraction per boson, decay mode and $\pt$ bin) and the configuration
+\code{simulation/configs/lheNano\_cfg.py}, which writes the LHE particle table and the generator weights of every event,
+without any selection. The study scripts and their outputs are kept in \code{\textasciitilde/nobackup/boostedV/axisStudy\_20261118}.
+
+\paragraph{Inputs.} Unselected LHE NANO of 24 files of \code{ZZto2L2Q} (1\,328\,453 events), 8 files of
+\code{WZto2L2Q} (353\,106 events), both \textsc{Powheg-Box-V2}, and 6 files of \code{DYto2L-4Jets\_MLL-50\_PTLL-400to600}
+(49\,830 events, \textsc{MadGraph5\_aMC@NLO} with MLM merging). For selected events, the 149 \code{ZZto2L2Q} NANO files of
+the production \code{20261116\_zxb2b}. Event weights are the signed generator weights (0.3\% of the \code{ZZto2L2Q}
+weights are negative). In the LHE record the intermediate boson (status 2) and its two decay products (status 1, mother
+index pointing to the boson) are identified directly; a boson is used if it has exactly two status-1 daughters.
+
+%-----------------------------------------------------------------------------------------------------------------------
+\subsection{Frame and decay angles}
+\label{app:truth:frame}
+For each boson $V$ with lab four-momentum $P$, both decay products are boosted into the $V$ rest frame by the pure boost
+$-\vec\beta$, $\vec\beta = \vec P/P^0$. The helicity frame has
+$\hat z$ along the $V$ lab direction, $\hat x$ in the plane of $\hat z$ and the beam axis, pointing towards the beam
+on the side of the boson (the beam moving along the sign of $P_z$), orthogonalised against $\hat z$, and
+$\hat y = \hat z \times \hat x$. This is the convention of the \code{jetAxis} and \code{jetHelicity} frames of the E1C
+(Section~\ref{sec:eec}), so that truth and jet frames coincide when the jet axis coincides with the boson. The
+\emph{fermion} is the decay product with positive PDG identifier (the quark, the charged lepton $\ell^-$, or the
+neutrino); $(\theta,\phi)$ are its polar and azimuthal angles in this frame. The frame is tested with hand-computed
+kinematics (a boson along $+x$ at $\eta = 0$ with fermions along each axis).
+
+%-----------------------------------------------------------------------------------------------------------------------
+\subsection{Decay distribution}
+\label{app:truth:decay}
+Let $\rho_{\lambda\lambda'}$, $\lambda,\lambda' \in \{+1, 0, -1\}$, be the spin-density matrix of $V$ in the helicity
+basis, Hermitian, positive semi-definite, with $\operatorname{tr}\rho = 1$. In the helicity formalism of Jacob and
+Wick~\cite{Jacob:1959at}, the amplitude for $V(\lambda) \to f(\lambda_1)\,\bar f(\lambda_2)$ with the fermion emitted
+along $(\theta,\phi)$ in the rest frame is
+\begin{equation}
+  \mathcal{M}_{\lambda;\lambda_1\lambda_2}(\theta,\phi) = c_{\lambda_1\lambda_2}\, D^{1\,*}_{\lambda\sigma}(\phi,\theta,0),
+  \qquad \sigma = \lambda_1 - \lambda_2,
+  \qquad D^{1}_{\lambda\sigma}(\phi,\theta,0) = e^{-i\lambda\phi}\, d^{1}_{\lambda\sigma}(\theta),
+  \label{eq:app:amp}
+\end{equation}
+where $d^1$ is the Wigner matrix in the Condon--Shortley convention and the reduced amplitudes $c_{\lambda_1\lambda_2}$
+do not depend on $\lambda$ or on the angles. (Choosing $-\phi$ instead of $0$ for the third Euler angle multiplies
+$\mathcal M$ by a phase that depends only on $\sigma$, which cancels in $|\mathcal M|^2$ below.) For massless fermions
+the vector and axial-vector couplings conserve chirality, so $\lambda_1 = -\lambda_2$ and $\sigma = \pm1$; a
+left-handed fermion ($\lambda_1 = -\tfrac12$) gives $\sigma = -1$. With the chiral couplings
+$g_L = (g_V + g_A)/2$ and $g_R = (g_V - g_A)/2$, $|c_{-}|^2 \propto g_L^2$ and $|c_{+}|^2 \propto g_R^2$, so the
+probabilities of the two values of $\sigma$ are
+\begin{equation}
+  P_{-} = \frac{g_L^2}{g_L^2 + g_R^2} = \frac{1 + A_f}{2}, \qquad P_{+} = \frac{1 - A_f}{2}, \qquad
+  A_f = \frac{g_L^2 - g_R^2}{g_L^2 + g_R^2} = \frac{2 g_V g_A}{g_V^2 + g_A^2}.
+  \label{eq:app:Af}
+\end{equation}
+Summing over the unobserved fermion helicities and normalising with $\int |d^1_{\lambda\sigma}|^2 \,d\Omega = 4\pi/3$
+gives the decay distribution
+\begin{equation}
+  W(\theta,\phi) = \frac{3}{4\pi}\sum_{\sigma=\pm1} P_\sigma \sum_{\lambda\lambda'} \rho_{\lambda\lambda'}\,
+  D^{1\,*}_{\lambda\sigma}\, D^{1}_{\lambda'\sigma}, \qquad \int W\, d\Omega = \operatorname{tr}\rho = 1.
+  \label{eq:app:W}
+\end{equation}
+Expanding Eq.~\eqref{eq:app:W} with
+$d^1_{+1,\pm1} = (1\pm\cos\theta)/2$, $d^1_{0,\pm1} = \pm\sin\theta/\sqrt2$, $d^1_{-1,\pm1} = (1\mp\cos\theta)/2$
+(done symbolically from the code's definition of $W$) gives
+\begin{multline}
+  W = \frac{3}{16\pi}\Big[ (1+\cos^2\theta)(\rho_{++}+\rho_{--}) + 2\sin^2\theta\,\rho_{00}
+  - 2A_f\cos\theta\,(\rho_{++}-\rho_{--}) \\
+  + 2\sin^2\theta\big(\cos2\phi\,\mathrm{Re}\,\rho_{+-} - \sin2\phi\,\mathrm{Im}\,\rho_{+-}\big) \\
+  + 2\sqrt2\sin\theta\cos\theta\big(\cos\phi\,\mathrm{Re}(\rho_{+0}-\rho_{0-}) - \sin\phi\,\mathrm{Im}(\rho_{+0}-\rho_{0-})\big) \\
+  - 2\sqrt2 A_f \sin\theta\big(\cos\phi\,\mathrm{Re}(\rho_{+0}+\rho_{0-}) - \sin\phi\,\mathrm{Im}(\rho_{+0}+\rho_{0-})\big)\Big].
+  \label{eq:app:Wexplicit}
+\end{multline}
+Two checks: for a purely longitudinal boson, $W = \tfrac{3}{8\pi}\sin^2\theta$; for $\rho_{--} = 1$ and $A_f = 1$ (a $W$
+boson), $W = \tfrac{3}{16\pi}(1+\cos\theta)^2$, i.e.\ the left-handed fermion follows the spin of a helicity $-1$ boson.
+The terms proportional to $A_f$ are odd under $(\theta,\phi) \to (\pi - \theta, \phi + \pi)$, i.e.\ under the exchange of
+fermion and antifermion (\emph{parity-odd}); the others are even. Exchanging the roles of fermion and antifermion
+together with $A_f \to -A_f$ leaves $W$ unchanged, which is tested. A jet does not distinguish the quark from the
+antiquark, so a jet observable symmetric under this exchange is sensitive only to the parity-even part:
+$\rho_{00}$, $\rho_{+-}$ and $\rho_{+0} - \rho_{0-}$, in agreement with Ref.~\cite[App.~D]{Gao:2026bvp}: ``The energy flow is
+parity even and probes the longitudinal fraction $\rho_{00}$, the alignment $\rho_{+-}$ through $\cos 2\Phi$ and
+$\sin 2\Phi$, and the combination $\rho_{+0}-\rho_{0-}$ through $\cos\Phi$ and $\sin\Phi$.''
+
+%-----------------------------------------------------------------------------------------------------------------------
+\subsection{Moment estimator}
+\label{app:truth:moments}
+$W$ contains only spherical harmonics of degree $l \le 2$, nine real functions in total, and $\rho$ has nine real
+parameters (eight free after the trace condition). The weighted means $\langle g_k\rangle$ of the nine real functions
+$g_k \in \{1, \cos\theta, \sin\theta\cos\phi, \sin\theta\sin\phi, 3\cos^2\theta - 1, \sin\theta\cos\theta\cos\phi,
+\sin\theta\cos\theta\sin\phi, \sin^2\theta\cos2\phi, \sin^2\theta\sin2\phi\}$ are therefore linear in the parameters,
+and the linear system can be inverted exactly; no fit is involved. Integrating each term of
+Eq.~\eqref{eq:app:Wexplicit} against each $g_k$ (orthogonality of the harmonics; e.g.\
+$\int P_2(\cos\theta)(1+\cos^2\theta)\,d\Omega = 8\pi/15$ and $\int P_2(\cos\theta)\,2\sin^2\theta\,d\Omega = -16\pi/15$,
+so $\langle P_2\rangle = (1 - 3\rho_{00})/10$) gives
+\begin{align}
+  \rho_{00} &= \tfrac13\big(1 - 10\,\langle P_2(\cos\theta)\rangle\big), & \rho_{++}+\rho_{--} &= 1-\rho_{00}, \nonumber\\
+  \rho_{++} - \rho_{--} &= -\frac{2}{A_f}\langle\cos\theta\rangle, & & \nonumber\\
+  \mathrm{Re}\,\rho_{+-} &= \tfrac52\langle\sin^2\theta\cos2\phi\rangle, &
+  \mathrm{Im}\,\rho_{+-} &= -\tfrac52\langle\sin^2\theta\sin2\phi\rangle, \label{eq:app:inversion}\\
+  \mathrm{Re}(\rho_{+0}-\rho_{0-}) &= 5\sqrt2\,\langle\sin\theta\cos\theta\cos\phi\rangle, &
+  \mathrm{Im}(\rho_{+0}-\rho_{0-}) &= -5\sqrt2\,\langle\sin\theta\cos\theta\sin\phi\rangle, \nonumber\\
+  \mathrm{Re}(\rho_{+0}+\rho_{0-}) &= -\frac{\sqrt2}{A_f}\langle\sin\theta\cos\phi\rangle, &
+  \mathrm{Im}(\rho_{+0}+\rho_{0-}) &= \frac{\sqrt2}{A_f}\langle\sin\theta\sin\phi\rangle. \nonumber
+\end{align}
+The code builds the $9\times9$ matrix $M_{ka} = \int g_k\, W[e_a]\, d\Omega$ of the moments of each unit parameter $e_a$
+numerically, with a Gauss--Legendre quadrature in $\cos\theta$ and a uniform one in $\phi$ that are exact for these
+polynomials, and inverts it. The closed forms of Eq.~\eqref{eq:app:inversion} agree with $M^{-1}$ to $7\times10^{-15}$.
+The statistical covariance is the weighted sample covariance of the $g_k$ (signed weights), divided by
+$(\sum w)^2$ and propagated linearly. When $A_f$ varies from event to event (quark flavours), the weighted mean of $P_-$
+is used, which is exact because $M$ is affine in $P_-$. Only $\rho_{++}-\rho_{--}$ and the two combinations of the last row of
+Eq.~\eqref{eq:app:inversion} depend on $A_f$; the parity-even ones do not depend on the
+couplings at all.
+
+\paragraph{Tests} (\code{analysis/tests/test\_spin.py}).
+(i)~Normalisation and the two shapes quoted above.
+(ii)~Closure: decays sampled from random valid density matrices (mixtures of two random pure states), $2\times10^5$
+per test, with $P_- = 0.85$ and $0.57$, are recovered with all pulls below 4.5; using the wrong analysing power
+$1 - P_-$ shifts $\rho_{++} - \rho_{--}$ by more than $5\sigma$, so the test discriminates.
+(iii)~Fermion--antifermion exchange with $A_f \to -A_f$ gives the identical $\rho$.
+(iv)~Off-diagonal phases: the helicity $-1$ state rotated by $+\pi/2$ about $\hat y$ (Wigner $R(0,\pi/2,0)$), which
+points along $+\hat x$, gives $W = \tfrac{3}{16\pi}(1 + \hat n\cdot\hat x)^2$ for $A_f = 1$, and the estimator returns
+$\mathrm{Re}\,\rho_{+0} < 0$ for it.
+(v)~$A_f$ against the PDG values at $\sin^2\theta = 0.23153$ ($A_\ell = 0.147$, $A_u = 0.67$, $A_d = 0.94$).
+The convention for the signs of the off-diagonal elements (the direction of $\hat x$ and the phase convention of the
+helicity states) has not been compared with another extraction; the signs of $\mathrm{Re}/\mathrm{Im}$ of
+$\rho_{+0}$ and $\rho_{0-}$ change with $\hat x \to -\hat x$. The diagonal elements and $\rho_{00}$ do not depend on it.
+
+%-----------------------------------------------------------------------------------------------------------------------
+\subsection{Analysing powers and the electroweak couplings of the generators}
+\label{app:truth:couplings}
+At tree level, $g_A = T_3$ and $g_V = T_3 - 2Q\sin^2\theta_W$; for the $W$, $g_V = g_A$ and $A_f = 1$, as for
+neutrinos. The analysing powers of the $Z$ depend very differently on $\sin^2\theta_W$:
+\begin{center}
+\small
+\begin{tabular}{lccc}
+\toprule
+$\sin^2\theta_W$ & $A_\ell$ & $A_u$ & $A_d$ \\
+\midrule
+0.22263 (\textsc{Powheg} $ZZ$, $WZ$) & 0.2164 & 0.6975 & 0.9410 \\
+0.2229 & 0.2143 & 0.6966 & 0.9409 \\
+0.23154 (\textsc{MadGraph} Drell--Yan) & 0.1469 & 0.6674 & 0.9355 \\
+\bottomrule
+\end{tabular}
+\end{center}
+For charged leptons, $g_V = -\tfrac12 + 2\sin^2\theta_W \approx -0.055$ is a near cancellation, so
+$A_\ell \approx 2g_V/g_A \propto 1 - 4\sin^2\theta_W$ is a small difference of two numbers close to one: a shift of
+0.009 in $\sin^2\theta_W$ changes $1 - 4\sin^2\theta_W$ from 0.110 to 0.074, i.e.\ $A_\ell$ by 47\%. For quarks,
+$|Q|$ is smaller and there is no cancellation ($g_V^u \approx 0.20$, $g_V^d \approx -0.35$): $A_u$ changes by 4.5\%,
+and $A_d \approx 0.94$ lies near its maximum, where it is flat (0.6\%).
+
+The values used are those of the generators. \textsc{Powheg-Box-V2} $ZZ$ and $WZ$ (header: ``using mW, mZ. gmu
+scheme, defined in ZZ/smcouplings.f'') set, in \code{ZZ/smcouplings.f} and \code{WZ/smcouplings.f} of the public
+repository (last change r2479, 2013), $m_Z = 91.1876\GeV$, $m_W = 80.399\GeV$ and $G_\mu = 1.166364\times10^{-5}\GeV^{-2}$,
+with $\sin^2\theta_W = 1 - m_W^2/m_Z^2 = 0.22263$; the gridpack header does not record the revision. The Drell--Yan
+sample (\textsc{MadGraph} model \code{sm-ckm\_no\_b\_mass}) has, in its LHE header, $\alpha^{-1} = 128.8253$,
+$G_F = 1.166379\times10^{-5}\GeV^{-2}$ and $m_Z = 91.15351\GeV$, from which the model derives
+$m_W = \big[m_Z^2/2 + (m_Z^4/4 - \pi\alpha m_Z^2/(\sqrt2 G_F))^{1/2}\big]^{1/2} = 79.907\GeV$ (also printed in the
+header) and $\sin^2\theta_W = 0.23154$. The \textsc{Powheg} value is the default of \code{truthRho.py}
+(\code{--sin2}); for Drell--Yan, 0.23154 has to be passed. Section~\ref{app:truth:lephad} confirms the \textsc{Powheg} value
+from the data themselves.
+
+%-----------------------------------------------------------------------------------------------------------------------
+\subsection{Leptonic versus hadronic $Z$ in $ZZ\to2\ell2q$}
+\label{app:truth:lephad}
+In $q\bar q \to ZZ$ the two $Z$ bosons are produced symmetrically, so at the same $\pt$ the leptonically and the
+hadronically decaying $Z$ have the same $\rho$; their comparison tests the formalism, the frame and the couplings, with
+$A_\ell \approx 0.22$ and $A_q \approx 0.7$--$0.94$ entering the parity-odd elements very differently. The comparison
+is only valid if both bosons are drawn from the same population: \code{ZZto2L2Q} is generated with
+$m_{\ell\ell} > 4\GeV$ (\code{mllmin 4d0}), so the leptonic ``$Z$'' includes a large $\gamma^*$ component, and requiring
+only the measured boson in the mass window selects different partner populations for the two decay modes. With only
+the measured boson in the window, $\rho_{00}$ differs between the modes by about $20\sigma$ below $50\GeV$
+($0.272 \pm 0.003$ versus $0.205 \pm 0.002$ in the present sample); with both bosons required in the window (\code{--both-in-window};
+$66 < m < 116\GeV$ for the $Z$, $60 < m < 100\GeV$ for the $W$, as in Ref.~\cite{Gao:2026bvp}) they are compatible,
+as the table and the $\chi^2$ below show:
+
+\begin{center}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lcccccc}
+\toprule
+$V$ $\pt$ [GeV] & \multicolumn{2}{c}{$\rho_{00}$} & \multicolumn{2}{c}{$\rho_{++}-\rho_{--}$} & \multicolumn{2}{c}{$\mathrm{Re}\,\rho_{+-}$} \\
+ & $Z\to\ell\ell$ & $Z\to q\bar q$ & $Z\to\ell\ell$ & $Z\to q\bar q$ & $Z\to\ell\ell$ & $Z\to q\bar q$ \\
+\midrule
+0--50 & $0.372 \pm 0.003$ & $0.378 \pm 0.003$ & $-0.170 \pm 0.012$ & $-0.175 \pm 0.003$ & $-0.019 \pm 0.003$ & $-0.023 \pm 0.003$ \\
+50--100 & $0.262 \pm 0.004$ & $0.271 \pm 0.004$ & $-0.178 \pm 0.015$ & $-0.149 \pm 0.004$ & $-0.025 \pm 0.003$ & $-0.020 \pm 0.003$ \\
+100--150 & $0.165 \pm 0.008$ & $0.167 \pm 0.008$ & $-0.092 \pm 0.028$ & $-0.143 \pm 0.007$ & $-0.016 \pm 0.006$ & $-0.011 \pm 0.006$ \\
+150--200 & $0.118 \pm 0.013$ & $0.126 \pm 0.013$ & $-0.116 \pm 0.049$ & $-0.112 \pm 0.012$ & $-0.024 \pm 0.011$ & $-0.003 \pm 0.011$ \\
+200--300 & $0.099 \pm 0.018$ & $0.088 \pm 0.018$ & $-0.079 \pm 0.067$ & $-0.119 \pm 0.017$ & $-0.034 \pm 0.014$ & $-0.029 \pm 0.014$ \\
+300--400 & $0.012 \pm 0.038$ & $0.107 \pm 0.038$ & $+0.12 \pm 0.14$ & $-0.094 \pm 0.036$ & $-0.027 \pm 0.029$ & $+0.022 \pm 0.031$ \\
+400--600 & $0.088 \pm 0.058$ & $0.140 \pm 0.058$ & $+0.04 \pm 0.22$ & $-0.130 \pm 0.055$ & $-0.011 \pm 0.047$ & $-0.013 \pm 0.049$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+A $\chi^2$ over all nine elements (eight independent, $\rho_{--}$ dropped; covariances added, i.e.\ the two modes are
+treated as independent although they come from the same events) as a function of the assumed $\sin^2\theta_W$:
+\begin{center}
+\small
+\begin{tabular}{lccc}
+\toprule
+$\sin^2\theta_W$ & $\pt < 100\GeV$ & $100$--$200\GeV$ & $> 200\GeV$ \\
+\midrule
+0.22263 & $16.8/8$ (pull of $\rho_{++}-\rho_{--}$: $-1.0$) & $6.0/8$ ($+1.5$) & $7.4/8$ ($+1.1$) \\
+0.2229 & $17.3/8$ ($-1.1$) & $5.9/8$ ($+1.4$) & $7.4/8$ ($+1.1$) \\
+0.23154 & $71.5/8$ ($-6.6$) & $8.1/8$ ($-0.2$) & $6.4/8$ ($+0.5$) \\
+\bottomrule
+\end{tabular}
+\end{center}
+The generator value is preferred, and the \textsc{MadGraph} value is excluded by the parity-odd element at low $\pt$.
+At $\pt < 100\GeV$ a weak tension remains ($p \approx 0.03$), spread over several elements with pulls of 1.5--2.4
+($\rho_{00}$ $-1.5$ in both bins, $\mathrm{Re}\,\rho_{0-}$ $-1.7$ and $-1.8$, $\rho_{--}$ $+2.4$ at 50--100\GeV), not in the
+parity-odd one; an earlier sample of different files gave $6.3/8$. It is outside the region of interest and is not
+pursued. Above $100\GeV$ the modes agree.
+
+%-----------------------------------------------------------------------------------------------------------------------
+\subsection{Definition of the truth for the hadronic measurement}
+\label{app:truth:definition}
+The hadronic boson mass cannot be controlled in the measurement, while the leptonic $Z$ is selected in
+$61.19 < m_{\ell\ell} < 121.19\GeV$. The truth for the hadronic measurement is therefore the hadronic boson's $\rho$,
+with the leptonic $Z$ in the selection's window and no requirement on the hadronic mass; the leptonic--hadronic
+comparison of Section~\ref{app:truth:lephad} keeps both in the window. At the relevant $\pt$ the hadronic $Z$ is
+mostly on shell (generator-weighted fractions, 24 \code{ZZto2L2Q} files):
+\begin{center}
+\small
+\begin{tabular}{lccc}
+\toprule
+hadronic $Z$ $\pt$ & hadronic $Z$ in window & partner in window, if hadronic one is & both in window \\
+\midrule
+all & 0.61 & 0.52 & 0.32 \\
+$> 200\GeV$ & 0.935 & 0.83 & 0.77 \\
+$> 400\GeV$ & 0.91 & 0.83 & 0.75 \\
+\bottomrule
+\end{tabular}
+\end{center}
+The low inclusive fractions come from the $\gamma^*$ contribution at low $\pt$. The hadronic $\rho_{00}$ does not
+depend on the definition above $100\GeV$ within the statistical precision:
+\begin{center}
+\small
+\begin{tabular}{lccc}
+\toprule
+hadronic $Z$ $\pt$ [GeV] & no window & hadronic $Z$ in window & both in window \\
+\midrule
+0--100 & $0.250 \pm 0.001$ & $0.218 \pm 0.002$ & $0.335 \pm 0.003$ \\
+100--200 & $0.157 \pm 0.006$ & $0.159 \pm 0.006$ & $0.157 \pm 0.007$ \\
+200--300 & $0.082 \pm 0.016$ & $0.085 \pm 0.017$ & $0.088 \pm 0.018$ \\
+300--400 & $0.119 \pm 0.034$ & $0.106 \pm 0.035$ & $0.107 \pm 0.038$ \\
+400--600 & $0.090 \pm 0.051$ & $0.101 \pm 0.053$ & $0.140 \pm 0.058$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Truth tables.} The definition of the previous paragraph (partner in the selection's window, no requirement
+on the hadronic mass) is not yet implemented in \code{truthRho.py}, which requires the hadronic boson in its window and
+nothing of the partner; above $100\GeV$ the definitions tested above agree within the statistical precision. With the
+\code{truthRho.py} definition:
+\begin{center}
+\small
+\begin{tabular}{lcccc}
+\toprule
+$V$ $\pt$ [GeV] & \multicolumn{2}{c}{$ZZ$: hadronic $Z$} & \multicolumn{2}{c}{$WZ$: hadronic $W$} \\
+ & $\rho_{00}$ & $\rho_{++}-\rho_{--}$ & $\rho_{00}$ & $\rho_{++}-\rho_{--}$ \\
+\midrule
+100--150 & $0.170 \pm 0.007$ & $-0.149 \pm 0.006$ & $0.205 \pm 0.011$ & $-0.189 \pm 0.008$ \\
+150--200 & $0.126 \pm 0.012$ & $-0.114 \pm 0.011$ & $0.173 \pm 0.018$ & $-0.213 \pm 0.015$ \\
+200--300 & $0.085 \pm 0.017$ & $-0.132 \pm 0.015$ & $0.110 \pm 0.025$ & $-0.243 \pm 0.019$ \\
+300--400 & $0.106 \pm 0.035$ & $-0.099 \pm 0.033$ & $0.106 \pm 0.048$ & $-0.374 \pm 0.037$ \\
+400--600 & $0.101 \pm 0.053$ & $-0.130 \pm 0.051$ & $0.193 \pm 0.072$ & $-0.267 \pm 0.057$ \\
+$> 600$ & $0.017 \pm 0.121$ & $-0.086 \pm 0.116$ & $0.213 \pm 0.142$ & $-0.342 \pm 0.115$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+For the leptonic $Z$ of the Drell--Yan sample, which covers only $400 < \code{PTLL} < 600\GeV$ and is evaluated with
+$\sin^2\theta_W = 0.23154$: $\rho_{00} = 0.035 \pm 0.009$ and $0.040 \pm 0.015$, $\rho_{++}-\rho_{--} = -0.33 \pm 0.05$
+and $-0.32 \pm 0.08$, at 400--500 and 500--600\GeV. With $|y_V| < 0.5$, as in Ref.~\cite{Gao:2026bvp}, $\rho_{00}$ is
+$0.019 \pm 0.016$ and $0.040 \pm 0.026$. They
+lie in the range of the prediction of Ref.~\cite[Fig.~4]{Gao:2026bvp} for $\rho_{00}/(1-\rho_{00})$, which falls from
+about 14\% at $\gamma \approx 1.7$ to 2--3\% at $\gamma \approx 7$ (read from the figure; NNLO there, LO-merged here), a
+qualitative comparison only. A dedicated unselected-LHE production is needed for precise high-$\pt$ truth values:
+the 24 \code{ZZto2L2Q} files contain only 805 hadronic $Z$ bosons between 400 and 600\GeV.
+
+%-----------------------------------------------------------------------------------------------------------------------
+\subsection{$\gamma^*/Z$ interference}
+\label{app:truth:interference}
+In both samples the leptonic ``$Z$'' includes $\gamma^*$ exchange and its interference with the $Z$. The photon couples
+vectorially ($A = 0$), and the interference term is proportional to $Q_f\,g_A^f\,(m^2 - m_Z^2)$, which changes sign at
+the pole; since the $Z$-only parity-odd term carries the small $g_V^\ell$ (Section~\ref{app:truth:couplings}) while the
+interference carries the unsuppressed $Q_\ell g_A^\ell$, the effective leptonic analysing power must vary strongly with
+$m_{\ell\ell}$. This is measured in the unselected $ZZ$ sample (538\,809 events with $Z\to ee,\mu\mu$ and a hadronic
+$Z$ in its window) by comparing, in bins of $m_{\ell\ell}$, $\rho_{++}-\rho_{--}$ of the leptonic $Z$ (extracted with the
+tree-level $A_\ell$) with that of the hadronic $Z$ of the same events. Since both bosons have the same $\rho$, the ratio
+is $(A_\ell^\mathrm{eff}(m_{\ell\ell})/A_\ell^\mathrm{tree})\,(A_q^\mathrm{tree}/A_q^\mathrm{eff})$, which is flat
+without interference:
+\begin{center}
+\footnotesize
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{lcccccccccc}
+\toprule
+$m_{\ell\ell}$ [GeV] & 4--40 & 40--66 & 66--81 & 81--87 & 87--90 & 90--92 & 92--95 & 95--101 & 101--116 & 116--200 \\
+\midrule
+ratio & $0.00(4)$ & $-1.7(3)$ & $-3.0(5)$ & $0.14(27)$ & $0.43(15)$ & $0.96(10)$ & $1.33(15)$ & $2.1(3)$ & $3.9(6)$ & $11.5(24)$ \\
+$\rho_{00}^{\ell\ell}$ & 0.284(3) & 0.344(18) & 0.302(18) & 0.308(12) & 0.306(7) & 0.302(4) & 0.292(6) & 0.302(11) & 0.285(17) & 0.280(21) \\
+$\rho_{00}^{q\bar q}$ & 0.098(3) & 0.277(18) & 0.279(18) & 0.299(12) & 0.310(7) & 0.314(4) & 0.303(6) & 0.317(11) & 0.309(17) & 0.333(21) \\
+\bottomrule
+\end{tabular}
+\end{center}
+The ratio vanishes for the almost pure $\gamma^*$ at 4--40\GeV, as it must, which validates the method; it changes sign
+below the pole and grows above it, the pattern of the forward--backward asymmetry. Within the window, $\rho_{00}$ of
+the two modes agrees bin by bin: the parity-even elements are not affected. (At 4--40\GeV the hadronic $Z$ of those
+events is a different population; $\rho_{00}$ is not expected to agree there.) Averaged over a window, the odd
+interference term largely cancels: the ratio is $0.950 \pm 0.067$ for 66--116\GeV, $0.959 \pm 0.067$ for the
+selection's 61.19--121.19\GeV and $0.982 \pm 0.068$ for 81.19--101.19\GeV, so the window-integrated leptonic parity-odd
+truth is unaffected within the present 7\% precision. Any $m_{\ell\ell}$-dependent weighting, such as an acceptance
+varying across the window, would not cancel. The hadronic side is affected much less (larger $g_V^q$, smaller $|Q_q|$)
+and is not separately measured here. The jet observables are parity-even, so none of this affects them.
+
+%-----------------------------------------------------------------------------------------------------------------------
+\subsection{Bias from the event selection}
+\label{app:truth:bias}
+Selected events cannot be used as the truth, because the selection depends on the decay angles. The size and the
+source of this bias were measured on the hadronic $Z$ of \code{ZZto2L2Q}: $\rho$ from the selected events of the
+production \code{20261116\_zxb2b} (149 NANO files, which store the LHE particles) is compared with $\rho$ from the
+independent unselected LHE files, in bins of the LHE boson $\pt$.
+
+\paragraph{Containment.} For a boson of mass $m$ and energy $E \gg m$ decaying to two massless partons with energy
+fractions $z$ and $1-z$, $m^2 = 2E^2 z(1-z)(1-\cos\theta_{12}) \approx E^2 z(1-z)\,\theta_{12}^2$, and
+$z = (1 + \beta\cos\theta^*)/2$ with $\theta^*$ the rest-frame decay angle, so $z(1-z) \approx \sin^2\theta^*/4$ and
+\begin{equation}
+  \Delta R(q,\bar q) \approx \frac{2m}{\pt\,\sin\theta^*}.
+  \label{eq:app:containment}
+\end{equation}
+Even symmetric decays ($\theta^* = \pi/2$) are contained in an $R = 0.8$ jet only for $\pt \gtrsim 2m/R \approx
+230\GeV$ ($Z$) or $200\GeV$ ($W$), and asymmetric ones need more. The fraction of unselected hadronic $Z$ decays with
+$\Delta R(q,\bar q) < 0.8$, in bins of $|\cos\theta^*|$ (0--0.2, \ldots, 0.8--1), is 0.56, 0.46, 0.27, 0.07, 0.00 at
+200--300\GeV; 1.00, 1.00, 0.96, 0.65, 0.09 at 300--400\GeV; and 1.00, 1.00, 1.00, 0.97, 0.36 at 400--600\GeV.
+
+\paragraph{Measured bias.} Selection steps, applied cumulatively on top of the hadronic $Z$ in its window:
+C0, the channel flag \code{Selection\_Zmumu} or \code{Selection\_Zee}, which includes the back-to-back jet requirement
+(Section~\ref{sec:b2b}); C1, in addition a selected jet within $\Delta R < 0.4$ of the LHE $Z$; C2, C1 with both LHE
+quarks within $\Delta R < 0.8$ of that jet; C3, C1 with that jet's $m_\mathrm{SD}$ between 70 and 110\GeV. The last
+column is the selected $|\cos\theta^*|$ distribution divided by the unselected one, normalised to a mean of one.
+\begin{center}
+\small
+\begin{tabular}{llrccl}
+\toprule
+$Z$ $\pt$ [GeV] & sample & events & $\rho_{00}$ & $\Delta\rho_{00}$ & acceptance in $|\cos\theta^*|$ \\
+\midrule
+200--300 & unselected & 8736 & $0.085 \pm 0.016$ & & \\
+ & C0 & 35476 & $-0.053 \pm 0.008$ & $-0.137 \pm 0.019$ & 0.95 0.96 0.91 1.02 1.15 \\
+ & C1 & 34703 & $-0.061 \pm 0.009$ & $-0.145 \pm 0.019$ & 0.95 0.96 0.90 1.03 1.16 \\
+ & C2 & 16564 & $1.238 \pm 0.006$ & $+1.154 \pm 0.018$ & 1.73 1.63 1.13 0.49 0.02 \\
+ & C3 & 14243 & $1.106 \pm 0.008$ & $+1.021 \pm 0.018$ & 1.66 1.58 1.09 0.54 0.13 \\
+300--400 & unselected & 1916 & $0.106 \pm 0.035$ & & \\
+ & C1 & 14538 & $0.035 \pm 0.013$ & $-0.071 \pm 0.037$ & 0.94 1.00 0.97 1.01 1.08 \\
+ & C2 & 10328 & $0.802 \pm 0.010$ & $+0.696 \pm 0.036$ & 1.25 1.32 1.26 1.00 0.18 \\
+ & C3 & 8144 & $0.822 \pm 0.012$ & $+0.716 \pm 0.037$ & 1.28 1.36 1.24 0.91 0.20 \\
+400--600 & unselected & 805 & $0.101 \pm 0.053$ & & \\
+ & C1 & 6699 & $0.030 \pm 0.019$ & $-0.070 \pm 0.057$ & 0.97 0.97 0.97 0.98 1.11 \\
+ & C2 & 5608 & $0.494 \pm 0.016$ & $+0.393 \pm 0.056$ & 1.12 1.13 1.12 1.11 0.51 \\
+ & C3 & 4006 & $0.798 \pm 0.017$ & $+0.697 \pm 0.056$ & 1.31 1.29 1.23 0.99 0.18 \\
+$> 600$ & unselected & 161 & $0.017 \pm 0.121$ & & \\
+ & C1 & 1422 & $0.017 \pm 0.042$ & $+0.000 \pm 0.128$ & 1.02 1.10 0.95 0.95 0.99 \\
+ & C2 & 1334 & $0.197 \pm 0.040$ & $+0.181 \pm 0.127$ & 1.06 1.15 0.99 0.99 0.80 \\
+ & C3 & 884 & $0.775 \pm 0.037$ & $+0.758 \pm 0.127$ & 1.29 1.40 1.19 0.93 0.20 \\
+\bottomrule
+\end{tabular}
+\end{center}
+At 300--400 and 400--600\GeV, C0 equals C1 within $0.002$. A negative $\rho_{00}$ shows that the selected angular
+distribution is no longer that of any spin state: the angles themselves are sculpted. A selection acting only on the
+leptonic $Z$ could change the hadronic $\rho$ only through spin correlations between the two bosons, which selects a
+sub-ensemble with a valid (positive) $\rho$; the bias therefore comes from a requirement that depends on the quarks.
+
+\paragraph{Source.} C0 already contains the back-to-back jet (the leading AK8 jet with $\pt > 200\GeV$, $\Delta\phi >
+2.8$ and $\pt$ balance $< 0.3$), which is why C1 adds nothing. At 200--300\GeV, an uncontained symmetric decay gives
+two jets of about $\pt/2$ each, which fail the jet $\pt$ threshold, while an asymmetric decay survives as one hard-quark
+jet; the acceptance therefore rises towards $|\cos\theta^*| = 1$, which lowers $\rho_{00}$. Only 48\% of the C1 jets at
+200--300\GeV contain both quarks. This is confirmed by an emulation of the selection on the unselected LHE events
+(\code{emulateSelection.py}; jets are the LHE partons, with the two quarks merged when $\Delta R < R$; lepton
+requirements $\pt > 26/15\GeV$, $|\eta| < 2.4$, $m_{\ell\ell}$ window and $\ptll > 200\GeV$), at hadronic $Z$ $\pt$
+200--300\GeV:
+\begin{center}
+\small
+\begin{tabular}{lrc}
+\toprule
+emulated selection & events & $\rho_{00}$ \\
+\midrule
+none & 5795 & $0.098 \pm 0.020$ \\
+leptons only & 1880 & $0.033 \pm 0.036$ \\
+full (jet $\pt > 200\GeV$, $\Delta\phi > 2.8$, balance $< 0.3$, $R = 0.8$) & 1040 & $-0.247 \pm 0.051$ \\
+without the balance requirement & 1050 & $-0.239 \pm 0.051$ \\
+without the $\Delta\phi$ requirement & 1220 & $-0.252 \pm 0.047$ \\
+jet $\pt > 150\GeV$ & 1387 & $-0.104 \pm 0.041$ \\
+quarks merged at $R = 1.2$ & 1485 & $0.073 \pm 0.040$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+The bias is caused by the jet $\pt$ threshold acting on uncontained decays; the balance and $\Delta\phi$ requirements
+do not matter, and restoring containment removes it. At 300--400 and 400--600\GeV the emulation shows no bias
+($0.171 \pm 0.067$ and $0.065 \pm 0.103$ for the full emulation, against $0.152 \pm 0.043$ and $0.108 \pm 0.065$
+unselected), whereas the production shows $-0.07 \pm 0.04$ at 300--400\GeV; more statistics are needed there. The
+emulation exaggerates the 200--300\GeV effect (no hadronisation, initial-state radiation or reconstruction, and LHE
+$\pt$ bins). Options are to measure the polarisation only above about $300\GeV$, through the binning or the thresholds;
+larger-$R$ jets would restore containment but have no standard calibration.
+
+\paragraph{Two-prong requirements.} Requiring both quarks inside the jet (C2), or a soft-drop mass window (C3), biases
+$\rho_{00}$ upwards by 0.4--1.2 at every $\pt$, including above $600\GeV$ for the mass window. With
+$z_\mathrm{cut} = 0.1$ and $\beta = 0$, soft drop removes decays in which the softer prong carries less than 10\% of the
+$\pt$; since $z \approx (1+\cos\theta^*)/2$, this is $|\cos\theta^*| > 1 - 2z_\mathrm{cut} = 0.8$, the bin whose
+acceptance drops to 0.13--0.20. Any groomed-mass window, or a tagger relying on it, therefore cuts directly into the
+polarisation-sensitive region. This is a property of such a selection, not of the thresholds, and has to be taken
+into account in the design of the measurement (avoiding such requirements, or unfolding through them with the full
+angular response).
+
+%-----------------------------------------------------------------------------------------------------------------------
+\subsection{Reweighting to pure longitudinal or transverse bosons}
+\label{app:truth:reweighting}
+The axis study of Appendix~\ref{app:axes} needs the response of the observables to $\rho_{00}$. Each selected jet
+matched to an LHE hadronic boson is reweighted by the polar distribution of the quark, symmetrised in quark and
+antiquark (so that the parity-odd term drops), relative to the unselected truth $\rho_{00}$ of its boson $\pt$ bin:
+\begin{equation}
+  f(c) = (1-\rho_{00})\,\tfrac38(1+c^2) + \rho_{00}\,\tfrac34(1-c^2), \qquad
+  w_L = \frac{\tfrac34(1-c^2)}{f(c)}, \qquad w_T = \frac{\tfrac38(1+c^2)}{f(c)}, \qquad c = \cos\theta^*.
+\end{equation}
+Since the acceptance multiplies numerator and denominator alike, it cancels in the ratio. On unselected LHE events (23
+\code{ZZto2L2Q} files, 17 November) the reweighting gives $\rho_{00} = 1.005 \pm 0.005$ ($w_L$) and
+$0.008 \pm 0.008$ ($w_T$). The parity-odd and off-diagonal elements are not removed: $\rho_{++} - \rho_{--} = -0.12$
+remains in the ``pure longitudinal'' sample, which is acceptable for comparing axes but does not make it a pure
+state. Better options, in order of exactness: a dedicated generation with polarised intermediate bosons in
+\textsc{MadGraph5\_aMC@NLO}~\cite{BuarqueFranzosi:2019boy} (exact, including the correlations with the rest of the
+event, but a different generator from the nominal one); a per-event reweighting with helicity amplitudes evaluated on
+the LHE kinematics (exact per event, without new events, but substantial work); and a reweighting by the ratio of the
+full decay distributions $W_\mathrm{pure}/W_\mathrm{true}$ of Eq.~\eqref{eq:app:Wexplicit} with all nine truth elements
+(removes the residual elements on average per bin; finite, since $W_\mathrm{true} > 0$). None is implemented yet.
