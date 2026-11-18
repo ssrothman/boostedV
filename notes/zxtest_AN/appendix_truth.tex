@@ -21,7 +21,9 @@ index pointing to the boson) are identified directly; a boson is used if it has 
 \subsection{Frame and decay angles}
 \label{app:truth:frame}
 For each boson $V$ with lab four-momentum $P$, both decay products are boosted into the $V$ rest frame by the pure boost
-$-\vec\beta$, $\vec\beta = \vec P/P^0$. The helicity frame has
+$-\vec\beta$, $\vec\beta = \vec P/P^0$, with the fermion mass of the LHE record (\textsc{Powheg} gives the quarks masses
+of 0.33--4.8\GeV; treating them as massless distorts the angles of bosons of a few\GeV{} of mass,
+Section~\ref{app:truth:shape}). The helicity frame has
 $\hat z$ along the $V$ lab direction, $\hat x$ in the plane of $\hat z$ and the beam axis, pointing towards the beam
 on the side of the boson (the beam moving along the sign of $P_z$), orthogonalised against $\hat z$, and
 $\hat y = \hat z \times \hat x$. This is the convention of the \code{jetAxis} and \code{jetHelicity} frames of the E1C
@@ -130,20 +132,47 @@ $\rho_{+0}$ and $\rho_{0-}$ change with $\hat x \to -\hat x$. The diagonal eleme
 %-----------------------------------------------------------------------------------------------------------------------
 \subsection{Analysing powers and the electroweak couplings of the generators}
 \label{app:truth:couplings}
-At tree level, $g_A = T_3$ and $g_V = T_3 - 2Q\sin^2\theta_W$; for the $W$, $g_V = g_A$ and $A_f = 1$, as for
-neutrinos. The analysing powers of the $Z$ depend very differently on $\sin^2\theta_W$:
+At tree level, $g_A = T_3$ and $g_V = T_3 - 2Q\sin^2\theta_W$, with $T_3$ the third component of the weak isospin and
+$Q$ the electric charge in units of $e$; for the $W$, $g_V = g_A$ and $A_f = 1$, as for neutrinos ($Q = 0$) from either
+boson. The analysing powers of the $Z$ depend very differently on $\sin^2\theta_W$:
 \begin{center}
 \small
-\begin{tabular}{lccc}
+\begin{tabular}{lcccc}
 \toprule
-$\sin^2\theta_W$ & $A_\ell$ & $A_u$ & $A_d$ \\
+$\sin^2\theta_W$ & $A_\ell$ & $A_\nu$ & $A_u$ & $A_d$ \\
 \midrule
-0.22263 (\textsc{Powheg} $ZZ$, $WZ$) & 0.2164 & 0.6975 & 0.9410 \\
-0.2229 & 0.2143 & 0.6966 & 0.9409 \\
-0.23154 (\textsc{MadGraph} Drell--Yan) & 0.1469 & 0.6674 & 0.9355 \\
+0.22263 (\textsc{Powheg} $ZZ$, $WZ$; on-shell) & 0.2164 & 1 & 0.6975 & 0.9410 \\
+0.22342 (PDG on-shell $s_W^2$) & 0.2103 & 1 & 0.6949 & 0.9406 \\
+0.23122 (PDG $\overline{\mathrm{MS}}$ $\hat s_Z^2$) & 0.1494 & 1 & 0.6685 & 0.9357 \\
+0.23154 (\textsc{MadGraph} Drell--Yan; PDG effective $\bar s_\ell^2$) & 0.1469 & 1 & 0.6674 & 0.9355 \\
 \bottomrule
 \end{tabular}
 \end{center}
+The PDG values are the Standard-Model values of Table~10.2 of the electroweak review~\cite{ParticleDataGroup:2024cfk}
+(2025 update), $0.22342(9)$, $0.23122(6)$ and $0.23154(6)$; they differ by scheme (on-shell $1 - m_W^2/m_Z^2$ to
+all orders, $\overline{\mathrm{MS}}$ at the scale $m_Z$, and the effective angle of the $Z$-pole asymmetries). At tree
+level they coincide, so a leading-order generator is free to choose; the measured $Z$-pole asymmetries correspond
+to the effective angle. What matters here is the value the generator used, since $\rho$ is extracted from its events.
+
+The $W$ couples only to left-handed fermions ($g_R = 0$), so its analysing powers are 1 for every decay, independent
+of $\sin^2\theta_W$ and of the CKM elements (which scale $g_L$ only). With the fermion defined as the decay product
+with positive PDG identifier, this is a left-handed particle for both charges:
+\begin{center}
+\small
+\begin{tabular}{llc}
+\toprule
+decay & fermion (PDG identifier $> 0$) & $A_f$ \\
+\midrule
+$W^+ \to \ell^+\nu_\ell$ & $\nu_\ell$ & 1 \\
+$W^- \to \ell^-\bar\nu_\ell$ & $\ell^-$ & 1 \\
+$W^+ \to u_i\,\bar d_j$ & $u_i$ ($u$, $c$) & 1 \\
+$W^- \to d_j\,\bar u_i$ & $d_j$ ($d$, $s$, $b$) & 1 \\
+\bottomrule
+\end{tabular}
+\end{center}
+Choosing the antifermion instead would give $A_f = -1$, equivalent by the fermion--antifermion exchange of
+Section~\ref{app:truth:decay}. Fermion masses (at most $m_b$ and $m_\tau$ here) correct this by $\mathcal{O}(m_f^2/m_W^2)$
+and are neglected.
 For charged leptons, $g_V = -\tfrac12 + 2\sin^2\theta_W \approx -0.055$ is a near cancellation, so
 $A_\ell \approx 2g_V/g_A \propto 1 - 4\sin^2\theta_W$ is a small difference of two numbers close to one: a shift of
 0.009 in $\sin^2\theta_W$ changes $1 - 4\sin^2\theta_W$ from 0.110 to 0.074, i.e.\ $A_\ell$ by 47\%. For quarks,
@@ -168,12 +197,13 @@ In $q\bar q \to ZZ$ the two $Z$ bosons are produced symmetrically, so at the sam
 hadronically decaying $Z$ have the same $\rho$; their comparison tests the formalism, the frame and the couplings, with
 $A_\ell \approx 0.22$ and $A_q \approx 0.7$--$0.94$ entering the parity-odd elements very differently. The comparison
 is only valid if both bosons are drawn from the same population: \code{ZZto2L2Q} is generated with
-$m_{\ell\ell} > 4\GeV$ (\code{mllmin 4d0}), so the leptonic ``$Z$'' includes a large $\gamma^*$ component, and requiring
-only the measured boson in the mass window selects different partner populations for the two decay modes. With only
-the measured boson in the window, $\rho_{00}$ differs between the modes by about $20\sigma$ below $50\GeV$
-($0.272 \pm 0.003$ versus $0.205 \pm 0.002$ in the present sample); with both bosons required in the window (\code{--both-in-window};
-$66 < m < 116\GeV$ for the $Z$, $60 < m < 100\GeV$ for the $W$, as in Ref.~\cite{Gao:2026bvp}) they are compatible,
-as the table and the $\chi^2$ below show:
+$m_{\ell\ell} > 4\GeV$ (\code{mllmin 4d0}), so the leptonic ``$Z$'' includes a large $\gamma^*$ component. If only
+the boson whose $\rho$ is extracted is required in its mass window (\code{--window self}: the leptonic $Z$ when the
+leptonic $\rho$ is extracted, the hadronic one for the hadronic $\rho$), the two extractions use different events, whose
+partners differ (a $\gamma^*$-like partner in one case, not in the other). $\rho_{00}$ then differs between the modes
+by about $20\sigma$ below $50\GeV$ ($0.272 \pm 0.003$ versus $0.203 \pm 0.002$); with both bosons required in the
+window (\code{--window both}; $66 < m < 116\GeV$ for the $Z$, $60 < m < 100\GeV$ for the $W$, as in
+Ref.~\cite{Gao:2026bvp}), both extractions use the same events, and they are compatible, as the table and the $\chi^2$ below show:
 
 \begin{center}
 \footnotesize
@@ -183,33 +213,36 @@ as the table and the $\chi^2$ below show:
 $V$ $\pt$ [GeV] & \multicolumn{2}{c}{$\rho_{00}$} & \multicolumn{2}{c}{$\rho_{++}-\rho_{--}$} & \multicolumn{2}{c}{$\mathrm{Re}\,\rho_{+-}$} \\
  & $Z\to\ell\ell$ & $Z\to q\bar q$ & $Z\to\ell\ell$ & $Z\to q\bar q$ & $Z\to\ell\ell$ & $Z\to q\bar q$ \\
 \midrule
-0--50 & $0.372 \pm 0.003$ & $0.378 \pm 0.003$ & $-0.170 \pm 0.012$ & $-0.175 \pm 0.003$ & $-0.019 \pm 0.003$ & $-0.023 \pm 0.003$ \\
-50--100 & $0.262 \pm 0.004$ & $0.271 \pm 0.004$ & $-0.178 \pm 0.015$ & $-0.149 \pm 0.004$ & $-0.025 \pm 0.003$ & $-0.020 \pm 0.003$ \\
-100--150 & $0.165 \pm 0.008$ & $0.167 \pm 0.008$ & $-0.092 \pm 0.028$ & $-0.143 \pm 0.007$ & $-0.016 \pm 0.006$ & $-0.011 \pm 0.006$ \\
-150--200 & $0.118 \pm 0.013$ & $0.126 \pm 0.013$ & $-0.116 \pm 0.049$ & $-0.112 \pm 0.012$ & $-0.024 \pm 0.011$ & $-0.003 \pm 0.011$ \\
-200--300 & $0.099 \pm 0.018$ & $0.088 \pm 0.018$ & $-0.079 \pm 0.067$ & $-0.119 \pm 0.017$ & $-0.034 \pm 0.014$ & $-0.029 \pm 0.014$ \\
-300--400 & $0.012 \pm 0.038$ & $0.107 \pm 0.038$ & $+0.12 \pm 0.14$ & $-0.094 \pm 0.036$ & $-0.027 \pm 0.029$ & $+0.022 \pm 0.031$ \\
-400--600 & $0.088 \pm 0.058$ & $0.140 \pm 0.058$ & $+0.04 \pm 0.22$ & $-0.130 \pm 0.055$ & $-0.011 \pm 0.047$ & $-0.013 \pm 0.049$ \\
+0--50 & $0.371 \pm 0.003$ & $0.377 \pm 0.003$ & $-0.169 \pm 0.011$ & $-0.173 \pm 0.003$ & $-0.019 \pm 0.003$ & $-0.023 \pm 0.003$ \\
+50--100 & $0.262 \pm 0.004$ & $0.269 \pm 0.004$ & $-0.176 \pm 0.015$ & $-0.146 \pm 0.004$ & $-0.025 \pm 0.003$ & $-0.020 \pm 0.003$ \\
+100--150 & $0.164 \pm 0.008$ & $0.165 \pm 0.008$ & $-0.090 \pm 0.028$ & $-0.141 \pm 0.007$ & $-0.016 \pm 0.006$ & $-0.011 \pm 0.006$ \\
+150--200 & $0.117 \pm 0.013$ & $0.123 \pm 0.013$ & $-0.114 \pm 0.049$ & $-0.110 \pm 0.012$ & $-0.024 \pm 0.011$ & $-0.003 \pm 0.011$ \\
+200--300 & $0.098 \pm 0.018$ & $0.084 \pm 0.018$ & $-0.077 \pm 0.067$ & $-0.117 \pm 0.017$ & $-0.034 \pm 0.014$ & $-0.029 \pm 0.014$ \\
+300--400 & $0.011 \pm 0.038$ & $0.103 \pm 0.038$ & $+0.12 \pm 0.14$ & $-0.091 \pm 0.036$ & $-0.027 \pm 0.029$ & $+0.021 \pm 0.031$ \\
+400--600 & $0.087 \pm 0.057$ & $0.136 \pm 0.058$ & $+0.05 \pm 0.22$ & $-0.127 \pm 0.055$ & $-0.011 \pm 0.047$ & $-0.013 \pm 0.049$ \\
 \bottomrule
 \end{tabular}
 \end{center}
 A $\chi^2$ over all nine elements (eight independent, $\rho_{--}$ dropped; covariances added, i.e.\ the two modes are
-treated as independent although they come from the same events) as a function of the assumed $\sin^2\theta_W$:
+treated as independent although they come from the same events) as a function of the assumed $\sin^2\theta_W$, with
+the pull of the parity-odd $\rho_{++}-\rho_{--}$ in parentheses:
 \begin{center}
 \small
 \begin{tabular}{lccc}
 \toprule
 $\sin^2\theta_W$ & $\pt < 100\GeV$ & $100$--$200\GeV$ & $> 200\GeV$ \\
 \midrule
-0.22263 & $16.8/8$ (pull of $\rho_{++}-\rho_{--}$: $-1.0$) & $6.0/8$ ($+1.5$) & $7.4/8$ ($+1.1$) \\
-0.2229 & $17.3/8$ ($-1.1$) & $5.9/8$ ($+1.4$) & $7.4/8$ ($+1.1$) \\
-0.23154 & $71.5/8$ ($-6.6$) & $8.1/8$ ($-0.2$) & $6.4/8$ ($+0.5$) \\
+0.22263 (\textsc{Powheg}) & $15.7/8$ ($-1.0$) & $5.8/8$ ($+1.5$) & $7.3/8$ ($+1.1$) \\
+0.22342 (PDG on-shell) & $17.5/8$ ($-1.5$) & $5.6/8$ ($+1.3$) & $7.1/8$ ($+1.1$) \\
+0.23122 (PDG $\overline{\mathrm{MS}}$) & $66.7/8$ ($-6.3$) & $7.7/8$ ($-0.1$) & $6.3/8$ ($+0.6$) \\
+0.23154 (\textsc{MadGraph}, PDG effective) & $70.1/8$ ($-6.5$) & $7.9/8$ ($-0.2$) & $6.3/8$ ($+0.5$) \\
 \bottomrule
 \end{tabular}
 \end{center}
-The generator value is preferred, and the \textsc{MadGraph} value is excluded by the parity-odd element at low $\pt$.
-At $\pt < 100\GeV$ a weak tension remains ($p \approx 0.03$), spread over several elements with pulls of 1.5--2.4
-($\rho_{00}$ $-1.5$ in both bins, $\mathrm{Re}\,\rho_{0-}$ $-1.7$ and $-1.8$, $\rho_{--}$ $+2.4$ at 50--100\GeV), not in the
+The generator value is preferred, and the $\overline{\mathrm{MS}}$ and effective values are excluded by the parity-odd
+element at low $\pt$; the on-shell PDG value, close to the generator's, cannot be distinguished from it.
+At $\pt < 100\GeV$ a weak tension remains ($p \approx 0.05$), spread over several elements, with the largest pulls in
+$\mathrm{Re}\,\rho_{0-}$ ($-2.5$), $\rho_{00}$ ($-1.7$) and $\rho_{--}$ ($+1.6$), not in the
 parity-odd one; an earlier sample of different files gave $6.3/8$. It is outside the region of interest and is not
 pursued. Above $100\GeV$ the modes agree.
 
@@ -218,58 +251,172 @@ pursued. Above $100\GeV$ the modes agree.
 \label{app:truth:definition}
 The hadronic boson mass cannot be controlled in the measurement, while the leptonic $Z$ is selected in
 $61.19 < m_{\ell\ell} < 121.19\GeV$. The truth for the hadronic measurement is therefore the hadronic boson's $\rho$,
-with the leptonic $Z$ in the selection's window and no requirement on the hadronic mass; the leptonic--hadronic
-comparison of Section~\ref{app:truth:lephad} keeps both in the window. At the relevant $\pt$ the hadronic $Z$ is
-mostly on shell (generator-weighted fractions, 24 \code{ZZto2L2Q} files):
-\begin{center}
-\small
-\begin{tabular}{lccc}
-\toprule
-hadronic $Z$ $\pt$ & hadronic $Z$ in window & partner in window, if hadronic one is & both in window \\
-\midrule
-all & 0.61 & 0.52 & 0.32 \\
-$> 200\GeV$ & 0.935 & 0.83 & 0.77 \\
-$> 400\GeV$ & 0.91 & 0.83 & 0.75 \\
-\bottomrule
-\end{tabular}
-\end{center}
-The low inclusive fractions come from the $\gamma^*$ contribution at low $\pt$. The hadronic $\rho_{00}$ does not
-depend on the definition above $100\GeV$ within the statistical precision:
-\begin{center}
-\small
-\begin{tabular}{lccc}
-\toprule
-hadronic $Z$ $\pt$ [GeV] & no window & hadronic $Z$ in window & both in window \\
-\midrule
-0--100 & $0.250 \pm 0.001$ & $0.218 \pm 0.002$ & $0.335 \pm 0.003$ \\
-100--200 & $0.157 \pm 0.006$ & $0.159 \pm 0.006$ & $0.157 \pm 0.007$ \\
-200--300 & $0.082 \pm 0.016$ & $0.085 \pm 0.017$ & $0.088 \pm 0.018$ \\
-300--400 & $0.119 \pm 0.034$ & $0.106 \pm 0.035$ & $0.107 \pm 0.038$ \\
-400--600 & $0.090 \pm 0.051$ & $0.101 \pm 0.053$ & $0.140 \pm 0.058$ \\
-\bottomrule
-\end{tabular}
-\end{center}
-
-\paragraph{Truth tables.} The definition of the previous paragraph (partner in the selection's window, no requirement
-on the hadronic mass) is not yet implemented in \code{truthRho.py}, which requires the hadronic boson in its window and
-nothing of the partner; above $100\GeV$ the definitions tested above agree within the statistical precision. With the
-\code{truthRho.py} definition:
+with the leptonic $Z$ in the selection's window and no requirement on the hadronic mass (\code{truthRho.py
+--window leptonic}: every leptonically decaying boson of the event in the selection's window); the leptonic--hadronic
+comparison of Section~\ref{app:truth:lephad} keeps both in the $66$--$116\GeV$ window. Generator-weighted
+fractions in the 24 unselected \code{ZZto2L2Q} files, in bins of the hadronic $Z$ $\pt$ (hadronic window
+$66$--$116\GeV$, leptonic window that of the selection):
 \begin{center}
 \small
 \begin{tabular}{lcccc}
 \toprule
-$V$ $\pt$ [GeV] & \multicolumn{2}{c}{$ZZ$: hadronic $Z$} & \multicolumn{2}{c}{$WZ$: hadronic $W$} \\
- & $\rho_{00}$ & $\rho_{++}-\rho_{--}$ & $\rho_{00}$ & $\rho_{++}-\rho_{--}$ \\
+hadronic $Z$ $\pt$ & hadronic in window & leptonic in window & hadronic, if leptonic in window & both \\
 \midrule
-100--150 & $0.170 \pm 0.007$ & $-0.149 \pm 0.006$ & $0.205 \pm 0.011$ & $-0.189 \pm 0.008$ \\
-150--200 & $0.126 \pm 0.012$ & $-0.114 \pm 0.011$ & $0.173 \pm 0.018$ & $-0.213 \pm 0.015$ \\
-200--300 & $0.085 \pm 0.017$ & $-0.132 \pm 0.015$ & $0.110 \pm 0.025$ & $-0.243 \pm 0.019$ \\
-300--400 & $0.106 \pm 0.035$ & $-0.099 \pm 0.033$ & $0.106 \pm 0.048$ & $-0.374 \pm 0.037$ \\
-400--600 & $0.101 \pm 0.053$ & $-0.130 \pm 0.051$ & $0.193 \pm 0.072$ & $-0.267 \pm 0.057$ \\
-$> 600$ & $0.017 \pm 0.121$ & $-0.086 \pm 0.116$ & $0.213 \pm 0.142$ & $-0.342 \pm 0.115$ \\
+all & 0.61 & 0.43 & 0.74 & 0.32 \\
+$> 200\GeV$ & 0.935 & 0.83 & 0.94 & 0.78 \\
+$> 400\GeV$ & 0.91 & 0.83 & 0.91 & 0.76 \\
 \bottomrule
 \end{tabular}
 \end{center}
+With the leptonic $Z$ selected, 94\% of the hadronic $Z$ bosons above $200\GeV$ are in their window; the low inclusive
+fractions come from the $\gamma^*$ contributions at low $\pt$. Above $100\GeV$ the hadronic $\rho_{00}$ does not depend
+on the definition within the statistical precision:
+\begin{center}
+\footnotesize
+\begin{tabular}{lcccc}
+\toprule
+hadronic $Z$ $\pt$ [GeV] & no window & hadronic in window & leptonic in window (truth) & both in window \\
+\midrule
+0--100 & $0.208 \pm 0.001$ & $0.217 \pm 0.002$ & $0.321 \pm 0.002$ & $0.334 \pm 0.003$ \\
+100--200 & $0.153 \pm 0.006$ & $0.157 \pm 0.006$ & $0.154 \pm 0.006$ & $0.155 \pm 0.007$ \\
+200--300 & $0.078 \pm 0.016$ & $0.081 \pm 0.017$ & $0.079 \pm 0.018$ & $0.084 \pm 0.018$ \\
+300--400 & $0.114 \pm 0.034$ & $0.102 \pm 0.035$ & $0.115 \pm 0.037$ & $0.103 \pm 0.038$ \\
+400--600 & $0.090 \pm 0.051$ & $0.097 \pm 0.053$ & $0.130 \pm 0.055$ & $0.136 \pm 0.058$ \\
+$> 600$ & $-0.02 \pm 0.12$ & $0.01 \pm 0.12$ & $0.02 \pm 0.13$ & $0.04 \pm 0.13$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Truth tables.} Tables~\ref{tab:app:truthHad} and~\ref{tab:app:truthLep} give all nine parameters with this
+definition, for the hadronic boson and for its leptonic partner, in bins of the $\pt$ of that boson. The leptonic $Z$
+is in the selection's window by definition. The parity-odd combinations of the leptonic $Z$ carry the small $A_\ell$
+(errors three to four times larger than for quarks) and the window-averaged $\gamma^*/Z$ interference of
+Section~\ref{app:truth:interference} (about 5\%). With no requirement on the hadronic mass, 0.55\% of the hadronic
+$Z$ bosons above $200\GeV$ have $m < 20\GeV$ (a $\gamma^*$ radiated off the lepton line,
+Section~\ref{app:truth:shape}).
+
+\begin{table}[htbp]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{2pt}
+\begin{tabular}{lrccccccccc}
+\toprule
+$\pt$ [GeV] & $N$ & $\rho_{++}$ & $\rho_{00}$ & $\rho_{--}$ & $\mathrm{Re}\,\rho_{+0}$ & $\mathrm{Im}\,\rho_{+0}$ &
+$\mathrm{Re}\,\rho_{+-}$ & $\mathrm{Im}\,\rho_{+-}$ & $\mathrm{Re}\,\rho_{0-}$ & $\mathrm{Im}\,\rho_{0-}$ \\
+\midrule
+\multicolumn{11}{l}{\code{ZZto2L2Q}: hadronic $Z$} \\
+0--50 & 354202 & $+0.272(2)$ & $+0.345(3)$ & $+0.383(2)$ & $-0.089(2)$ & $-0.001(2)$ & $-0.055(2)$ & $-0.001(2)$ & $+0.067(2)$ & $+0.002(2)$ \\
+50--100 & 149384 & $+0.295(3)$ & $+0.265(4)$ & $+0.441(3)$ & $-0.109(3)$ & $-0.005(3)$ & $-0.022(3)$ & $+0.002(3)$ & $+0.046(3)$ & $+0.006(3)$ \\
+100--150 & 42948 & $+0.346(5)$ & $+0.165(7)$ & $+0.489(5)$ & $-0.115(5)$ & $+0.002(5)$ & $-0.010(6)$ & $+0.001(6)$ & $+0.044(5)$ & $+0.002(5)$ \\
+150--200 & 13936 & $+0.382(9)$ & $+0.12(1)$ & $+0.498(9)$ & $-0.093(9)$ & $-0.009(9)$ & $+0.00(1)$ & $-0.01(1)$ & $+0.020(9)$ & $+0.006(9)$ \\
+200--300 & 7750 & $+0.40(1)$ & $+0.08(2)$ & $+0.52(1)$ & $-0.08(1)$ & $+0.02(1)$ & $-0.03(1)$ & $+0.02(1)$ & $+0.02(1)$ & $+0.00(1)$ \\
+300--400 & 1690 & $+0.40(2)$ & $+0.11(4)$ & $+0.49(3)$ & $-0.04(3)$ & $+0.01(2)$ & $+0.02(3)$ & $-0.01(3)$ & $-0.00(3)$ & $+0.01(3)$ \\
+400--600 & 732 & $+0.36(4)$ & $+0.13(6)$ & $+0.51(4)$ & $-0.06(4)$ & $+0.05(4)$ & $+0.00(5)$ & $+0.02(4)$ & $+0.00(4)$ & $-0.03(4)$ \\
+$> 600$ & 146 & $+0.38(9)$ & $+0.0(1)$ & $+0.59(9)$ & $-0.03(8)$ & $+0.01(8)$ & $-0.0(1)$ & $+0.2(1)$ & $+0.10(9)$ & $+0.00(9)$ \\
+\midrule
+\multicolumn{11}{l}{\code{WZto2L2Q}: hadronic $W$} \\
+0--50 & 73681 & $+0.253(3)$ & $+0.285(6)$ & $+0.462(4)$ & $-0.049(3)$ & $+0.003(4)$ & $-0.030(5)$ & $+0.001(5)$ & $+0.028(4)$ & $-0.003(4)$ \\
+50--100 & 50109 & $+0.280(4)$ & $+0.246(7)$ & $+0.474(5)$ & $-0.023(4)$ & $-0.000(4)$ & $-0.022(6)$ & $-0.004(6)$ & $-0.034(5)$ & $+0.002(5)$ \\
+100--150 & 15670 & $+0.294(7)$ & $+0.22(1)$ & $+0.485(8)$ & $-0.023(8)$ & $+0.005(8)$ & $-0.03(1)$ & $-0.02(1)$ & $-0.014(8)$ & $-0.013(8)$ \\
+150--200 & 5392 & $+0.29(1)$ & $+0.21(2)$ & $+0.51(1)$ & $-0.01(1)$ & $-0.02(1)$ & $+0.01(2)$ & $-0.01(2)$ & $-0.03(1)$ & $+0.02(1)$ \\
+200--300 & 3245 & $+0.31(2)$ & $+0.13(3)$ & $+0.55(2)$ & $-0.04(2)$ & $+0.00(2)$ & $-0.02(2)$ & $+0.01(2)$ & $+0.04(2)$ & $+0.01(2)$ \\
+300--400 & 837 & $+0.25(3)$ & $+0.15(5)$ & $+0.59(4)$ & $-0.07(3)$ & $-0.01(3)$ & $-0.03(4)$ & $-0.02(4)$ & $+0.07(4)$ & $+0.00(4)$ \\
+400--600 & 361 & $+0.26(4)$ & $+0.19(8)$ & $+0.55(5)$ & $+0.01(5)$ & $+0.05(5)$ & $-0.01(7)$ & $-0.03(6)$ & $+0.06(6)$ & $-0.06(6)$ \\
+$> 600$ & 80 & $+0.19(9)$ & $+0.3(1)$ & $+0.5(1)$ & $-0.1(1)$ & $+0.1(1)$ & $-0.1(1)$ & $+0.2(1)$ & $+0.2(1)$ & $-0.1(1)$ \\
+\bottomrule
+\end{tabular}
+\caption{Truth $\rho$ of the hadronic boson, with the leptonic $Z$ in the selection's window and no requirement on the
+hadronic mass, from the unselected LHE files (24 \code{ZZto2L2Q}, 8 \code{WZto2L2Q}); value(error in the last digit).
+$\rho_{++}+\rho_{00}+\rho_{--} = 1$ exactly; the parameters are correlated.}
+\label{tab:app:truthHad}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{2pt}
+\begin{tabular}{lrccccccccc}
+\toprule
+$\pt$ [GeV] & $N$ & $\rho_{++}$ & $\rho_{00}$ & $\rho_{--}$ & $\mathrm{Re}\,\rho_{+0}$ & $\mathrm{Im}\,\rho_{+0}$ &
+$\mathrm{Re}\,\rho_{+-}$ & $\mathrm{Im}\,\rho_{+-}$ & $\mathrm{Re}\,\rho_{0-}$ & $\mathrm{Im}\,\rho_{0-}$ \\
+\midrule
+\multicolumn{11}{l}{\code{ZZto2L2Q}: leptonic $Z$} \\
+0--50 & 345448 & $+0.260(5)$ & $+0.264(3)$ & $+0.477(5)$ & $-0.048(4)$ & $+0.003(3)$ & $+0.031(2)$ & $+0.000(2)$ & $+0.012(4)$ & $+0.000(4)$ \\
+50--100 & 156422 & $+0.277(7)$ & $+0.256(4)$ & $+0.467(7)$ & $-0.112(5)$ & $-0.002(5)$ & $-0.019(3)$ & $+0.000(3)$ & $+0.038(5)$ & $-0.004(5)$ \\
+100--150 & 44056 & $+0.37(1)$ & $+0.163(7)$ & $+0.46(1)$ & $-0.12(1)$ & $-0.00(1)$ & $-0.017(6)$ & $+0.004(6)$ & $+0.04(1)$ & $-0.00(1)$ \\
+150--200 & 14342 & $+0.37(2)$ & $+0.11(1)$ & $+0.52(2)$ & $-0.09(2)$ & $-0.03(2)$ & $-0.02(1)$ & $-0.00(1)$ & $+0.04(2)$ & $-0.01(2)$ \\
+200--300 & 7819 & $+0.40(3)$ & $+0.10(2)$ & $+0.49(3)$ & $-0.08(2)$ & $+0.01(2)$ & $-0.04(1)$ & $-0.01(1)$ & $+0.03(2)$ & $+0.00(2)$ \\
+300--400 & 1818 & $+0.56(7)$ & $+0.03(4)$ & $+0.42(7)$ & $-0.00(5)$ & $+0.00(5)$ & $-0.03(3)$ & $-0.02(3)$ & $-0.03(5)$ & $-0.03(5)$ \\
+400--600 & 734 & $+0.5(1)$ & $+0.07(6)$ & $+0.4(1)$ & $-0.18(8)$ & $-0.09(8)$ & $-0.02(4)$ & $+0.02(4)$ & $-0.06(7)$ & $+0.02(7)$ \\
+$> 600$ & 149 & $+0.1(2)$ & $-0.1(1)$ & $+0.9(3)$ & $-0.2(1)$ & $-0.4(2)$ & $-0.15(9)$ & $+0.1(1)$ & $-0.3(2)$ & $-0.4(2)$ \\
+\midrule
+\multicolumn{11}{l}{\code{WZto2L2Q}: leptonic $Z$} \\
+0--50 & 72031 & $+0.25(1)$ & $+0.258(6)$ & $+0.49(1)$ & $-0.033(8)$ & $+0.006(8)$ & $-0.016(5)$ & $-0.002(5)$ & $-0.021(8)$ & $-0.001(8)$ \\
+50--100 & 50576 & $+0.29(1)$ & $+0.249(7)$ & $+0.46(1)$ & $-0.010(9)$ & $+0.007(9)$ & $+0.005(6)$ & $+0.004(6)$ & $-0.045(9)$ & $+0.004(9)$ \\
+100--150 & 16247 & $+0.35(2)$ & $+0.22(1)$ & $+0.43(2)$ & $-0.05(2)$ & $+0.00(2)$ & $-0.00(1)$ & $+0.01(1)$ & $-0.01(2)$ & $-0.00(2)$ \\
+150--200 & 5599 & $+0.35(4)$ & $+0.19(2)$ & $+0.47(4)$ & $-0.05(3)$ & $-0.01(3)$ & $-0.02(2)$ & $-0.00(2)$ & $+0.02(3)$ & $-0.03(3)$ \\
+200--300 & 3575 & $+0.35(5)$ & $+0.15(3)$ & $+0.50(5)$ & $-0.02(3)$ & $+0.00(3)$ & $+0.00(2)$ & $+0.04(2)$ & $+0.08(3)$ & $+0.02(3)$ \\
+300--400 & 865 & $+0.2(1)$ & $+0.16(5)$ & $+0.6(1)$ & $-0.16(7)$ & $-0.05(7)$ & $-0.03(4)$ & $+0.04(4)$ & $-0.01(7)$ & $-0.17(7)$ \\
+400--600 & 400 & $+0.3(1)$ & $+0.08(8)$ & $+0.6(2)$ & $-0.1(1)$ & $-0.0(1)$ & $-0.03(6)$ & $+0.06(6)$ & $+0.1(1)$ & $+0.0(1)$ \\
+$> 600$ & 82 & $+0.6(3)$ & $+0.1(2)$ & $+0.3(3)$ & $-0.2(2)$ & $+0.3(2)$ & $-0.2(1)$ & $+0.2(1)$ & $-0.1(2)$ & $+0.1(2)$ \\
+\bottomrule
+\end{tabular}
+\caption{Truth $\rho$ of the leptonic $Z$ in the selection's window, no requirement on the hadronic partner; as
+Table~\ref{tab:app:truthHad}, in bins of the leptonic $Z$ $\pt$, with $A_\ell$ at the generator's
+$\sin^2\theta_W = 0.22263$.}
+\label{tab:app:truthLep}
+\end{table}
+
+\paragraph{Joint helicity probabilities.} The diagonal of the joint density matrix of the two bosons,
+$P(\lambda_h, \lambda_\ell)$, is extracted from per-decay functions $f_\lambda(\theta)$ with $\langle f_\lambda\rangle =
+\rho_{\lambda\lambda}$ for every $\rho$ (from Eq.~\eqref{eq:app:inversion}):
+\begin{equation}
+  f_0 = \tfrac13\big(1 - 10\,P_2(\cos\theta)\big), \qquad f_\pm = \tfrac12(1 - f_0) \mp \frac{\cos\theta}{A_f}.
+\end{equation}
+Being linear in $\rho$ and equal to $\rho_{\lambda\lambda}$ for every $\rho$, $f_\lambda$ is the projector onto
+helicity $\lambda$; since the two decays are independent given the joint state, the weighted mean of
+$f_{\lambda_h}(\theta_h)\,f_{\lambda_\ell}(\theta_\ell)$ over events is $P(\lambda_h, \lambda_\ell)$, including all spin
+correlations. $A_f$ is that of each decay, so different flavours are combined exactly. The nine probabilities sum to
+one, and their sum over $\lambda_\ell$ reproduces the $\rho_{\lambda\lambda}$ of Table~\ref{tab:app:truthHad} (checked to
+$10^{-9}$ for $\rho_{00}$). The estimator is not constrained to be positive. A unit test samples an entangled two-boson
+state with the full joint decay distribution and recovers $|\psi_{\lambda_h\lambda_\ell}|^2$, which differs from the
+product of the marginals by more than $10\sigma$ (\code{analysis/tests/test\_spin.py}). Table~\ref{tab:app:truthJoint}
+gives the result for the selection of Table~\ref{tab:app:truthHad}, in bins of the hadronic boson $\pt$.
+\begin{table}[htbp]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{2pt}
+\begin{tabular}{lrccccccccc}
+\toprule
+$\pt^{h}$ [GeV] & $N$ & $(+,+)$ & $(+,0)$ & $(+,-)$ & $(0,+)$ & $(0,0)$ & $(0,-)$ & $(-,+)$ & $(-,0)$ & $(-,-)$ \\
+\midrule
+\multicolumn{11}{l}{\code{ZZto2L2Q}: (hadronic $Z$, leptonic $Z$)} \\
+0--50 & 354202 & $+0.058(5)$ & $+0.070(3)$ & $+0.147(5)$ & $+0.102(7)$ & $+0.028(4)$ & $+0.215(7)$ & $+0.106(5)$ & $+0.146(3)$ & $+0.129(5)$ \\
+50--100 & 149384 & $+0.029(7)$ & $+0.081(4)$ & $+0.185(8)$ & $+0.06(1)$ & $+0.011(6)$ & $+0.20(1)$ & $+0.198(8)$ & $+0.183(5)$ & $+0.059(8)$ \\
+100--150 & 42948 & $+0.04(1)$ & $+0.058(8)$ & $+0.25(2)$ & $+0.02(2)$ & $+0.02(1)$ & $+0.13(2)$ & $+0.27(2)$ & $+0.146(9)$ & $+0.07(2)$ \\
+150--200 & 13936 & $+0.07(3)$ & $+0.06(1)$ & $+0.25(3)$ & $+0.04(4)$ & $-0.01(2)$ & $+0.09(4)$ & $+0.25(3)$ & $+0.14(2)$ & $+0.11(3)$ \\
+200--300 & 7750 & $+0.05(4)$ & $+0.07(2)$ & $+0.28(4)$ & $+0.03(5)$ & $-0.05(3)$ & $+0.10(5)$ & $+0.29(4)$ & $+0.12(2)$ & $+0.11(4)$ \\
+300--400 & 1690 & $+0.06(8)$ & $+0.07(4)$ & $+0.26(8)$ & $+0.2(1)$ & $+0.04(6)$ & $-0.1(1)$ & $+0.21(9)$ & $+0.01(5)$ & $+0.26(9)$ \\
+400--600 & 732 & $+0.1(1)$ & $+0.02(6)$ & $+0.2(1)$ & $-0.1(2)$ & $+0.02(8)$ & $+0.2(2)$ & $+0.3(1)$ & $+0.02(6)$ & $+0.2(1)$ \\
+$> 600$ & 146 & $-0.5(2)$ & $+0.1(2)$ & $+0.8(3)$ & $+0.6(4)$ & $-0.1(2)$ & $-0.5(4)$ & $+0.4(3)$ & $-0.1(2)$ & $+0.2(3)$ \\
+\midrule
+\multicolumn{11}{l}{\code{WZto2L2Q}: (hadronic $W$, leptonic $Z$)} \\
+0--50 & 73681 & $+0.029(9)$ & $+0.052(5)$ & $+0.17(1)$ & $+0.11(2)$ & $+0.043(9)$ & $+0.13(2)$ & $+0.14(1)$ & $+0.147(6)$ & $+0.18(1)$ \\
+50--100 & 50109 & $+0.07(1)$ & $+0.042(6)$ & $+0.17(1)$ & $+0.03(2)$ & $+0.06(1)$ & $+0.16(2)$ & $+0.18(1)$ & $+0.142(8)$ & $+0.16(1)$ \\
+100--150 & 15670 & $+0.08(2)$ & $+0.05(1)$ & $+0.17(2)$ & $+0.04(3)$ & $+0.07(2)$ & $+0.11(4)$ & $+0.21(3)$ & $+0.13(1)$ & $+0.14(3)$ \\
+150--200 & 5392 & $+0.12(4)$ & $+0.05(2)$ & $+0.12(4)$ & $-0.03(6)$ & $+0.09(3)$ & $+0.14(6)$ & $+0.23(4)$ & $+0.12(2)$ & $+0.15(4)$ \\
+200--300 & 3245 & $+0.06(5)$ & $+0.06(2)$ & $+0.19(5)$ & $+0.11(8)$ & $+0.02(4)$ & $+0.01(8)$ & $+0.17(6)$ & $+0.15(3)$ & $+0.23(6)$ \\
+300--400 & 837 & $+0.14(8)$ & $+0.11(4)$ & $-0.00(8)$ & $+0.3(2)$ & $-0.03(8)$ & $-0.1(1)$ & $+0.1(1)$ & $+0.14(6)$ & $+0.4(1)$ \\
+400--600 & 361 & $+0.3(1)$ & $+0.18(7)$ & $-0.2(1)$ & $-0.2(2)$ & $-0.1(1)$ & $+0.5(2)$ & $+0.1(2)$ & $+0.21(9)$ & $+0.3(2)$ \\
+$> 600$ & 80 & $-0.4(2)$ & $+0.1(1)$ & $+0.5(3)$ & $+0.4(5)$ & $-0.0(2)$ & $-0.1(5)$ & $-0.1(3)$ & $+0.2(2)$ & $+0.3(4)$ \\
+\bottomrule
+\end{tabular}
+\caption{Joint helicity probabilities $P(\lambda_h, \lambda_\ell)$ of the hadronic and the leptonic boson, leptonic $Z$
+in the selection's window, in bins of the hadronic boson $\pt$; value(error in the last digit). The $\pm$ separation of
+the leptonic $Z$ relies on $A_\ell \approx 0.22$, hence the large errors.}
+\label{tab:app:truthJoint}
+\end{table}
+
 For the leptonic $Z$ of the Drell--Yan sample, which covers only $400 < \code{PTLL} < 600\GeV$ and is evaluated with
 $\sin^2\theta_W = 0.23154$: $\rho_{00} = 0.035 \pm 0.009$ and $0.040 \pm 0.015$, $\rho_{++}-\rho_{--} = -0.33 \pm 0.05$
 and $-0.32 \pm 0.08$, at 400--500 and 500--600\GeV. With $|y_V| < 0.5$, as in Ref.~\cite{Gao:2026bvp}, $\rho_{00}$ is
@@ -277,13 +424,70 @@ $0.019 \pm 0.016$ and $0.040 \pm 0.026$. They
 lie in the range of the prediction of Ref.~\cite[Fig.~4]{Gao:2026bvp} for $\rho_{00}/(1-\rho_{00})$, which falls from
 about 14\% at $\gamma \approx 1.7$ to 2--3\% at $\gamma \approx 7$ (read from the figure; NNLO there, LO-merged here), a
 qualitative comparison only. A dedicated unselected-LHE production is needed for precise high-$\pt$ truth values:
-the 24 \code{ZZto2L2Q} files contain only 805 hadronic $Z$ bosons between 400 and 600\GeV.
+the 24 \code{ZZto2L2Q} files contain only 732 hadronic $Z$ bosons between 400 and 600\GeV{} with the leptonic $Z$ in
+its window.
+
+%-----------------------------------------------------------------------------------------------------------------------
+\subsection{Validation of the decay distribution}
+\label{app:truth:shape}
+Figure~\ref{fig:app:truthAngles} compares the $\cos\theta$ and $\phi$ distributions of the LHE decays with the
+distribution $W(\theta,\phi)$ of Eq.~\eqref{eq:app:W} evaluated with the $\rho$ extracted from the same events, with the
+truth selection of Section~\ref{app:truth:definition}. Since the estimator reproduces the moments of degree
+$l \le 2$ by construction, the test is that the data contain nothing else: a spin-1 decay has no harmonics of degree
+$l \ge 3$. Two statistics per bin: the $\chi^2$ of the two-dimensional histogram ($10 \times 8$ bins in
+$(\cos\theta, \phi)$, expected variances, $80 - 9 = 71$ degrees of freedom), and the $\chi^2$ of the 16 weighted means
+of the real spherical harmonics with $l = 3, 4$ against zero, with their covariance (16 degrees of freedom). On samples
+drawn from $W$ both pass, while the $l = 3, 4$ test detects an acceptance cut $|\cos\theta| < 0.8$ and the histogram
+test a wrong $A_f$ (\code{test\_spin.py}).
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.8\textwidth]{figures/truthAngles.pdf}
+\caption{Decay angles of the fermion in the helicity frame (LHE, unselected, truth selection of
+Section~\ref{app:truth:definition}) for two boson-$\pt$ bins (points), and the decay distribution with the $\rho$
+extracted from the same events (lines); each normalised to unit area.}
+\label{fig:app:truthAngles}
+\end{figure}
+\begin{center}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lcccccccc}
+\toprule
+$\pt$ [GeV] & \multicolumn{2}{c}{$ZZ$: hadronic $Z$} & \multicolumn{2}{c}{$ZZ$: leptonic $Z$} &
+\multicolumn{2}{c}{$WZ$: hadronic $W$} & \multicolumn{2}{c}{$WZ$: leptonic $Z$} \\
+ & hist./71 & $l{=}3,4$/16 & hist./71 & $l{=}3,4$/16 & hist./71 & $l{=}3,4$/16 & hist./71 & $l{=}3,4$/16 \\
+\midrule
+0--50 & 66 & 18 & 101 & 40 & 69 & 11 & 77 & 17 \\
+50--100 & 77 & 23 & 63 & 18 & 66 & 18 & 67 & 12 \\
+100--150 & 71 & 7 & 70 & 23 & 58 & 10 & 74 & 14 \\
+150--200 & 59 & 15 & 72 & 17 & 77 & 16 & 77 & 12 \\
+200--300 & 80 & 29 & 91 & 11 & 61 & 18 & 65 & 17 \\
+300--400 & 67 & 10 & 84 & 16 & 73 & 10 & 80 & 15 \\
+400--600 & 82 & 19 & 66 & 15 & 84 & 24 & 69 & 27 \\
+$> 600$ & 69 & 11 & 51 & 7 & 80 & 27 & 72 & 32 \\
+\bottomrule
+\end{tabular}
+\end{center}
+All bins but one are compatible with a spin-1 decay. The exception, the leptonic $Z$ of $ZZ$ at 0--50\GeV, comes from
+\emph{singly-resonant} $Z \to 4f$ events, in which the four-fermion mass is within $5\GeV$ of $m_Z$ and one pair is
+radiated off the other fermion line: there the pair labelled as the radiating ``$Z$'' does not come from a single
+propagator. They are 21.5\% of that bin: without them the $l = 3, 4$ $\chi^2$ is 19.1/16, they alone give 73.6/16,
+and the radiated pair of the same events, which does come from one $\gamma^*/Z$, gives 17.3/16. They are 0.35\% of the
+leptonic and none of the hadronic $Z$ bosons above $200\GeV$, and absent in $WZ$. Of the remaining 31 bins, four have
+$p < 0.05$ in the $l = 3, 4$ test (1.5 expected): $ZZ$ hadronic at 200--300\GeV{} (29.5, $p = 0.02$) and three bins
+with at most 400 events ($WZ$ above $400\GeV$), where the moment means are not yet Gaussian.
+
+A first version of this test exposed a frame problem: with massless fermions in the boost, hadronic $Z$ bosons below
+$5\GeV$ of mass decaying to $u$, $d$ or $s$ quarks (0.33--0.5\GeV{} in the \textsc{Powheg} record; $\pt < 50\GeV$, no
+window) gave $\chi^2 = 237/16$ for $l = 3, 4$; with the record's masses, 13/16. All results of this appendix use the massive boost, except the selection-bias study
+(Section~\ref{app:truth:bias}) and the reweighting (Section~\ref{app:truth:reweighting}), whose bosons are in the mass
+window, where the change is at most 0.004 in $\rho_{00}$ above $100\GeV$.
 
 %-----------------------------------------------------------------------------------------------------------------------
 \subsection{$\gamma^*/Z$ interference}
 \label{app:truth:interference}
 In both samples the leptonic ``$Z$'' includes $\gamma^*$ exchange and its interference with the $Z$. The photon couples
-vectorially ($A = 0$), and the interference term is proportional to $Q_f\,g_A^f\,(m^2 - m_Z^2)$, which changes sign at
+vectorially ($A = 0$), and the interference term is proportional to $Q_f\,g_A^f\,(m^2 - m_Z^2)$, with $Q_f$ the electric charge of the fermion in
+units of $e$, which changes sign at
 the pole; since the $Z$-only parity-odd term carries the small $g_V^\ell$ (Section~\ref{app:truth:couplings}) while the
 interference carries the unsuppressed $Q_\ell g_A^\ell$, the effective leptonic analysing power must vary strongly with
 $m_{\ell\ell}$. This is measured in the unselected $ZZ$ sample (538\,809 events with $Z\to ee,\mu\mu$ and a hadronic
@@ -306,10 +510,10 @@ $\rho_{00}^{q\bar q}$ & 0.098(3) & 0.277(18) & 0.279(18) & 0.299(12) & 0.310(7) 
 \end{center}
 The ratio vanishes for the almost pure $\gamma^*$ at 4--40\GeV, as it must, which validates the method; it changes sign
 below the pole and grows above it, the pattern of the forward--backward asymmetry. Within the window, $\rho_{00}$ of
-the two modes agrees bin by bin: the parity-even elements are not affected. (At 4--40\GeV the hadronic $Z$ of those
+the two modes agrees bin by bin: the parity-even elements are not affected. (At 4--40\GeV{} the hadronic $Z$ of those
 events is a different population; $\rho_{00}$ is not expected to agree there.) Averaged over a window, the odd
 interference term largely cancels: the ratio is $0.950 \pm 0.067$ for 66--116\GeV, $0.959 \pm 0.067$ for the
-selection's 61.19--121.19\GeV and $0.982 \pm 0.068$ for 81.19--101.19\GeV, so the window-integrated leptonic parity-odd
+selection's 61.19--121.19\GeV{} and $0.982 \pm 0.068$ for 81.19--101.19\GeV, so the window-integrated leptonic parity-odd
 truth is unaffected within the present 7\% precision. Any $m_{\ell\ell}$-dependent weighting, such as an acceptance
 varying across the window, would not cancel. The hadronic side is affected much less (larger $g_V^q$, smaller $|Q_q|$)
 and is not separately measured here. The jet observables are parity-even, so none of this affects them.
@@ -374,7 +578,7 @@ sub-ensemble with a valid (positive) $\rho$; the bias therefore comes from a req
 2.8$ and $\pt$ balance $< 0.3$), which is why C1 adds nothing. At 200--300\GeV, an uncontained symmetric decay gives
 two jets of about $\pt/2$ each, which fail the jet $\pt$ threshold, while an asymmetric decay survives as one hard-quark
 jet; the acceptance therefore rises towards $|\cos\theta^*| = 1$, which lowers $\rho_{00}$. Only 48\% of the C1 jets at
-200--300\GeV contain both quarks. This is confirmed by an emulation of the selection on the unselected LHE events
+200--300\GeV{} contain both quarks. This is confirmed by an emulation of the selection on the unselected LHE events
 (\code{emulateSelection.py}; jets are the LHE partons, with the two quarks merged when $\Delta R < R$; lepton
 requirements $\pt > 26/15\GeV$, $|\eta| < 2.4$, $m_{\ell\ell}$ window and $\ptll > 200\GeV$), at hadronic $Z$ $\pt$
 200--300\GeV:
@@ -395,10 +599,10 @@ quarks merged at $R = 1.2$ & 1485 & $0.073 \pm 0.040$ \\
 \end{tabular}
 \end{center}
 The bias is caused by the jet $\pt$ threshold acting on uncontained decays; the balance and $\Delta\phi$ requirements
-do not matter, and restoring containment removes it. At 300--400 and 400--600\GeV the emulation shows no bias
+do not matter, and restoring containment removes it. At 300--400 and 400--600\GeV{} the emulation shows no bias
 ($0.171 \pm 0.067$ and $0.065 \pm 0.103$ for the full emulation, against $0.152 \pm 0.043$ and $0.108 \pm 0.065$
 unselected), whereas the production shows $-0.07 \pm 0.04$ at 300--400\GeV; more statistics are needed there. The
-emulation exaggerates the 200--300\GeV effect (no hadronisation, initial-state radiation or reconstruction, and LHE
+emulation exaggerates the 200--300\GeV{} effect (no hadronisation, initial-state radiation or reconstruction, and LHE
 $\pt$ bins). Options are to measure the polarisation only above about $300\GeV$, through the binning or the thresholds;
 larger-$R$ jets would restore containment but have no standard calibration.
 
