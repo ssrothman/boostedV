@@ -71,10 +71,13 @@ Each expression has a level, which decides what a cut does:
 ## Truth spin-density matrix (`truthRho.py`)
 ```
 cmsRun ../simulation/configs/lheNano_cfg.py inputFiles=file:in.root outputFile=lhe.root   # LHE tables, every event
-python3 truthRho.py lhe*.root -o rho.json [--absy-max 0.5] [--pt-edges ...]
+python3 truthRho.py lhe*.root -o rho.json [--window self|both|leptonic|none] [--joint] [--absy-max 0.5] [--pt-edges ...]
 ```
-ρ of each LHE W/Z (helicity frame, fermion = the decay product with pdgId > 0) per boson, decay mode (lep/had) and V pT
-bin, by spherical-harmonic moments (`bvana/spin.py`). Mass windows: Z 66–116 GeV, W 60–100 GeV.
+ρ of each LHE W/Z (helicity frame, fermion = the decay product with pdgId > 0, boosted with its LHE mass) per boson,
+decay mode (lep/had) and V pT bin, by spherical-harmonic moments (`bvana/spin.py`). `--window`: `self` (default, the
+boson in its window: Z 66–116, W 60–100 GeV), `both` (every boson of the event in it), `leptonic` (every leptonic boson
+in the selection's 61.19–121.19 GeV window, nothing on the hadronic one: the truth of the measurement) or `none`.
+`--joint` adds the diagonal of the joint (hadronic, leptonic) helicity density per hadronic-boson pT bin.
 
 ## Jet-axis study (`axisStudy.py`, `axisDeltaR.py`)
 ```

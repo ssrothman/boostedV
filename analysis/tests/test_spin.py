@@ -89,6 +89,73 @@ class Extraction(unittest.TestCase):
         np.testing.assert_allclose(rbar, r, atol=1e-12)
 
 
+def sampleJoint(psi, pMinus1, pMinus2, n, rng):
+    """Accept-reject from the joint decay distribution of the two-boson pure state psi[l1][l2]."""
+    out = []
+    while sum(len(o[0]) for o in out) < n:
+        m = 40 * n
+        th1, th2 = np.arccos(rng.uniform(-1, 1, m)), np.arccos(rng.uniform(-1, 1, m))
+        ph1, ph2 = rng.uniform(-np.pi, np.pi, m), rng.uniform(-np.pi, np.pi, m)
+        lam = np.array([1, 0, -1])[:, None]
+        D1 = np.exp(-1j * lam[:, :, None] * ph1) * spin.d1(th1)   # [l][s][...]
+        D2 = np.exp(-1j * lam[:, :, None] * ph2) * spin.d1(th2)
+        W = 0
+        for s1, P1 in ((0, 1 - pMinus1), (2, pMinus1)):
+            for s2, P2 in ((0, 1 - pMinus2), (2, pMinus2)):
+                W = W + P1 * P2 * np.abs(np.einsum('ij,i...,j...->...', psi, np.conj(D1[:, s1]), np.conj(D2[:, s2]))) ** 2
+        keep = rng.uniform(0, 9, m) < W   # |amplitude|^2 <= (sum |psi|)^2 <= 9
+        out.append((th1[keep], ph1[keep], th2[keep], ph2[keep]))
+    return [np.concatenate([o[k] for o in out])[:n] for k in range(4)]
+
+
+class JointDiagonal(unittest.TestCase):
+    def test_entangled_state_diagonal(self):
+        rng = np.random.default_rng(11)
+        psi = np.zeros((3, 3), complex)
+        psi[0, 2], psi[2, 0], psi[1, 1], psi[0, 1] = 0.6, 0.3j, -0.5, 0.4 + 0.2j
+        psi /= np.linalg.norm(psi)
+        pM1, pM2 = 0.97, 0.6
+        th1, ph1, th2, ph2 = sampleJoint(psi, pM1, pM2, 200000, rng)
+        P, cov = spin.jointDiagonal(spin.helicityWeights(th1, 2 * pM1 - 1), spin.helicityWeights(th2, 2 * pM2 - 1))
+        err = np.sqrt(np.diag(cov)).reshape(3, 3)
+        self.assertAlmostEqual(P.sum(), 1.0, places=10)
+        self.assertLess(np.max(np.abs((P - np.abs(psi) ** 2) / err)), 4.5, (P, np.abs(psi) ** 2, err))
+        # The marginals agree with the single-boson extraction.
+        r1, _ = spin.extract(th1, ph1, pM1)
+        np.testing.assert_allclose(P.sum(axis=1), r1[:3], atol=1e-10)
+        # Discriminating: the product of the marginals (no correlation) is far from it (here (+,-): 0.47 vs 0.25).
+        prod = np.outer(P.sum(axis=1), P.sum(axis=0))
+        self.assertGreater(np.max(np.abs((prod - np.abs(psi) ** 2) / err)), 10)
+
+
+class Shape(unittest.TestCase):
+    def test_higher_moments_vanish_for_spin_one_and_not_after_an_acceptance_cut(self):
+        rng = np.random.default_rng(5)
+        th, ph = sample(randomRho(rng), 0.8, 100000, rng)
+        m, cov = spin.higherMoments(th, ph)
+        self.assertLess(m @ np.linalg.solve(cov, m), 45)   # chi^2(16) > 45 has p < 2e-4
+        cut = np.abs(np.cos(th)) < 0.8
+        m, cov = spin.higherMoments(th[cut], ph[cut])
+        self.assertGreater(m @ np.linalg.solve(cov, m), 500)
+
+    def test_binned_prediction(self):
+        ce, pe = np.linspace(-1, 1, 5), np.linspace(-np.pi, np.pi, 7)
+        L = spin.binnedPrediction([0, 1, 0, 0, 0, 0, 0, 0, 0], 0.7, ce, pe)
+        F = lambda c: 0.75 * (c - c ** 3 / 3)   # cos theta CDF of sin^2 theta, flat in phi
+        np.testing.assert_allclose(L.sum(axis=1), F(ce[1:]) - F(ce[:-1]), rtol=1e-12)
+        np.testing.assert_allclose(L.sum(axis=0), np.full(6, 1 / 6), rtol=1e-12)
+        rng = np.random.default_rng(6)
+        r = params(randomRho(rng))
+        P = spin.binnedPrediction(r, 0.8, ce, pe)
+        self.assertAlmostEqual(P.sum(), 1.0, places=12)
+        th, ph = sample(spin.rhoMatrix(r), 0.8, 100000, rng)
+        h, _, _ = np.histogram2d(np.cos(th), ph, [ce, pe])
+        self.assertLess(np.sum((h - 1e5 * P) ** 2 / (1e5 * P)), 60)   # 24 bins
+        # Discriminating: the wrong analysing power fails.
+        Pw = spin.binnedPrediction(r, 0.2, ce, pe)
+        self.assertGreater(np.sum((h - 1e5 * Pw) ** 2 / (1e5 * Pw)), 200)
+
+
 class Couplings(unittest.TestCase):
     def test_asymmetry_parameters_match_the_pdg_values(self):
         # PDG (Electroweak model review) at sin^2 theta_eff = 0.2315: A_l = 0.147, A_u = 0.67, A_d = 0.94.

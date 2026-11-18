@@ -84,6 +84,59 @@ def extract(theta, phi, pMinus, weights=None):
     return Minv @ mean, Minv @ cov @ Minv.T
 
 
+def helicityWeights(theta, aF):
+    """Per-decay functions f_l (l = +1, 0, -1), shape [3][...], with E[f_l] = rho_ll for every rho, given the decay's own
+    analysing power aF (per decay: exact also when rho depends on the flavour). Being the helicity projectors, their
+    products over two decays estimate the diagonal of the joint density matrix."""
+    c = np.cos(theta)
+    f0 = (1 - 5 * (3 * c * c - 1)) / 3
+    return np.array([(1 - f0) / 2 - c / aF, f0, (1 - f0) / 2 + c / aF])
+
+
+def jointDiagonal(f1, f2, weights=None):
+    """(P, cov): P[i][j] = probability of helicities (l1, l2) = (i, j) in (+1, 0, -1) order from the helicityWeights of
+    the two decays of each event; cov is the 9x9 covariance of P.ravel()."""
+    x = (f1[:, None] * f2[None, :]).reshape(9, -1)
+    w = np.ones(x.shape[1]) if weights is None else np.asarray(weights, dtype=float)
+    sw = w.sum()
+    mean = (x * w).sum(axis=1) / sw
+    dev = x - mean[:, None]
+    return mean.reshape(3, 3), (dev * w ** 2) @ dev.T / sw ** 2
+
+
+def higherMoments(theta, phi, weights=None):
+    """(means, cov) of the 16 real spherical harmonics with l = 3, 4; any spin-1 decay gives zero, so
+    means @ inv(cov) @ means is a chi^2 with 16 degrees of freedom for the shape of W."""
+    from scipy.special import lpmv
+    c = np.cos(theta)
+    g = []
+    for l in (3, 4):
+        g.append(lpmv(0, l, c))
+        for m in range(1, l + 1):
+            P = lpmv(m, l, c)
+            g += [P * np.cos(m * phi), P * np.sin(m * phi)]
+    g = np.array(g)
+    w = np.ones_like(c) if weights is None else np.asarray(weights, dtype=float)
+    sw = w.sum()
+    mean = (g * w).sum(axis=1) / sw
+    dev = g - mean[:, None]
+    return mean, (dev * w ** 2) @ dev.T / sw ** 2
+
+
+def binnedPrediction(r, pMinus, cosEdges, phiEdges, nq=8):
+    """Probability of each (cos theta, phi) bin, shape [nCos][nPhi], for the parameters r (Gauss-Legendre per bin)."""
+    x, wx = np.polynomial.legendre.leggauss(nq)
+    rho = rhoMatrix(r)
+    out = np.empty((len(cosEdges) - 1, len(phiEdges) - 1))
+    for i, (c0, c1) in enumerate(zip(cosEdges[:-1], cosEdges[1:])):
+        c, wc = (c1 - c0) / 2 * x + (c1 + c0) / 2, (c1 - c0) / 2 * wx
+        for j, (p0, p1) in enumerate(zip(phiEdges[:-1], phiEdges[1:])):
+            p, wp = (p1 - p0) / 2 * x + (p1 + p0) / 2, (p1 - p0) / 2 * wx
+            C, Ph = np.meshgrid(c, p, indexing='ij')
+            out[i, j] = np.sum(np.outer(wc, wp) * decayDistribution(np.arccos(C), Ph, rho, pMinus))
+    return out
+
+
 def asymmetryParameter(pdgId, boson, sin2):
     """A_f = (c_L^2 - c_R^2)/(c_L^2 + c_R^2) of fermion pdgId (> 0) from a W (1) or a Z (tree level at sin^2 theta_W =
     sin2, which must be the generator's: A_lepton changes by ~45% between 0.2315 and 0.2226)."""
