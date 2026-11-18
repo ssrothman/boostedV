@@ -30,6 +30,7 @@
 - 2026-11-18 Truth axis: gamma/Z/W/H bosons, hard-process parton fallback
 - 2026-11-18 AN review 2: vertex boundaries, 150 GeV gen jets, extra-jet veto, E1C frame scheme, veto-map occupancy
 - 2026-11-18 Truth rho: realistic window, full tables, joint helicities, shape validation, singly-resonant Z->4f
+- 2026-11-18 Cutflow regenerated: all 30 processes, production `20261118_cutflow`
 
 ## 2026-11-11 A.2 setup and DataFormats
 - Plan: `stepA2_plan.md`. New local repos (remotes pending): `EECDataFormats` (pkg `SRothman/DataFormats`),
@@ -611,3 +612,17 @@ Reply to the Appendix A comments of `notes/zxtest_AN/human-review-2.md`; study `
   on-shell guess with mW = 80.385. Lep/had chi2 at pT < 100: Powheg 15.7/8, PDG on-shell 17.5, MSbar 66.7.
 - Hadronic Z in window given the leptonic Z in the selection window: 0.94 above 200 GeV.
 
+## 2026-11-18 Cutflow regenerated: all 30 processes, production `20261118_cutflow`
+- Condor, one file per sample (first DAS file, all events), `ZX_cutflow.yaml` (from `make_cutflow_config.py`). All 30
+  jobs done and merged; NANOs copied with xrdcp to `cutflow_20261118/` (git-ignored). Job tarball libraries and Python
+  are byte-identical to HEAD (submitted from a dirty tree; committed afterwards).
+- AN: 5 tables (signal/DY/tt/WW, t/s-channel top, tW, qq->ZH, gg->ZH). Some first files are small (DY 400-600: 731
+  events, WW 2136); tt/WW/single top keep a few tens of events after ptll >= 200.
+- Cleaning step: 3-9% after the trigger, essentially the jet veto map (vertex, MET filters <= 0.75%, ECAL bad calib 0).
+  It shows 0% in samples without two prompt leptons, since events failing it are not written.
+- ID-step losses are the leptons' own jet: DY 200-400 mumu, 818 of 826 jets overlap a selected muon; ZZ all 15.
+- ZZ gen ptll >= 200: 0.19% (0.21% ee) vs 0.26% (0.20%) on the old file, about 2 sigma in mumu.
+  `gen_breakdown.py` on the same file: 7.75% -> 0.192%.
+- Closure (1000 DY 200-400 events, ZX_cutflow vs ZX_test): make_cutflow's last step equals `<c>` in all four
+  level-channel pairs (114, 99, 149, 145). Asymmetry 0.25 / dphi 2.9 change 2-3 / 8-20 events. Removing the jet ID
+  changes nothing: failing jets overlap a lepton.

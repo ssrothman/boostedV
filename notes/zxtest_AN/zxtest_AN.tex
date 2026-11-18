@@ -1181,68 +1181,153 @@ The complete inventory is given in \code{simulation/NANO.md}.
 \section{Cutflow}
 \label{sec:cutflow}
 
-Table~\ref{tab:cutflow} gives the cutflow obtained on one input file per sample, using 30\,000 events or, for the
-\code{PTLL}-binned samples, the whole file. The configuration was run with the dilepton $\pt$ and back-to-back
-requirements disabled and with all jet requirements relaxed except the two-constituent minimum, which writes every event
-passing a channel at either level together with all its jets above the translator threshold; the remaining steps were
-applied with \code{notes/zxtest\_AN/make\_cutflow.py} (Section~\ref{sec:validation}). The steps are cumulative; counts
-are unweighted, and the percentages are generator-weighted fractions of all processed events. An event is written only
-if it passes \code{<c>} (with the dilepton $\pt$ and back-to-back requirements disabled) for some channel and level, so
-the first two reco steps count only the events that are written; they are lower bounds. From the vertex and MET-filter
-step on, the counts are exact. The jet steps require at least one jet passing all jet requirements so far, and the
-back-to-back steps use the leading such jet. At the time, a jet without MiniAOD daughters could block the back-to-back
-requirement; such jets are not in the jet table, so this effect is not included (they no longer block it,
-Section~\ref{sec:recojets}). The cutflow also predates the extra-lepton veto; it is to be regenerated with the
-configuration of this note (Section~\ref{sec:issues}).
-
-\paragraph{Diboson acceptance.} At gen level, 7.7\% (7.0\%) of the $ZZ\to2\ell2q$ events pass the $\mu\mu$ ($ee$)
-dilepton selection, and 0.26\% (0.20\%) also have $\ptll \geq 200\GeV$. A generator-level breakdown with bare
-hard-process leptons (\code{notes/zxtest\_AN/gen\_breakdown.py}, on the same 30\,000 events) gives 7.60\% (6.78\%) and
-0.258\% (0.184\%) at the corresponding steps. It attributes the losses as follows:
+Tables~\ref{tab:cutflow}--\ref{tab:cutflowZH} give the cutflow on one input file per sample (the first file of the DAS
+listing, with all its events) for the signal, Drell--Yan, $t\bar t$ and $WW$ samples, the single-top samples and the
+$ZH$ samples. They come from the production \code{20261118\_cutflow} (manifest
+\code{simulation/production/samples\_cutflow.yaml}, LPC HTCondor, with the code of this note). Its configuration,
+\code{ZX\_cutflow.yaml}, is generated from \code{ZX\_test.yaml} by \code{notes/zxtest\_AN/make\_cutflow\_config.py}:
 \begin{itemize}
-\item the leptonic $Z$ decays to $\mu\mu$ ($ee$) in 33.2\% (33.3\%) of the events, and to the other lepton flavours
+\item the dilepton $\pt$ and back-to-back requirements are disabled;
+\item all jet requirements are relaxed except the two-constituent minimum;
+\item the alternative axes are not computed.
+\end{itemize}
+It therefore writes every event passing a channel at either level, together with all its jets above the translator
+threshold. The remaining steps are applied with \code{notes/zxtest\_AN/make\_cutflow.py}
+(Section~\ref{sec:validation}).
+
+The steps are cumulative. Counts are unweighted, and the percentages are generator-weighted fractions of all processed
+events (\code{genEventSumw} of the \code{Runs} tree). The first step includes the extra-lepton veto, and the event
+cleaning step comprises the vertex, MET-filter, ECAL bad-calibration and jet-veto-map requirements. The extra-jet veto is
+disabled in \code{ZX\_test} and is not part of the cutflow.
+
+An event is written only if it passes \code{<c>} (with the dilepton $\pt$ and back-to-back requirements disabled) for some
+channel and level. The first two reco steps therefore count only the events that are written and are lower bounds; from
+the event cleaning step on, the counts are exact. The jet steps require at least one jet passing all jet requirements so
+far, and the back-to-back steps use the leading such jet. Some of the first files are small (731 events for
+\code{PTLL} 400--600, 2136 for $WW$), and the $t\bar t$, $WW$ and single-top samples keep at most a few tens of events
+after the $\ptll$ requirement, so their later percentages have relative statistical uncertainties of order
+$1/\sqrt{n}$.
+
+\paragraph{Diboson acceptance.} At gen level, 7.8\% (7.1\%) of the $ZZ\to2\ell2q$ events pass the $\mu\mu$ ($ee$)
+dilepton selection, and 0.19\% (0.21\%) also have $\ptll \geq 200\GeV$. A generator-level breakdown with bare
+hard-process leptons (\code{notes/zxtest\_AN/gen\_breakdown.py}, on the same 42\,420 events) gives 7.75\% (6.82\%) and
+0.192\% (0.192\%) at the corresponding steps. It attributes the losses as follows:
+\begin{itemize}
+\item the leptonic $Z$ decays to $\mu\mu$ ($ee$) in 33.4\% (33.1\%) of the events, and to the other lepton flavours
   otherwise;
-\item only 9.0\% (8.3\%) of the events have two leptons of that flavour with $\pt > 15\GeV$ within the acceptance. This
+\item only 9.1\% (8.4\%) of the events have two leptons of that flavour with $\pt > 15\GeV$ within the acceptance. This
   loss of three quarters of the $Z\to\mu\mu$ ($ee$) events is consistent with the low-mass $\gamma^*$ contribution
   (54\% of the $Z\to ee,\mu\mu$ decays have $m_{\ell\ell} < 40\GeV$, Section~\ref{sec:samples}) together with the
   lepton acceptance;
-\item the leading-lepton $\pt$ and the mass window then reduce this to 7.60\% (6.78\%);
-\item the $\ptll \geq 200\GeV$ requirement keeps 3.4\% (2.7\%) of the remaining events.
+\item the leading-lepton $\pt$ and the mass window then reduce this to 7.75\% (6.82\%);
+\item the $\ptll \geq 200\GeV$ requirement keeps 2.5\% (2.8\%) of the remaining events.
 \end{itemize}
-The numbers for $WZ\to2\ell2q$ are similar (33.2\%, 8.9\%, 7.97\% and 0.304\% for $\mu\mu$). The $\ptll$ requirement
-therefore dominates the low diboson efficiency (a factor of about 30); the lepton flavour costs a factor of 3, and the
-lepton acceptance and mass window a further factor of about 4.
+The numbers for $WZ\to2\ell2q$ (11\,232 events) are similar: 34.5\%, 9.1\%, 8.24\% and 0.339\% for $\mu\mu$. The
+$\ptll$ requirement therefore dominates the low diboson efficiency (a factor of about 40); the lepton flavour costs a
+factor of 3, and the lepton acceptance and mass window a further factor of about 4. The $\ptll \geq 200\GeV$ fraction
+of the earlier version of this table, on 30\,000 events of another file, was 0.26\% (0.20\%). The difference in the
+$\mu\mu$ channel (81 versus 78 events) is about two standard deviations of the two independent counts.
 
-\paragraph{Jet steps.} In the Drell--Yan samples with $200 < \code{PTLL} < 400\GeV$, the jet steps after the $\ptll$
-requirement remove 39\% of the reco $\mu\mu$ events:
+\paragraph{Event cleaning.} In the samples with two prompt leptons, the cleaning step removes 3--9\% of the reco events
+after the trigger, for example 5.0\% (5.0\%) of the $ZZ\to2\ell2q$ $\mu\mu$ ($ee$) events and 6.1\% of the $\mu\mu$
+events of \code{PTLL} 200--400. Almost all of it is the jet veto map. The vertex and MET-filter requirements each remove at most
+0.75\% of the events (the MET filters in the $ee$ channel of \code{PTLL} $> 600\GeV$), and no event fails the ECAL
+bad-calibration filter in these files. This agrees with the 5.45\%
+of Section~\ref{sec:vetomap}. In samples with fewer than two prompt leptons (e.g.\ $tW\to\ell\nu2q$), the events
+failing the cleaning do not pass at gen level either and are not written, so the step shows no loss there.
+
+\paragraph{Jet steps.} In the Drell--Yan sample with $200 < \code{PTLL} < 400\GeV$, the jet steps after the $\ptll$
+requirement remove 40\% of the reco $\mu\mu$ events:
 \begin{itemize}
-\item 7\% have no jet with $\pt \geq 200\GeV$, since the recoil is close to the threshold;
-\item at the identification step, the jets that are lost are the leptons' own jet: at large $\ptll$ the two leptons
+\item 8\% have no jet with $\pt \geq 200\GeV$, since the recoil is close to the threshold;
+\item at the identification step, the jets that are lost are the leptons' own jet. At large $\ptll$ the two leptons
   are often clustered into one AK8 jet above $200\GeV$, which fails the lepton veto of the tight identification. Of the
-  415 jets with $\pt \geq 200\GeV$ and $|\eta| \leq 2.4$ in the 411 events lost at this step, 410 overlap a selected
-  muon; in $ZZ\to2\ell2q$, all 17 do. At gen level, where no identification is applied, the same jets are removed by the
-  overlap step;
-\item the $\Delta\phi > 2.8$ requirement removes a further 15\%, and the asymmetry requirement 2\%.
+  826 jets with $\pt \geq 200\GeV$ and $|\eta| \leq 2.4$ in the 819 events lost at this step, 818 overlap a selected
+  muon; in $ZZ\to2\ell2q$, all 15 do (and 17 of 18 in the $ee$ channel). At gen level, where no identification is
+  applied, the same jets are removed by the overlap step;
+\item the $\Delta\phi > 2.8$ requirement removes a further 13\%, and the asymmetry requirement 1\%.
 \end{itemize}
-Above $\code{PTLL} = 400\GeV$, the recoil jet is almost always above $200\GeV$, and only the $\Delta\phi$ requirement
-removes a sizeable fraction (16\% and 12\% of the reco $\mu\mu$ events of the 400--600\GeV{} and $> 600\GeV$ samples).
-For $ZZ\to2\ell2q$, the jet and back-to-back steps keep 59\% (45\%) of the reco $\mu\mu$ ($ee$) events with
-$\ptll \geq 200\GeV$.
+Above $\code{PTLL} = 400\GeV$, the recoil jet is almost always above $200\GeV$. Only the $\Delta\phi$ requirement
+removes a sizeable fraction: 16\% and 12\% of the reco $\mu\mu$ events of the 400--600\GeV{} and $> 600\GeV$ samples.
+For $ZZ\to2\ell2q$, the jet and back-to-back steps keep 46\% (55\%) of the reco $\mu\mu$ ($ee$) events with
+$\ptll \geq 200\GeV$ (33 of 72 and 42 of 77 events).
 
-The fraction of processed events written is 0.26\% for $ZZ\to2\ell2q$ and 0.37\% for $WZ\to2\ell2q$, which corresponds to
-roughly $1.3\times10^{5}$ and $5.5\times10^{4}$ events for the full samples of Table~\ref{tab:samples} (unweighted,
-extrapolated from one file each), and between 29\% and 48\% for the \code{PTLL}-binned Drell--Yan samples.
+\paragraph{Written events.} The fraction of processed events written is:
+\begin{itemize}
+\item 0.26\% for $ZZ\to2\ell2q$ and 0.34\% for $WZ\to2\ell2q$, roughly $1.3\times10^{5}$ and $5.1\times10^{4}$ events
+  for the full samples of Table~\ref{tab:samples} (unweighted, extrapolated from one file each);
+\item 31\%--48\% for the \code{PTLL}-binned Drell--Yan samples;
+\item 0.012\% for $t\bar t\to2\ell2\nu$ (5 events) and 0.05\% for $WW\to2\ell2\nu$ (1 event);
+\item for single top, at most 0.04\% (0--22 events per sample), the largest in $tW\to2\ell2\nu$;
+\item 0.9\%--2.7\% for $q\bar q\to ZH$ and 1.8\%--5.2\% for $gg\to ZH$, the lowest values in each group for
+  $H\to WW^*\to\ell\nu2q$.
+\end{itemize}
 
 \begin{landscape}
 \begin{table}[htbp]
 \centering
-\caption{Cutflow per level and channel on one input file per sample: events (generator-weighted percentage of the
-processed events). The last row counts the events passing the full selection in at least one channel at one level,
-i.e.\ the events written by \code{ZX\_test}.}
+\caption{Cutflow per level and channel on one input file per sample (production \code{20261118\_cutflow}): events
+(generator-weighted percentage of the processed events). The last row counts the events passing the full selection in at
+least one channel at one level, i.e.\ the events written by \code{ZX\_test}. Signal, Drell--Yan, $t\bar t$ and $WW$.}
 \label{tab:cutflow}
 \scriptsize
 \setlength{\tabcolsep}{3pt}
 \input{cutflow_table.tex}
+\end{table}
+\end{landscape}
+
+\begin{landscape}
+\begin{table}[htbp]
+\centering
+\caption{As Table~\ref{tab:cutflow}, for the $t$- and $s$-channel single-top samples:
+\code{tbq\_lnu\_t} = \code{TBbarQtoLNu-t-channel-4FS},
+\code{tbarbq\_lnu\_t} = \code{TbarBQtoLNu-t-channel-4FS},
+\code{tbq\_2q\_t} = \code{TBbarQto2Q-t-channel-4FS},
+\code{tbarbq\_2q\_t} = \code{TbarBQto2Q-t-channel-4FS},
+\code{tb\_lnu\_s} = \code{TBbartoLplusNuBbar-s-channel-4FS},
+\code{tbarb\_lnu\_s} = \code{TbarBtoLminusNuB-s-channel-4FS} and
+\code{tb\_2q\_s} = \code{TBbarto2Q-s-channel}.}
+\label{tab:cutflowTop}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\input{cutflow_table_top.tex}
+\end{table}
+\end{landscape}
+
+\begin{landscape}
+\begin{table}[htbp]
+\centering
+\caption{As Table~\ref{tab:cutflow}, for the $tW$ samples: \code{tWm\_<d>} = \code{TWminusto<d>} and
+\code{tbarWp\_<d>} = \code{TbarWplusto<d>}, with the decays \code{2l2nu} = \code{2L2Nu}, \code{lnu2q} = \code{LNu2Q} and
+\code{4q} = \code{4Q}.}
+\label{tab:cutflowTW}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\input{cutflow_table_tw.tex}
+\end{table}
+\end{landscape}
+
+\begin{landscape}
+\begin{table}[htbp]
+\centering
+\caption{As Table~\ref{tab:cutflow}, for the $q\bar q\to ZH$ samples (\code{ZH\_Hto2B\_Zto2L}, \code{ZH\_Hto2C\_Zto2L},
+\code{ZH\_Hto2Glu\_Zto2L}, \code{ZH\_Zto2L\_Hto2Wto4Q}, \code{ZH\_Zto2L\_Hto2WtoLNu2Q}).}
+\label{tab:cutflowZHqq}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\input{cutflow_table_zh.tex}
+\end{table}
+\end{landscape}
+
+\begin{landscape}
+\begin{table}[htbp]
+\centering
+\caption{As Table~\ref{tab:cutflow}, for the $gg\to ZH$ samples (\code{ggZH\_Hto2B\_Zto2L}, \code{ggZH\_Hto2C\_Zto2L},
+\code{ggZH\_Hto2Glu\_Zto2L}, \code{GluGluZH\_Zto2L\_Hto2Wto4Q}, \code{GluGluZH\_Zto2L\_Hto2WtoLNu2Q}).}
+\label{tab:cutflowZH}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\input{cutflow_table_ggzh.tex}
 \end{table}
 \end{landscape}
 
@@ -1356,9 +1441,16 @@ The following checks were made on the implementation; details are recorded in \c
   \code{checkUnbinned.py} recomputation agrees for \code{jetAxis} and \code{jetProjective} within $9\times10^{-5}$. For
   the rest frames, 4--18 of about $10^4$ entries per table exceed its $10^{-4}$ tolerance on the coordinates (at most
   $6\times10^{-4}$); the same entries do so with the code and checker before the revision of 15 November.
-\item Cutflow script: on the same 1000 events, the last step of \code{make\_cutflow.py} on the loose run selects exactly
-  the events with \code{<c>} in the full configuration, for all four level--channel pairs (206, 182, 214 and 206
-  events); shifting the asymmetry, $\Delta\phi$ or identification requirement changes 12, 51 and 1 events.
+\item Cutflow script: \code{ZX\_cutflow.yaml} and \code{ZX\_test.yaml} were run on the first 1000 events of the
+  \code{PTLL} 200--400 cutflow file. On the loose output, the last step of \code{make\_cutflow.py} selects exactly the
+  events with \code{<c>} in the full configuration, for all four level--channel pairs (reco $\mu\mu$, reco $ee$,
+  gen $\mu\mu$, gen $ee$: 114, 99, 149 and 145 events).
+  \begin{itemize}
+  \item Tightening the asymmetry requirement to 0.25 changes 2, 1, 2 and 3 events; tightening $\Delta\phi$ to 2.9
+    changes 15, 8, 20 and 12.
+  \item Removing the identification requirement changes no event: in these events, every jet that fails it overlaps a
+    lepton and is removed at the next step.
+  \end{itemize}
 \item Gen-jet boson association (\code{JetSetup/\allowbreak{}test/\allowbreak{}validation/\allowbreak{}checkGenJetMC.py}): \code{bosonPdgId},
   \code{bosonPt}, \code{bosonDR} and \code{nBosonDaughters} are recomputed from the NANO \code{GenPart} table. On
   30\,000 events each of $ZZ\to2\ell2q$ (419 gen jets, 160 associated with a $Z$) and $WZ\to2\ell2q$ (848 gen jets,
@@ -1408,11 +1500,9 @@ The following checks were made on the implementation; details are recorded in \c
   $165\GeV$ but are about $340\GeV$ jets (the gen jet, the subjets and the AK4 jet agree): their stored four-momentum is
   scaled by 0.27 and 0.51, which corresponds to no jet energy correction. None was found in 1.5\,M other AK8 jets. The
   question has been written up for the JetMET and PAT experts (\code{pog\_question\_ak8\_corrupt\_pt.md}).
-\item \textbf{Cutflow.} The cutflow of Table~\ref{tab:cutflow} was produced before the ECAL bad-calibration rerun, the
-  jet veto map, the identification bit for jets without PF information, the extra-lepton veto and the $150\GeV$ gen-jet
-  threshold were added, and does not include them; the jet veto map alone removes 2--7\% of the events of the test
-  files. It is to be regenerated with the configuration of this note and extended to all produced processes: the
-  $t\bar t$, $WW$ and single-top backgrounds and the $ZH$ samples of Table~\ref{tab:xsec}.
+\item \textbf{Cutflow.} Tables~\ref{tab:cutflow}--\ref{tab:cutflowZH} use one input file per sample. For the
+  $t\bar t$, $WW$ and single-top samples this leaves at most a few tens of events after the $\ptll$ requirement; their
+  efficiencies need the full productions.
 \item \textbf{Jet veto map.} Its effect on the jet occupancy is shown in Figure~\ref{fig:vetomap}; its effect on the
   analysis observables, which the JetMET POG also asks for, is still to be shown.
 \item \textbf{Soft-drop mass and MET.} The corrected soft-drop mass (\code{axisSoftDropMass}, AK4 JEC and JER on the

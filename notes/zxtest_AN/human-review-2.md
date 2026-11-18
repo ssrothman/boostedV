@@ -268,7 +268,29 @@ Section 8:
 > - **`make_cutflow.py`:** updated. The gen jet step is now at 150 GeV, and the first step includes the extra-lepton
 >   veto.
 >
-> @CUTFLOWSTATUS@
+> **Claude:** Done.
+> - **Outputs:** all 30 jobs succeeded and were merged. The code that ran is byte-identical to the committed HEAD
+>   (libraries and Python in the job tarball compared).
+> - **Tables:** Section 11 now has five tables:
+>   - signal, DY, ttbar and WW;
+>   - t- and s-channel single top;
+>   - tW;
+>   - qq→ZH;
+>   - gg→ZH.
+> - **Text:** rewritten with the new numbers:
+>   - a new event-cleaning paragraph: the jet veto map removes 3--9% of the events after the trigger, in line with the
+>     5.45% of the veto-map section;
+>   - the jet steps;
+>   - the written fractions for all processes;
+>   - the diboson acceptance, with `gen_breakdown.py` rerun on the same file.
+> - **Closure re-checked with the current configuration** (1000 DY events): `make_cutflow.py` reproduces the full
+>   `<c>` flags exactly in all four level-channel pairs. Mutations of the asymmetry and Δφ cuts are caught. Removing
+>   the jet ID changes nothing here, because jets failing it overlap a lepton.
+> - **Caveats:**
+>   - One file per sample leaves ttbar, WW and single top with at most a few tens of events after the ptll cut. This is
+>     now the issues-list item.
+>   - The ZZ gen ptll ≥ 200 fraction moved from 0.26% to 0.19%, about 2σ between two files. This is stated in the
+>     text.
 
  Section 12:
  - Make sure everything here is up to date with the latest setup.

@@ -35,6 +35,9 @@ __pycache__/
 /notes/zxtest_AN/zxtest_AN.pdf
 /notes/zxtest_AN/zxtest_AN.run.xml
 /notes/zxtest_AN/zxtest_AN.toc
+/notes/zxtest_AN/zxtest_AN.fdb_latexmk
+/notes/zxtest_AN/zxtest_AN.fls
 
 # Axis/truth study inputs and outputs (LHE and NANO copies, plots)
 /axisStudy_20261118/
+/cutflow_20261118/
