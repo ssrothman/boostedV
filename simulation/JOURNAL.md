@@ -27,6 +27,7 @@
 - 2026-11-17 Background production `20261117_zxb2bbkg` submitted (TTto2L2Nu, WWto2L2Nu, single top)
 - 2026-11-17 Alternative jet axes, subjet JEC/JER soft-drop mass, charge/energy correlators
 - 2026-11-18 Truth-rho details: generator sin²θ_W, selection bias, plain charge weight
+- 2026-11-18 Truth axis: gamma/Z/W/H bosons, hard-process parton fallback
 
 ## 2026-11-11 A.2 setup and DataFormats
 - Plan: `stepA2_plan.md`. New local repos (remotes pending): `EECDataFormats` (pkg `SRothman/DataFormats`),
@@ -565,3 +566,15 @@ with the 2026-11-17 NANOs was wiped, so the inputs were regenerated there).
   1000 DY events: reco Zmumu 192 → 187, Zee 176 → 174; no overlap.
 - ZX_test AN updated (selections, MET, axes, soft-drop mass, observables, samples, cross sections) with Appendix A
   (truth ρ) and Appendix B (axis study, ΔR plots). Build: latexmk in notes/zxtest_AN.
+
+## 2026-11-18 Truth axis: gamma/Z/W/H bosons, hard-process parton fallback
+- Rules in `JetSetup/interface/TruthAxis.h`. Status 0 = boson: γ/Z/W/H, last copy in prunedGenParticles, q/g daughter;
+  γ only `fromHardProcess`. Otherwise the nearest outgoing hard-process q/g (Pythia status 23, before FSR): status 1
+  if its mother is a boson, 3 otherwise. 2 = none.
+- MiniAOD (`axisStudy_20261118/truthMatch/checkTruthRules.py`): 3000 ZZ, 3000 WZ and 3000 DY events give the same bosons
+  as the old rule; no photon has q/g daughters. Boosted ggH→bb: one H (status 62) per event.
+  Outgoing hard partons are status 23, with mother = boson (status 62) for decay quarks.
+- NANO, same events as before (`compareNano.py`): status-0 jets and their axes are identical. ZZ: 15 of the 16
+  previously unmatched reco jets get status 3. DY PTLL 400-600: all 388 reco jets get status 3.
+- Parton masses in the record: 0 for gluons and MadGraph light quarks; Powheg u/d 0.33, s 0.5, b 4.8 GeV.
+  `addRestFrame` raises only below 2 m_π, so parton axes must be boosted with a fixed mass.
