@@ -29,8 +29,14 @@ binning:
 regions:
   ZmumuReco: {level: reco, channel: Zmumu}
   ZeeReco: {level: reco, channel: Zee}
-  ZmumuGen: {level: gen, channel: Zmumu}
-  ZeeGen: {level: gen, channel: Zee}
+  ZmumuGen:                        # the reco jet threshold; NANO gen jets start at 150 GeV (migration studies)
+    level: gen
+    channel: Zmumu
+    cuts: [jets.pt >= 200, num(jets) >= 1]
+  ZeeGen:                          # the reco jet threshold; NANO gen jets start at 150 GeV (migration studies)
+    level: gen
+    channel: Zee
+    cuts: [jets.pt >= 200, num(jets) >= 1]
   ZmumuBoostedReco:
     level: reco
     channel: Zmumu

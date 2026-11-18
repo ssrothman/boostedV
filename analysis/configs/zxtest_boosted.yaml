@@ -149,9 +149,10 @@ histograms:
   E1CLab:
     granularity: eec:E1CLab
     axes: [{var: eec.theta, bins: logTheta, name: theta}, {var: eec.phi, bins: phi, name: phi}]
-  E1CHelicity:
-    granularity: eec:E1CHelicity
-    axes: [{var: eec.theta, bins: theta, name: theta}, {var: eec.phi, bins: phi, name: phi}]
+  E1CHelicity:                        # jet rest frame, boosted offline from E1CLab (bvana/frames.py)
+    granularity: eec:E1CLab
+    restFrame: {axis: jet, mass: axis}
+    axes: [{var: eec.thetaRest, bins: theta, name: theta}, {var: eec.phiRest, bins: phi, name: phi}]
   E1CCS:
     granularity: eec:E1CCS
     axes: [{var: eec.theta, bins: theta, name: theta}, {var: eec.phi, bins: phi, name: phi}]
