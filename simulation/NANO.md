@@ -248,7 +248,12 @@ the jet four-momentum.
   uncorrected.
 - `wta`: winner-take-all axis (C/A or kt, `WTA_pt_scheme`). Its mass is that of the winning particle.
 - `recoil`: η of the jet, φ of the first passing back-to-back channel's boson + π. Status 2 without one.
-- `truth`: four-momentum of the nearest last-copy hadronic W/Z in `prunedGenParticles` within ΔR < R (MC).
+- `truth` (MC, `prunedGenParticles`, ΔR < R): the four-momentum of the nearest hadronic boson (status 0): γ, Z, W or H,
+  the last copy in the pruned record, with a quark or gluon daughter (photons only from the hard process; H→WW/ZZ gives
+  the W/Z). Without one, the nearest outgoing hard-process quark or gluon (Pythia status 23, before FSR): status 1 if
+  it is from a boson decay (resolved decay), 3 otherwise. Status 2: no match. A parton axis has the record mass (0 for
+  gluons and MadGraph light quarks; 0.33/0.5/4.8 GeV for u,d/s/b in the Powheg samples), so rest-frame boosts about it
+  need a fixed mass hypothesis; `addRestFrame` rejects only masses below 2 m_π.
 
 - Variations exist in MC only. JES and JER variations change only the jet four-momentum (on the pat::Jet, before the
   translator); constituent variations

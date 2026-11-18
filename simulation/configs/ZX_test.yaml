@@ -361,7 +361,7 @@ jets:
           - {name: axisWtaCA, type: wta, algorithm: ca}
           - {name: axisWtaKT, type: wta, algorithm: kt}
           - {name: axisRecoil, type: recoil}   # phi of the back-to-back boson + pi, jet eta
-          - {name: axisTruth, type: truth}     # nearest hadronic last-copy W/Z within R (MC)
+          - {name: axisTruth, type: truth}     # nearest hadronic gamma/Z/W/H, else hard-process parton, within R (MC)
         subjetJec:             # V4 AK4 PUPPI on each subjet (its L1 is 1, so the missing subjet area does not matter)
           correctionFile: /cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-22EFGSep23-Summer22EE-NanoAODv12/2026-06-05/jet_jerc.json.gz
           mcKey: Summer22EE_22Sep2023_V4_MC_L1L2L3Res_AK4PFPuppi
@@ -550,7 +550,7 @@ jets:
           - {name: axisWtaCA, type: wta, algorithm: ca}
           - {name: axisWtaKT, type: wta, algorithm: kt}
           - {name: axisRecoil, type: recoil}   # phi of the back-to-back boson + pi, jet eta
-          - {name: axisTruth, type: truth}     # nearest hadronic last-copy W/Z within R (MC)
+          - {name: axisTruth, type: truth}     # nearest hadronic gamma/Z/W/H, else hard-process parton, within R (MC)
       table: {name: GenJet, precision: -1, extraVariables: []}
 
 # Computed for every jet collection and variation; NANO tables are named <Collection><Variation><observable>.
