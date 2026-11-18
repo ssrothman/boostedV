@@ -575,8 +575,22 @@ PUPPI-weighted constituents, before the charged-constituent selection (\code{jet
 soft-drop variants, a trimmed axis, two winner-take-all axes, the recoil direction of the $Z$ candidate and the
 generated boson. Their definitions and their study are given in Appendix~\ref{app:axes}. The jet tables store, per
 axis \code{<name>}, the columns \code{<name>Pt}, \code{<name>Eta}, \code{<name>Phi}, \code{<name>Mass} and
-\code{<name>Status} (0 available; 1 for soft drop ending on a single particle, which is then the axis; 2 unavailable,
-the axis being the jet four-momentum).
+\code{<name>Status}. Status 2 always means unavailable, the axis being the jet four-momentum; the other codes depend
+on the axis type:
+\begin{center}
+\begin{tabular}{lll}
+\hline
+Status & soft drop & truth (\code{axisTruth}) \\
+\hline
+0 & two subjets & hadronic $\gamma$/$Z$/$W$/$H$ boson \\
+1 & a single particle (then the axis) & quark from a boson decay (resolved decay) \\
+2 & unavailable & no match (and in data) \\
+3 & --- & other outgoing hard-process quark or gluon \\
+\hline
+\end{tabular}
+\end{center}
+The other axes use only 0 (available) and 2. The truth matching rules, their validation, and the parton masses that
+make a parton axis unsuitable as a boost mass are given in Appendix~\ref{app:axes:definitions}.
 
 \paragraph{Soft drop and its mass.} The production-like axis \code{axisSoftDrop} reclusters the constituents with
 Cambridge--Aachen and applies soft drop~\cite{Larkoski:2014wba} with $\beta = 0$, $z_\mathrm{cut} = 0.1$ and
@@ -1104,7 +1118,8 @@ The following checks were made on the implementation; details are recorded in \c
   removed. An end-to-end check is reported in Section~\ref{sec:dilepton}.
 \item Soft drop and the corrected soft-drop mass against MiniAOD (Section~\ref{sec:axes}); unit tests of the groomers and
   of the WTA axis (Appendix~\ref{app:axes:definitions}); \code{E1CLabTruth} equals \code{E1CLab} entry by entry when the
-  truth axis falls back to the jet.
+  truth axis falls back to the jet; unit tests of the truth-axis rules, each failing when its rule is removed, and the
+  comparison with the previous rule (Appendix~\ref{app:axes:definitions}).
 \item Charge and energy weights: sum rules on the stored entries (Section~\ref{sec:eec}).
 \item MET corrections (Section~\ref{sec:met}).
 \item Rest-frame conversion in the analysis against the C++ \code{E1CHelicity} (Appendix~\ref{app:axes:boost}), and the

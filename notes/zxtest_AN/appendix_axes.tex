@@ -45,8 +45,26 @@ available; the axis is then the jet four-momentum.
   larger $|\vec p|$) is not used.
 \item[\code{axisRecoil}] the azimuth of the boson of the first passing back-to-back channel (in the order of the
   configuration: \code{Zmumu}, then \code{Zee}) plus $\pi$, and the jet pseudorapidity; status 2 without such a boson.
-\item[\code{axisTruth}] in simulation, the four-momentum of the nearest last-copy $W$ or $Z$ boson in
-  \code{prunedGenParticles} with a quark or gluon daughter, within $\Delta R < 0.8$; status 2 in data or without a match.
+\item[\code{axisTruth}] in simulation, from \code{prunedGenParticles}, within $\Delta R < 0.8$:
+  \begin{itemize}
+  \item status 0: the four-momentum of the nearest hadronic boson, a $\gamma$, $Z$, $W$ or $H$ that is the last copy
+    in the pruned record (no daughter of the same identity) and has a quark or gluon daughter. A photon must come from
+    the hard process, which excludes $\gamma\to q\bar q$ splittings of the QED shower. $H\to WW^*, ZZ^*$ gives the
+    $W$/$Z$, not the $H$.
+  \item without such a boson, the nearest outgoing hard-process quark or gluon (Pythia~8 status 23, i.e.\ before
+    FSR): status 1 if its mother is a boson (a quark of a resolved decay), status 3 otherwise.
+  \item status 2: in data, or without a match.
+  \end{itemize}
+  In the $W$/$Z$ samples the photon and Higgs terms change nothing (the generators label the $\gamma^*/Z$ propagator
+  $Z$): on 3000 events each of \code{ZZto2L2Q} and \code{WZto2L2Q} and 3000
+  Drell--Yan events, this rule selects exactly the bosons of the previous one (last-copy $W$/$Z$ with a quark or
+  gluon daughter), and no photon has a quark or gluon daughter; on 2000 \code{GluGluHto2B\_PT-200} events it selects
+  one $H$ per event. In the NANO of one \code{ZZto2L2Q} file (102 events), the status-0 jets and their axes are
+  identical to those of the previous rule, and 15 of the 16 previously unmatched reco jets get a parton (status 3);
+  all 388 reco jets of 1000 Drell--Yan $\pt^{\ell\ell}$ 400--600\GeV events do. A parton axis has the mass of the
+  record (0 for gluons and MadGraph light quarks; 0.33, 0.5 and 4.8\GeV for $u/d$, $s$ and $b$ in the Powheg samples),
+  so a rest-frame boost about it needs a fixed mass hypothesis; \code{addRestFrame} rejects only masses below
+  $2m_\pi$.
 \end{description}
 Gen jets get the same axes without corrections. The groomers and the WTA axis are tested with constructed jets
 (\code{JetSetup/test/test\_axes.cc}: a soft wide-angle particle groomed away, a single-particle result, an empty jet,
@@ -58,8 +76,8 @@ assertions.
 \label{app:axes:tables}
 For each axis, an unbinned E1C with $\pt$ weights ($n = 1$, normalised to the jet $\pt$) in the \code{jetAxis} frame
 about that axis is written for the nominal jets (\code{E1CLab<Axis>}; Section~\ref{sec:eec}). The normalisation still
-uses the jet, so the weight of each entry is $\pt^i/\ptj$ for every axis. On Drell--Yan events, where the truth axis
-falls back to the jet, \code{E1CLabTruth} equals \code{E1CLab} entry by entry.
+uses the jet, so the weight of each entry is $\pt^i/\ptj$ for every axis. For jets whose truth axis falls back to the
+jet (status 2), \code{E1CLabTruth} equals \code{E1CLab} entry by entry.
 
 %-----------------------------------------------------------------------------------------------------------------------
 \subsection{Lab-to-rest-frame conversion}
