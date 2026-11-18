@@ -25,6 +25,8 @@
 - 2026-11-15 Second ZX_test production `20261115_zxb2b` submitted
 - 2026-11-16 Corrupted `slimmedJetsAK8` pt (question for JME/PAT)
 - 2026-11-17 Background production `20261117_zxb2bbkg` submitted (TTto2L2Nu, WWto2L2Nu, single top)
+- 2026-11-17 Alternative jet axes, subjet JEC/JER soft-drop mass, charge/energy correlators
+- 2026-11-18 Truth-rho details: generator sin²θ_W, selection bias, plain charge weight
 
 ## 2026-11-11 A.2 setup and DataFormats
 - Plan: `stepA2_plan.md`. New local repos (remotes pending): `EECDataFormats` (pkg `SRothman/DataFormats`),
@@ -503,3 +505,63 @@ Plan and decisions: `notes/zxtest_AN/review1_plan.md`.
   s-channel 7.244/4.534 pb) x W BRs (lep 3 x 0.1086 = 0.3258, had 0.6741). Unverified assumptions: t/s-channel LNu/2Q refers to the top
   decay (W BR alone); tW LNu2Q covers either W leptonic (factor 2); L includes tau.
 - ZZto4Q_powheg and WZto4Q_powheg cross sections are still null (not in this manifest).
+
+## 2026-11-17 Alternative jet axes, subjet JEC/JER soft-drop mass, charge/energy correlators
+Plan and decisions: `axesPolarimetry_plan.md`; questions: `axesPolarimetry_questions.md`.
+- Soft drop recomputed in `EECJetAxisProducer` (`JetSetup/src/Axes.cc`). Against MiniAOD `SoftDropPuppi` (1000 DY
+  PTLL-400to600 events):
+  - Where the constituent sets agree (2071/2083 jets), the subjets equal the sum of MiniAOD's own packed daughters to
+    7e-16, so the clustering is identical.
+  - 12 jets differ in subjet membership. All 12 change under packing-size input perturbations (vs 3.1% of the agreeing
+    jets): attributed to MiniAOD packing.
+  - The soft-drop mass with MiniAOD's subjet JEC factors agrees within 1.7%.
+  - V4 AK4 subjet JEC: msd ratio to MiniAOD, median 1.0001. Subjet AK4 JER: pt rms shift 1.7%.
+- Axes: SD (production, β=1, z_cut=0.05), trimming, WTA (C/A, kt), recoil, truth. Lab E1C per axis
+  (`E1CLab<axis>`). A truth axis falling back to the jet reproduces `E1CLab` exactly.
+- Charge (Charge/ChargePt/ChargeEnergy) and energy correlators: sum rules hold to float precision on 300 DY events.
+  They are held back in `configs/polarimetryObservables.yaml`.
+- 16.8% of charged constituents in DY reco jets have 0 < PUPPI weight < 1.
+- Truth ρ from LHE (`analysis/truthRho.py`; unselected LHE NANOs from `configs/lheNano_cfg.py`; 23 ZZto2L2Q, 8 WZto2L2Q
+  and 6 DY PTLL-400to600 files):
+  - ZZ, leptonic vs hadronic Z: they agree only with both Z on shell (`--both-in-window`). Otherwise, at pT < 50, ρ00
+    differs by up to 16σ from the different partner populations.
+  - With both on shell and sin²θ_W = 0.2229, all 9 elements agree (pT < 100: χ² 6.3/8).
+  - With sin²θ_W = 0.2315, the parity-odd entries disagree (χ² 40/8). The Powheg header says "using mW, mZ. gmu scheme",
+    i.e. on-shell sin²θ_W.
+  - DY Z+jets, pT 400–500: ρ00 = 0.040 ± 0.007 and 0.044 ± 0.009. That fits between the paper's ρ00/(1−ρ00) ≈ 14%
+    (γ ≈ 1.7) and 2–3% (γ ≈ 7) (Fig. 4, figure only; LO MLM vs NNLO, no |y| cut).
+- Axis study (`analysis/axisStudy.py`, 16 ZZ + 8 WZ signal files, 2127 reco / 2263 gen truth-matched jets): ρ00
+  sensitivity ⟨P₂⟩_T − ⟨P₂⟩_L, paired against the truth axis (0.13 ± 0.01).
+  - Jet, soft drop and trimming: consistent with truth (|Δ| ≤ 0.016 ± 0.011–0.017).
+  - WTA: −0.070 ± 0.009. Recoil: −0.09 ± 0.02.
+
+## 2026-11-18 Truth-rho details: generator sin²θ_W, selection bias, plain charge weight
+Replies in `axesPolarimetry_questions.md`; study files in `~/nobackup/boostedV/axisStudy_20261118` (the scratchpad
+with the 2026-11-17 NANOs was wiped, so the inputs were regenerated there).
+- Charge weights: only plain `Charge` (E1C and E2C, `DeltaR`). E2CCharge on 395 DY reco jets: Σ w·sym = (ΣQ)²
+  exactly, and Σ w·sym·ΔR = Σ_{i≠j} Q_iQ_j ΔR_ij to 1e-5.
+- Charged-constituent PUPPI weights (1000 DY events): 16.5% are fractional, with median 0.996; 2.5% have w < 0.9.
+- Generator sin²θ_W:
+  - Powheg ZZ/WZ `smcouplings.f`: mW 80.399, mZ 91.1876, so 0.22263 (the truthRho default).
+  - MadGraph DY header: MW 79.907, so 0.23154.
+  - ZZ lep vs had (both on shell, 24 files) at 0.22263: χ²/8 = 16.8 (pT < 100), 6.0, 7.4. At 0.23154: 71.5.
+- Hadronic Z at V pT > 200: 93.5% in 66–116 GeV, 77% with both Z on shell. ρ00 does not depend on the window
+  definition above 100 GeV.
+- Selection bias, hadronic Z (149 production NANOs, channel + matched jet, vs unselected LHE): Δρ00 = −0.145 ± 0.019
+  at V pT 200–300 and about −0.07 at 300–600. The acceptance rises by about 15% toward |cos θ*| = 1.
+- The `dilepton` type has no lepton veto. Zmumu and Zee overlap: 0 of 429 DY events.
+- Source of the bias: `<ch>` includes the back-to-back jet (pT > 200). At V pT 200–300, uncontained symmetric decays
+  (ΔR(q,q̄) ≈ 2m/(pT sinθ*) > 0.8) fail it, while asymmetric single-quark jets pass. LHE emulation: ρ00 0.098 →
+  −0.25; restored with R = 1.2 merging; the balance and Δφ cuts don't matter; no bias at 300+.
+- A two-prong requirement sculpts much more: both quarks in the jet, or m_SD 70–110, give ρ00 ≈ 0.5–1.2 vs truth ≈ 0.1.
+  z_cut = 0.1 removes |cos θ*| > 0.8.
+- γ*/Z interference (ZZ LHE, leptonic vs hadronic ρ++ − ρ−− in m_ℓℓ bins): the effective A_ℓ ratio runs from −3.0
+  (66–81) to +3.9 (101–116), and is 0.00 ± 0.04 for pure γ* (4–40). Window-averaged: 0.95 ± 0.07.
+- Correction to the axis study above: it lacked the truth-boson mass window. Low-mass γ* → qq̄ (4–6 GeV) boosted with
+  γ ≈ 100 dominated the weights. With the window (23 new signal files, 1728 reco jets), relative to the truth axis
+  (0.149 ± 0.007): WTA −0.060 ± 0.005, recoil −0.053 ± 0.007, jet +0.008 ± 0.005, soft drop and trimming +0.020 ±
+  0.005 (+0.013 ± 0.001 over the jet axis).
+- Extra-lepton veto in the dilepton channels (both flavours, pair excluded by ΔR < 0.01), ZX_test and default.yaml.
+  1000 DY events: reco Zmumu 192 → 187, Zee 176 → 174; no overlap.
+- ZX_test AN updated (selections, MET, axes, soft-drop mass, observables, samples, cross sections) with Appendix A
+  (truth ρ) and Appendix B (axis study, ΔR plots). Build: latexmk in notes/zxtest_AN.
