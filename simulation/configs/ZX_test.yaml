@@ -60,6 +60,29 @@ selection:
       ptMin: 15.0
       emFractionMax: 0.9
 
+    # AK4 jets of the extra-jet veto (channels' backToBack.extraJetAlphaMax): V4 JEC, nominal JER in MC, TightLeptonVeto
+    # (idMask 2); pt > ptMin and |eta| < absEtaMax; ignored within dRJet of the back-to-back jet or dRLepton of the
+    # channel's selected objects. The JER seeds equal the MET type-1 ones, so a jet gets the same smearing in both.
+    extraJets:
+      src: slimmedJetsPuppi
+      rho: fixedGridRhoFastjetAll
+      jec:
+        correctionFile: /cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-22EFGSep23-Summer22EE-NanoAODv12/2026-06-05/jet_jerc.json.gz
+        mcKey: Summer22EE_22Sep2023_V4_MC_L1L2L3Res_AK4PFPuppi
+        dataKey: Summer22EE_22Sep2023_V4_DATA_L1L2L3Res_AK4PFPuppi
+      jetId: {correctionFile: /cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-22EFGSep23-Summer22EE-NanoAODv12/2026-06-05/jetid.json.gz, type: AK4PUPPI}
+      jer:
+        genJets: slimmedGenJets
+        scaleFactorKey: Summer22EE_22Sep2023_JRV2_MC_ScaleFactor_AK4PFPuppi
+        scaleFactorUncertaintyKey: Summer22EE_22Sep2023_JRV2_MC_SFUncertainty_AK4PFPuppi
+        resolutionKey: Summer22EE_22Sep2023_JRV2_MC_PtResolution_AK4PFPuppi
+        seedSalt: 0
+      idMask: 2
+      ptMin: 20.0
+      absEtaMax: 2.4
+      dRJet: 1.2
+      dRLepton: 0.4
+
     # MET corrections (JME Run 3: Type-1 PUPPI MET, mandatory, recomputed here with the V4 AK4 PUPPI JEC instead of the
     # production JEC in MiniAOD; optional JER propagation and XY shift. MUO: PF MET with the PF muon pT replaced by the
     # corrected one). The corrected MET replaces inputs.met in the leptonMET channels. Type-1: raw MET minus the sum over
@@ -261,7 +284,7 @@ selection:
         oppositeCharge: true
         targetMass: 91.1876
         pairPtMin: 200.0
-        backToBack: {enabled: true, dPhiMin: 2.8, asymmetryMax: 0.3}
+        backToBack: {enabled: true, dPhiMin: 2.8, asymmetryMax: 0.3, extraJetAlphaMax: -1.0}
       Zee:
         type: dilepton
         triggers: ['HLT_Ele32_WPTight_Gsf_v*', 'HLT_Ele115_CaloIdVT_GsfTrkIdT_v*', 'HLT_Photon200_v*']
@@ -275,12 +298,14 @@ selection:
         oppositeCharge: true
         targetMass: 91.1876
         pairPtMin: 200.0
-        backToBack: {enabled: true, dPhiMin: 2.8, asymmetryMax: 0.3}
+        backToBack: {enabled: true, dPhiMin: 2.8, asymmetryMax: 0.3, extraJetAlphaMax: -1.0}
 
   # Generator level (MC only): Rivet particle-level objects, i.e. prompt final-state leptons dressed with photons,
   # isolated prompt photons, and MET from prompt neutrinos. There are no trigger, vertex, MET-filter, ID or isolation
   # requirements; the kinematic cuts mirror the reco ones.
   gen:
+    # Gen jets of the extra-jet veto: the same kinematic and overlap cuts as at reco, no ID
+    extraJets: {src: slimmedGenJets, ptMin: 20.0, absEtaMax: 2.4, dRJet: 1.2, dRLepton: 0.4}
     particleLevel:           # ParticleLevelProducer settings, as in NanoAOD's particle level
       usePromptFinalStates: true
       particleMinPt: 0.0
@@ -317,7 +342,7 @@ selection:
         oppositeCharge: true
         targetMass: 91.1876
         pairPtMin: 200.0
-        backToBack: {enabled: true, dPhiMin: 2.8, asymmetryMax: 0.3}
+        backToBack: {enabled: true, dPhiMin: 2.8, asymmetryMax: 0.3, extraJetAlphaMax: -1.0}
       Zee:
         type: dilepton
         objects: genTightElectrons
@@ -329,7 +354,7 @@ selection:
         oppositeCharge: true
         targetMass: 91.1876
         pairPtMin: 200.0
-        backToBack: {enabled: true, dPhiMin: 2.8, asymmetryMax: 0.3}
+        backToBack: {enabled: true, dPhiMin: 2.8, asymmetryMax: 0.3, extraJetAlphaMax: -1.0}
 
 jets:
   cleaning:                  # jets are kept; each jet table gets veto<ch> (within cleaningDR of channel ch's selected
@@ -537,8 +562,9 @@ jets:
       mcOnly: true
       src: slimmedGenJetsAK8
       R: 0.8
-      translator: {ptMin: 180.0}
-      jetCuts: {ptMin: 200.0, absEtaMax: 2.4, idMask: 0, minConstituents: 2}
+      translator: {ptMin: 150.0}
+      # Placeholder: below the reco 200 GeV, so that migrations across the reco threshold can be studied.
+      jetCuts: {ptMin: 150.0, absEtaMax: 2.4, idMask: 0, minConstituents: 2}
       constituentCuts: {ptMin: 0.0, chargedOnly: true, keepAbsPdgIds: [], dropAbsPdgIds: [], minPuppiWeight: 0.0}
       cleaningDR: 0.8
       axes:
@@ -606,14 +632,6 @@ observables:                 # charged constituents only (jets.collections.*.con
   E1CLabTruth:
     {kind: e1c, n: 1.0, weight: Pt, frame: jetAxis, axis: axisTruth, norm: jetPt, output: Unbinned,
      table: {weightPrecision: -1, coordPrecision: -1, coordNames: [theta, phi]}}
-  E1CHelicity:
-    kind: e1c
-    n: 1.0
-    weight: Pt
-    frame: jetHelicity
-    norm: jetPt
-    output: Unbinned
-    table: {weightPrecision: -1, coordPrecision: -1, coordNames: [theta, phi]}
   E1CCS:
     kind: e1c
     n: 1.0

@@ -97,7 +97,7 @@ Table `Selection` (reco) and, in MC, `GenSelection` (gen). All columns are bool.
 
 | Column | Level | Meaning |
 |---|---|---|
-| `goodVertex` | reco | `selection.reco.vertex` cuts on the primary vertex |
+| `goodVertex` | reco | `selection.reco.vertex` cuts on the first primary vertex: not fake, ndof > `ndofMin`, \|z\| ≤ `absZMax`, ρ ≤ `rhoMax` (NanoAOD `goodPvCut`) |
 | `metFilters` | reco | AND of the `selection.reco.metFilters` paths (`inputs.metFilterProcess`) |
 | `ecalBadCalib` | reco | only if `selection.reco.ecalBadCalib.crystals` is non-empty: `EcalBadCalibFilter` rerun on those crystals (JME, 2022-23 prompt-reco ECAL crystal) |
 | `jetVetoMap` | reco | JME Run 3 jet veto map (`selection.reco.jetVetoMap`): no JEC-corrected AK4 jet with pt > `ptMin`, TightLeptonVeto ID and chEmEF + neEmEF < `emFractionMax` in a vetoed (η, φ) bin |
@@ -141,10 +141,15 @@ The channel types, with the YAML keys of each:
 
 The `<ch>Boson` mass of a leptonMET channel is the invariant mass of lepton + reconstructed neutrino, not m_T.
 
-**Back-to-back jet** (every channel, key `backToBack: {enabled, dPhiMin, asymmetryMax}`; enabled in `ZX_test.yaml`
-with 2.8 and 0.3, disabled in `default.yaml`). For an enabled channel, the highest-pt jet of the level's collection that
+**Back-to-back jet** (every channel, key `backToBack: {enabled, dPhiMin, asymmetryMax, extraJetAlphaMax}`; enabled in
+`ZX_test.yaml` with 2.8, 0.3 and −1, disabled in `default.yaml`). For an enabled channel, the highest-pt jet of the level's collection that
 passes `jetCuts` and is not `veto<ch>` must have Δφ > `dPhiMin` to the channel's highest-pt `<ch>Boson`/`<ch>Objects`
 candidate and |pt_jet − pt_V| / (pt_jet + pt_V) < `asymmetryMax`; a failing leading jet is not replaced by the next one.
+With `extraJetAlphaMax` ≥ 0 (extra-jet veto), no jet of `selection.<level>.extraJets` may have pt ≥
+`extraJetAlphaMax` · pt_V (0: any such jet vetoes); negative disables it. Those jets are AK4: at reco `src`
+(`slimmedJetsPuppi`) with the re-applied JEC, the nominal JER in MC and the `idMask` jet ID; at gen `src`
+(`slimmedGenJets`). At both levels: pt > `ptMin`, |η| < `absEtaMax`, and jets within `dRJet` of the back-to-back jet or
+`dRLepton` of the channel's selected objects are ignored.
 - `<ch>B2B` records the requirement (with `<ch>Sel`), and `<ch>` includes it, so the event filter and the aggregated
   histograms count the channel only with such a jet.
 - The jet table and its EECs hold only the jets selected by some enabled channel (normally one); `b2b<ch>` marks the

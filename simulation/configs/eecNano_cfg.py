@@ -13,8 +13,8 @@ import sys
 import FWCore.ParameterSet.Config as cms
 from FWCore.ParameterSet.VarParsing import VarParsing
 from SRothman.EECs.eecTools import addAggregator, addObservable
-from SRothman.EventSelection.eventSelection_cff import (addSelection, bosonTag, label, muonSFLabel, processModifiers,
-                                                        selectedObjects)
+from SRothman.EventSelection.eventSelection_cff import (addSelection, bosonTag, extraJetsTag, label, muonSFLabel,
+                                                        processModifiers, selectedObjects)
 from SRothman.EventSelection.eventTables_cff import addAK4Jets, addEventTables
 from SRothman.JetSetup.eecJets_cff import backToBackFlag, setupJets
 
@@ -82,7 +82,9 @@ for name, spec in cfg['jets']['collections'].items():
     # Each level's jets are cleaned against that level's selected objects.
     vetoes = dict(zip(cleaning, selectedObjects(sel[lev], lev, cleaning)))
     b2b = {ch: dict(flag=label(lev, ch) + 'Sel', objects=bosonTag(lev, ch, c),
-                    dPhiMin=c['backToBack']['dPhiMin'], asymmetryMax=c['backToBack']['asymmetryMax'])
+                    dPhiMin=c['backToBack']['dPhiMin'], asymmetryMax=c['backToBack']['asymmetryMax'],
+                    extraJetAlphaMax=c['backToBack']['extraJetAlphaMax'],
+                    extraJets=dict(sel[lev]['extraJets'], src=extraJetsTag(lev, sel[lev])))
            for ch, c in sel[lev]['channels'].items() if c['backToBack']['enabled']}
     labels = setupJets(process, 'jets' + name, spec, isMC, vetoSrcs=vetoes,
                        writeConstituents=bool(opts.writeConstituents), task=task, backToBack=b2b)

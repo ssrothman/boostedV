@@ -489,7 +489,7 @@ class BuiltProcess(unittest.TestCase):
             self.assertIn('ptUnclusteredUp', t.variables.parameterNames_())
             self.assertEqual(r.variables.pt.expr.value(), 'uncorPt')
         self.assertEqual(p.genMetTable.name.value(), 'GenMET')
-        self.assertEqual(p.vertexTable.goodPvCut.value(), '!isFake && ndof > 4.0 && abs(z) < 24.0 && position.Rho < 2.0')
+        self.assertEqual(p.vertexTable.goodPvCut.value(), '!isFake && ndof > 4.0 && abs(z) <= 24.0 && position.Rho <= 2.0')
         self.assertEqual(p.vertexTable.svSrc.getModuleLabel(), 'slimmedSecondaryVertices')
         self.assertEqual(p.genVertexT0Table.variables.t0.src.getProductInstanceLabel(), 't0')
         self.assertEqual(len(p.rhoTable.variables.parameterNames_()), 6)
@@ -800,6 +800,10 @@ class BackToBack(unittest.TestCase):
                             'selection/gen/channels/Zee', 'backToBack')
         self.assertRejected(lambda c: c['selection']['reco']['channels']['Zee']['backToBack'].update(dPhiMin=4.0),
                             'selection/reco/channels/Zee')
+        self.assertRejected(lambda c: c['selection']['reco']['channels']['Zee']['backToBack'].pop('extraJetAlphaMax'),
+                            'selection/reco/channels/Zee')
+        self.assertRejected(lambda c: c['selection']['reco'].pop('extraJets'), 'selection/reco', 'extraJets')
+        self.assertRejected(lambda c: c['selection']['gen'].pop('extraJets'), 'selection/gen', 'extraJets')
 
     def test_wiring(self):
         cfg = enableBackToBack(loadDefault(), levels=('reco',))
@@ -808,6 +812,20 @@ class BackToBack(unittest.TestCase):
         p = buildProcess(cfg)
         b = p.jetsRecoBackToBackZmumu
         self.assertEqual((b.dPhiMin.value(), b.asymmetryMax.value()), (2.5, 0.4))
+        self.assertEqual(b.extraJetAlphaMax.value(), -1.0)
+        cfg['selection']['reco']['channels']['Zmumu']['backToBack'].update(extraJetAlphaMax=0.3)
+        cfg['selection']['reco']['extraJets'].update(dRJet=1.1, dRLepton=0.3, ptMin=25.0, absEtaMax=2.5)
+        p2 = buildProcess(cfg)
+        b2 = p2.jetsRecoBackToBackZmumu
+        self.assertEqual((b2.extraJetAlphaMax.value(), b2.extraJets.value(), b2.extraJetDRJet.value(),
+                          b2.extraJetDRLepton.value(), b2.extraJetPtMin.value(), b2.extraJetAbsEtaMax.value()),
+                         (0.3, 'extraJets', 1.1, 0.3, 25.0, 2.5))
+        # Reco extra jets: JEC (with jet ID bits), nominal JER in MC, then the ID mask.
+        self.assertEqual(p2.extraJets.src.value(), 'extraJetsJER')
+        self.assertEqual(p2.extraJetsJER.src.value(), 'extraJetsJEC')
+        self.assertEqual(p2.extraJetsJEC.src.value(), cfg['selection']['reco']['extraJets']['src'])
+        self.assertEqual(p2.extraJets.cut.value(), "userInt('jetId') == 2 || userInt('jetId') == 3 || "
+                         "userInt('jetId') == 6 || userInt('jetId') == 7")
         self.assertEqual((b.src.value(), b.flag.value(), b.objects.value(), b.vetoFlags.value()),
                          ('jetsReco', 'ZmumuSel', 'ZmumuSel:boson', 'jetsRecoOverlap:Zmumu'))
         # Jets without constituents are seen before the jet selection, with the nominal pt, eta and ID cuts.
@@ -838,6 +856,19 @@ class BackToBack(unittest.TestCase):
         self.assertEqual(p.Zmumu_reco_eecRecoE2C.jetMask.value(), 'jetsRecoB2BVetoTable:Zmumu')
         self.assertIn('ZmumuFilter', p.Zmumu_reco_AggPath.moduleNames())
         self.assertEqual(labels(p.ZmumuFilter.srcs), ['Zmumu'])
+
+    def test_extra_jets_levels(self):
+        # Gen: the gen jets directly; data: no JER step.
+        cfg = enableBackToBack(loadDefault())
+        cfg['jets']['collections']['Reco'].update(variations={})
+        for lev in ('reco', 'gen'):
+            cfg['selection'][lev]['channels']['Zmumu']['backToBack'].update(extraJetAlphaMax=0.0)
+        p = buildProcess(cfg)
+        self.assertEqual(p.jetsGenBackToBackZmumu.extraJets.value(), cfg['selection']['gen']['extraJets']['src'])
+        self.assertEqual(p.jetsRecoBackToBackZmumu.extraJets.value(), 'extraJets')
+        pd = buildProcess(cfg, isMC=0)
+        self.assertEqual(pd.extraJets.src.value(), 'extraJetsJEC')
+        self.assertFalse(hasattr(pd, 'extraJetsJER'))
 
 
 if __name__ == '__main__':

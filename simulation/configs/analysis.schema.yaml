@@ -31,11 +31,12 @@ definitions:
   backToBack:                # leading non-vetoed jet back to back with and balanced against the channel's object
     type: object
     additionalProperties: false
-    required: [enabled, dPhiMin, asymmetryMax]
+    required: [enabled, dPhiMin, asymmetryMax, extraJetAlphaMax]
     properties:
       enabled: {type: boolean}
       dPhiMin: {type: number, minimum: 0, maximum: 3.141592653589793}
       asymmetryMax: {type: number, exclusiveMinimum: 0, maximum: 1}
+      extraJetAlphaMax: {type: number}   # fail if an extraJets jet has pt >= this * pt_V (0: any); negative: disabled
 
   objectVariable:            # one column from a PAT string expression on a matched lepton or photon
     type: object
@@ -440,9 +441,40 @@ properties:
       reco:
         type: object
         additionalProperties: false
-        required: [vertex, metFilters, ecalBadCalib, jetVetoMap, metCorrections, muonCorrections, muonScaleFactors,
-                   objectTables, dressing, objects, channels]
+        required: [vertex, metFilters, ecalBadCalib, jetVetoMap, extraJets, metCorrections, muonCorrections,
+                   muonScaleFactors, objectTables, dressing, objects, channels]
         properties:
+          extraJets:             # AK4 jets of the extra-jet veto (backToBack.extraJetAlphaMax)
+            type: object
+            additionalProperties: false
+            required: [src, rho, jec, jetId, jer, idMask, ptMin, absEtaMax, dRJet, dRLepton]
+            properties:
+              src: {$ref: '#/definitions/str'}
+              rho: {$ref: '#/definitions/str'}
+              jec:
+                type: object
+                additionalProperties: false
+                required: [correctionFile, mcKey, dataKey]
+                properties:
+                  correctionFile: {$ref: '#/definitions/str'}
+                  mcKey: {$ref: '#/definitions/str'}
+                  dataKey: {$ref: '#/definitions/str'}
+              jetId: {$ref: '#/definitions/jetId'}
+              jer:                 # MC only: nominal hybrid smearing
+                type: object
+                additionalProperties: false
+                required: [genJets, scaleFactorKey, scaleFactorUncertaintyKey, resolutionKey, seedSalt]
+                properties:
+                  genJets: {$ref: '#/definitions/str'}
+                  scaleFactorKey: {$ref: '#/definitions/str'}
+                  scaleFactorUncertaintyKey: {$ref: '#/definitions/str'}
+                  resolutionKey: {$ref: '#/definitions/str'}
+                  seedSalt: {type: integer, minimum: 0}
+              idMask: {type: integer, minimum: 0, maximum: 3}
+              ptMin: {$ref: '#/definitions/num'}
+              absEtaMax: {$ref: '#/definitions/num'}
+              dRJet: {$ref: '#/definitions/num'}     # ignore jets within this of the back-to-back jet
+              dRLepton: {$ref: '#/definitions/num'}  # ignore jets within this of the channel's selected objects
           ecalBadCalib:          # rerun of EcalBadCalibFilter on these crystals; [] = not run
             type: object
             additionalProperties: false
@@ -621,8 +653,18 @@ properties:
       gen:
         type: object
         additionalProperties: false
-        required: [particleLevel, objects, channels]
+        required: [particleLevel, extraJets, objects, channels]
         properties:
+          extraJets:             # gen jets of the extra-jet veto (backToBack.extraJetAlphaMax)
+            type: object
+            additionalProperties: false
+            required: [src, ptMin, absEtaMax, dRJet, dRLepton]
+            properties:
+              src: {$ref: '#/definitions/str'}
+              ptMin: {$ref: '#/definitions/num'}
+              absEtaMax: {$ref: '#/definitions/num'}
+              dRJet: {$ref: '#/definitions/num'}
+              dRLepton: {$ref: '#/definitions/num'}
           particleLevel:
             type: object
             additionalProperties: false

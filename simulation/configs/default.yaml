@@ -58,6 +58,29 @@ selection:
       ptMin: 15.0
       emFractionMax: 0.9
 
+    # AK4 jets of the extra-jet veto (channels' backToBack.extraJetAlphaMax): V4 JEC, nominal JER in MC, TightLeptonVeto
+    # (idMask 2); pt > ptMin and |eta| < absEtaMax; ignored within dRJet of the back-to-back jet or dRLepton of the
+    # channel's selected objects. The JER seeds equal the MET type-1 ones, so a jet gets the same smearing in both.
+    extraJets:
+      src: slimmedJetsPuppi
+      rho: fixedGridRhoFastjetAll
+      jec:
+        correctionFile: /cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-22EFGSep23-Summer22EE-NanoAODv12/2026-06-05/jet_jerc.json.gz
+        mcKey: Summer22EE_22Sep2023_V4_MC_L1L2L3Res_AK4PFPuppi
+        dataKey: Summer22EE_22Sep2023_V4_DATA_L1L2L3Res_AK4PFPuppi
+      jetId: {correctionFile: /cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-22EFGSep23-Summer22EE-NanoAODv12/2026-06-05/jetid.json.gz, type: AK4PUPPI}
+      jer:
+        genJets: slimmedGenJets
+        scaleFactorKey: Summer22EE_22Sep2023_JRV2_MC_ScaleFactor_AK4PFPuppi
+        scaleFactorUncertaintyKey: Summer22EE_22Sep2023_JRV2_MC_SFUncertainty_AK4PFPuppi
+        resolutionKey: Summer22EE_22Sep2023_JRV2_MC_PtResolution_AK4PFPuppi
+        seedSalt: 0
+      idMask: 2
+      ptMin: 20.0
+      absEtaMax: 2.4
+      dRJet: 1.2
+      dRLepton: 0.4
+
     # MET corrections (JME Run 3: Type-1 PUPPI MET, mandatory, recomputed here with the V4 AK4 PUPPI JEC instead of the
     # production JEC in MiniAOD; optional JER propagation and XY shift. MUO: PF MET with the PF muon pT replaced by the
     # corrected one). The corrected MET replaces inputs.met in the leptonMET channels. Type-1: raw MET minus the sum over
@@ -256,7 +279,7 @@ selection:
         oppositeCharge: true
         targetMass: 91.1876
         pairPtMin: 0.0
-        backToBack: {enabled: false, dPhiMin: 2.8, asymmetryMax: 0.3}
+        backToBack: {enabled: false, dPhiMin: 2.8, asymmetryMax: 0.3, extraJetAlphaMax: -1.0}
       Zee:
         type: dilepton
         triggers: ['HLT_Ele32_WPTight_Gsf_v*']
@@ -270,7 +293,7 @@ selection:
         oppositeCharge: true
         targetMass: 91.1876
         pairPtMin: 0.0
-        backToBack: {enabled: false, dPhiMin: 2.8, asymmetryMax: 0.3}
+        backToBack: {enabled: false, dPhiMin: 2.8, asymmetryMax: 0.3, extraJetAlphaMax: -1.0}
       Wmunu:
         type: leptonMET
         triggers: ['HLT_IsoMu24_v*']
@@ -282,7 +305,7 @@ selection:
         mtMin: 50.0
         # Neutrino strategy: a module taking `leptons` and `met`; the other keys are its parameters.
         neutrino: &wNeutrino {type: WMassNeutrinoProducer, wMass: 80.3692}   # PDG 2025 world average, 80.3692 +- 0.0133 GeV
-        backToBack: {enabled: false, dPhiMin: 2.8, asymmetryMax: 0.3}
+        backToBack: {enabled: false, dPhiMin: 2.8, asymmetryMax: 0.3, extraJetAlphaMax: -1.0}
       Wenu:
         type: leptonMET
         triggers: ['HLT_Ele32_WPTight_Gsf_v*']
@@ -293,7 +316,7 @@ selection:
         metMin: 40.0
         mtMin: 50.0
         neutrino: *wNeutrino
-        backToBack: {enabled: false, dPhiMin: 2.8, asymmetryMax: 0.3}
+        backToBack: {enabled: false, dPhiMin: 2.8, asymmetryMax: 0.3, extraJetAlphaMax: -1.0}
       Hadronic:                # no leptons, no tight photon; jet requirements are in `jets`
         type: singleObject
         triggers: ['HLT_AK8PFJet500_v*', 'HLT_PFHT1050_v*']
@@ -302,7 +325,7 @@ selection:
         vetoes: [vetoMuons, vetoElectrons]
         nMin: 0
         nMax: 0
-        backToBack: {enabled: false, dPhiMin: 2.8, asymmetryMax: 0.3}
+        backToBack: {enabled: false, dPhiMin: 2.8, asymmetryMax: 0.3, extraJetAlphaMax: -1.0}
       GammaJets:
         type: singleObject
         triggers: ['HLT_Photon200_v*']
@@ -311,12 +334,14 @@ selection:
         vetoes: [vetoMuons, vetoElectrons]
         nMin: 1
         nMax: 1
-        backToBack: {enabled: false, dPhiMin: 2.8, asymmetryMax: 0.3}
+        backToBack: {enabled: false, dPhiMin: 2.8, asymmetryMax: 0.3, extraJetAlphaMax: -1.0}
 
   # Generator level (MC only): Rivet particle-level objects, i.e. prompt final-state leptons dressed with photons,
   # isolated prompt photons, and MET from prompt neutrinos. There are no trigger, vertex, MET-filter, ID or isolation
   # requirements; the kinematic cuts mirror the reco ones.
   gen:
+    # Gen jets of the extra-jet veto: the same kinematic and overlap cuts as at reco, no ID
+    extraJets: {src: slimmedGenJets, ptMin: 20.0, absEtaMax: 2.4, dRJet: 1.2, dRLepton: 0.4}
     particleLevel:           # ParticleLevelProducer settings, as in NanoAOD's particle level
       usePromptFinalStates: true
       particleMinPt: 0.0
@@ -356,7 +381,7 @@ selection:
         oppositeCharge: true
         targetMass: 91.1876
         pairPtMin: 0.0
-        backToBack: {enabled: false, dPhiMin: 2.8, asymmetryMax: 0.3}
+        backToBack: {enabled: false, dPhiMin: 2.8, asymmetryMax: 0.3, extraJetAlphaMax: -1.0}
       Zee:
         type: dilepton
         objects: genTightElectrons
@@ -368,7 +393,7 @@ selection:
         oppositeCharge: true
         targetMass: 91.1876
         pairPtMin: 0.0
-        backToBack: {enabled: false, dPhiMin: 2.8, asymmetryMax: 0.3}
+        backToBack: {enabled: false, dPhiMin: 2.8, asymmetryMax: 0.3, extraJetAlphaMax: -1.0}
       Wmunu:
         type: leptonMET
         objects: genTightMuons
@@ -377,7 +402,7 @@ selection:
         metMin: 40.0
         mtMin: 50.0
         neutrino: *wNeutrino
-        backToBack: {enabled: false, dPhiMin: 2.8, asymmetryMax: 0.3}
+        backToBack: {enabled: false, dPhiMin: 2.8, asymmetryMax: 0.3, extraJetAlphaMax: -1.0}
       Wenu:
         type: leptonMET
         objects: genTightElectrons
@@ -386,21 +411,21 @@ selection:
         metMin: 40.0
         mtMin: 50.0
         neutrino: *wNeutrino
-        backToBack: {enabled: false, dPhiMin: 2.8, asymmetryMax: 0.3}
+        backToBack: {enabled: false, dPhiMin: 2.8, asymmetryMax: 0.3, extraJetAlphaMax: -1.0}
       Hadronic:
         type: singleObject
         objects: genTightPhotons
         vetoes: [genVetoMuons, genVetoElectrons]
         nMin: 0
         nMax: 0
-        backToBack: {enabled: false, dPhiMin: 2.8, asymmetryMax: 0.3}
+        backToBack: {enabled: false, dPhiMin: 2.8, asymmetryMax: 0.3, extraJetAlphaMax: -1.0}
       GammaJets:
         type: singleObject
         objects: genTightPhotons
         vetoes: [genVetoMuons, genVetoElectrons]
         nMin: 1
         nMax: 1
-        backToBack: {enabled: false, dPhiMin: 2.8, asymmetryMax: 0.3}
+        backToBack: {enabled: false, dPhiMin: 2.8, asymmetryMax: 0.3, extraJetAlphaMax: -1.0}
 
 jets:
   cleaning:                  # jets are kept; each jet table gets veto<ch> (within cleaningDR of channel ch's selected
