@@ -1,0 +1,872 @@
+{
+ "ZZto2L2Q": {
+  "genEventCount": 49084483,
+  "genEventSumw": 333251056.35249996,
+  "nanoFiles": 149,
+  "missingJobs": 0,
+  "eventsWritten": 111575,
+  "pass": {
+   "Selection_Zmumu": {
+    "n": 48042,
+    "frac": 0.0009844708715303103
+   },
+   "Selection_Zee": {
+    "n": 41766,
+    "frac": 0.0008560616347755405
+   },
+   "GenSelection_Zmumu": {
+    "n": 54068,
+    "frac": 0.0011079191769866226
+   },
+   "GenSelection_Zee": {
+    "n": 50227,
+    "frac": 0.001029467387486581
+   },
+   "any": {
+    "n": 111575,
+    "frac": 0.0022866233188127533
+   }
+  }
+ },
+ "WZto2L2Q": {
+  "genEventCount": 14641436,
+  "genEventSumw": 110807691.3628,
+  "nanoFiles": 46,
+  "missingJobs": 1,
+  "eventsWritten": 59490,
+  "pass": {
+   "Selection_Zmumu": {
+    "n": 25328,
+    "frac": 0.0017317023625165796
+   },
+   "Selection_Zee": {
+    "n": 22432,
+    "frac": 0.0015336997982413735
+   },
+   "GenSelection_Zmumu": {
+    "n": 28985,
+    "frac": 0.0019817353413440647
+   },
+   "GenSelection_Zee": {
+    "n": 26995,
+    "frac": 0.0018456768911725488
+   },
+   "any": {
+    "n": 59490,
+    "frac": 0.004067394696775035
+   }
+  }
+ },
+ "DY_PTLL200to400": {
+  "genEventCount": 6439323,
+  "genEventSumw": 493368523.25353605,
+  "nanoFiles": 74,
+  "missingJobs": 0,
+  "eventsWritten": 1802155,
+  "pass": {
+   "Selection_Zmumu": {
+    "n": 771315,
+    "frac": 0.11978164604137816
+   },
+   "Selection_Zee": {
+    "n": 670213,
+    "frac": 0.10408065870149624
+   },
+   "GenSelection_Zmumu": {
+    "n": 888810,
+    "frac": 0.13802790551975982
+   },
+   "GenSelection_Zee": {
+    "n": 827021,
+    "frac": 0.12843201480815358
+   },
+   "any": {
+    "n": 1802155,
+    "frac": 0.2798659077689962
+   }
+  }
+ },
+ "DY_PTLL400to600": {
+  "genEventCount": 3669178,
+  "genEventSumw": 21174773.6754002,
+  "nanoFiles": 50,
+  "missingJobs": 0,
+  "eventsWritten": 1582960,
+  "pass": {
+   "Selection_Zmumu": {
+    "n": 732447,
+    "frac": 0.19962148697172122
+   },
+   "Selection_Zee": {
+    "n": 636108,
+    "frac": 0.17336527983122596
+   },
+   "GenSelection_Zmumu": {
+    "n": 808554,
+    "frac": 0.22036414059261328
+   },
+   "GenSelection_Zee": {
+    "n": 746100,
+    "frac": 0.203343061540336
+   },
+   "any": {
+    "n": 1582960,
+    "frac": 0.4314217306021683
+   }
+  }
+ },
+ "DY_PTLL600": {
+  "genEventCount": 3054755,
+  "genEventSumw": 3636193.1352976016,
+  "nanoFiles": 49,
+  "missingJobs": 4,
+  "eventsWritten": 1457565,
+  "pass": {
+   "Selection_Zmumu": {
+    "n": 665058,
+    "frac": 0.21771110118384623
+   },
+   "Selection_Zee": {
+    "n": 593420,
+    "frac": 0.19426128648366042
+   },
+   "GenSelection_Zmumu": {
+    "n": 741709,
+    "frac": 0.24280380583818484
+   },
+   "GenSelection_Zee": {
+    "n": 693046,
+    "frac": 0.2268744696580533
+   },
+   "any": {
+    "n": 1457565,
+    "frac": 0.47714548811926644
+   }
+  }
+ },
+ "TTto2L2Nu": {
+  "genEventCount": 74311182,
+  "genEventSumw": 5978222808.613005,
+  "nanoFiles": 232,
+  "missingJobs": 0,
+  "eventsWritten": 23943,
+  "pass": {
+   "Selection_Zmumu": {
+    "n": 7564,
+    "frac": 0.00010012119527731178
+   },
+   "Selection_Zee": {
+    "n": 14182,
+    "frac": 0.00018664868435305963
+   },
+   "GenSelection_Zmumu": {
+    "n": 3526,
+    "frac": 4.76728772491042e-05
+   },
+   "GenSelection_Zee": {
+    "n": 3350,
+    "frac": 4.51766310494315e-05
+   },
+   "any": {
+    "n": 23943,
+    "frac": 0.00031638562233735805
+   }
+  }
+ },
+ "WWto2L2Nu": {
+  "genEventCount": 22428584,
+  "genEventSumw": 264414010.9800005,
+  "nanoFiles": 78,
+  "missingJobs": 0,
+  "eventsWritten": 4660,
+  "pass": {
+   "Selection_Zmumu": {
+    "n": 1908,
+    "frac": 8.508695519607109e-05
+   },
+   "Selection_Zee": {
+    "n": 1814,
+    "frac": 8.089504045817807e-05
+   },
+   "GenSelection_Zmumu": {
+    "n": 2038,
+    "frac": 9.088428456376457e-05
+   },
+   "GenSelection_Zee": {
+    "n": 1973,
+    "frac": 8.79856195913781e-05
+   },
+   "any": {
+    "n": 4660,
+    "frac": 0.00020781194967748877
+   }
+  }
+ },
+ "tbq_lnu_t": {
+  "genEventCount": 10476938,
+  "genEventSumw": 245092143.06815422,
+  "nanoFiles": 52,
+  "missingJobs": 0,
+  "eventsWritten": 425,
+  "pass": {
+   "Selection_Zmumu": {
+    "n": 111,
+    "frac": 9.436311071620805e-06
+   },
+   "Selection_Zee": {
+    "n": 314,
+    "frac": 2.2525388169965614e-05
+   },
+   "GenSelection_Zmumu": {
+    "n": 0,
+    "frac": 0.0
+   },
+   "GenSelection_Zee": {
+    "n": 0,
+    "frac": 0.0
+   },
+   "any": {
+    "n": 425,
+    "frac": 3.196169872018105e-05
+   }
+  }
+ },
+ "tbarbq_lnu_t": {
+  "genEventCount": 5237722,
+  "genEventSumw": 122510832.94184415,
+  "nanoFiles": 38,
+  "missingJobs": 0,
+  "eventsWritten": 192,
+  "pass": {
+   "Selection_Zmumu": {
+    "n": 50,
+    "frac": 8.119591633049712e-06
+   },
+   "Selection_Zee": {
+    "n": 142,
+    "frac": 2.232887727890981e-05
+   },
+   "GenSelection_Zmumu": {
+    "n": 0,
+    "frac": 0.0
+   },
+   "GenSelection_Zee": {
+    "n": 0,
+    "frac": 0.0
+   },
+   "any": {
+    "n": 192,
+    "frac": 3.0448468600583196e-05
+   }
+  }
+ },
+ "tbq_2q_t": {
+  "genEventCount": 21978848,
+  "genEventSumw": 1705609195.059669,
+  "nanoFiles": 76,
+  "missingJobs": 8,
+  "eventsWritten": 60,
+  "pass": {
+   "Selection_Zmumu": {
+    "n": 5,
+    "frac": 1.458013316170064e-07
+   },
+   "Selection_Zee": {
+    "n": 55,
+    "frac": 1.992618189819514e-06
+   },
+   "GenSelection_Zmumu": {
+    "n": 0,
+    "frac": 0.0
+   },
+   "GenSelection_Zee": {
+    "n": 0,
+    "frac": 0.0
+   },
+   "any": {
+    "n": 60,
+    "frac": 2.1384195124902807e-06
+   }
+  }
+ },
+ "tbarbq_2q_t": {
+  "genEventCount": 10848874,
+  "genEventSumw": 507944039.9540229,
+  "nanoFiles": 47,
+  "missingJobs": 6,
+  "eventsWritten": 15,
+  "pass": {
+   "Selection_Zmumu": {
+    "n": 3,
+    "frac": 9.800752302010829e-08
+   },
+   "Selection_Zee": {
+    "n": 12,
+    "frac": 9.80075230201083e-07
+   },
+   "GenSelection_Zmumu": {
+    "n": 0,
+    "frac": 0.0
+   },
+   "GenSelection_Zee": {
+    "n": 0,
+    "frac": 0.0
+   },
+   "any": {
+    "n": 15,
+    "frac": 1.0780827532211911e-06
+   }
+  }
+ },
+ "tb_lnu_s": {
+  "genEventCount": 4076960,
+  "genEventSumw": 9286966.063051807,
+  "nanoFiles": 15,
+  "missingJobs": 1,
+  "eventsWritten": 274,
+  "pass": {
+   "Selection_Zmumu": {
+    "n": 61,
+    "frac": 1.3146949206188089e-05
+   },
+   "Selection_Zee": {
+    "n": 213,
+    "frac": 5.2986190258058925e-05
+   },
+   "GenSelection_Zmumu": {
+    "n": 0,
+    "frac": 0.0
+   },
+   "GenSelection_Zee": {
+    "n": 0,
+    "frac": 0.0
+   },
+   "any": {
+    "n": 274,
+    "frac": 6.613313720507704e-05
+   }
+  }
+ },
+ "tbarb_lnu_s": {
+  "genEventCount": 2762668,
+  "genEventSumw": 3945012.8822479974,
+  "nanoFiles": 9,
+  "missingJobs": 0,
+  "eventsWritten": 139,
+  "pass": {
+   "Selection_Zmumu": {
+    "n": 31,
+    "frac": 1.2347450476439846e-05
+   },
+   "Selection_Zee": {
+    "n": 108,
+    "frac": 4.233411773228545e-05
+   },
+   "GenSelection_Zmumu": {
+    "n": 0,
+    "frac": 0.0
+   },
+   "GenSelection_Zee": {
+    "n": 0,
+    "frac": 0.0
+   },
+   "any": {
+    "n": 139,
+    "frac": 5.468156712088742e-05
+   }
+  }
+ },
+ "tb_2q_s": {
+  "genEventCount": 2572389,
+  "genEventSumw": 10591119.419349978,
+  "nanoFiles": 18,
+  "missingJobs": 3,
+  "eventsWritten": 23,
+  "pass": {
+   "Selection_Zmumu": {
+    "n": 2,
+    "frac": 7.777062877392712e-07
+   },
+   "Selection_Zee": {
+    "n": 21,
+    "frac": 8.165915931217634e-06
+   },
+   "GenSelection_Zmumu": {
+    "n": 0,
+    "frac": 0.0
+   },
+   "GenSelection_Zee": {
+    "n": 0,
+    "frac": 0.0
+   },
+   "any": {
+    "n": 23,
+    "frac": 8.943622128912191e-06
+   }
+  }
+ },
+ "tWm_2l2nu": {
+  "genEventCount": 8065364,
+  "genEventSumw": 30637814.672779992,
+  "nanoFiles": 26,
+  "missingJobs": 0,
+  "eventsWritten": 2614,
+  "pass": {
+   "Selection_Zmumu": {
+    "n": 974,
+    "frac": 0.00012076775975104119
+   },
+   "Selection_Zee": {
+    "n": 1151,
+    "frac": 0.00014271426397330651
+   },
+   "GenSelection_Zmumu": {
+    "n": 867,
+    "frac": 0.00010750066492650074
+   },
+   "GenSelection_Zee": {
+    "n": 814,
+    "frac": 0.0001009291132565113
+   },
+   "any": {
+    "n": 2614,
+    "frac": 0.00032411384772204496
+   }
+  }
+ },
+ "tWm_lnu2q": {
+  "genEventCount": 16687478,
+  "genEventSumw": 600515410.0175998,
+  "nanoFiles": 53,
+  "missingJobs": 0,
+  "eventsWritten": 1576,
+  "pass": {
+   "Selection_Zmumu": {
+    "n": 416,
+    "frac": 2.49298483226591e-05
+   },
+   "Selection_Zee": {
+    "n": 1159,
+    "frac": 6.921629547469327e-05
+   },
+   "GenSelection_Zmumu": {
+    "n": 0,
+    "frac": 0.0
+   },
+   "GenSelection_Zee": {
+    "n": 3,
+    "frac": 1.797825640504892e-07
+   },
+   "any": {
+    "n": 1576,
+    "frac": 9.420607309101432e-05
+   }
+  }
+ },
+ "tWm_4q": {
+  "genEventCount": 13460118,
+  "genEventSumw": 220760845.1423999,
+  "nanoFiles": 46,
+  "missingJobs": 0,
+  "eventsWritten": 142,
+  "pass": {
+   "Selection_Zmumu": {
+    "n": 6,
+    "frac": 4.45774699044665e-07
+   },
+   "Selection_Zee": {
+    "n": 136,
+    "frac": 1.0104226287042027e-05
+   },
+   "GenSelection_Zmumu": {
+    "n": 0,
+    "frac": 0.0
+   },
+   "GenSelection_Zee": {
+    "n": 0,
+    "frac": 0.0
+   },
+   "any": {
+    "n": 142,
+    "frac": 1.0550000951527145e-05
+   }
+  }
+ },
+ "tbarWp_2l2nu": {
+  "genEventCount": 8260009,
+  "genEventSumw": 31436107.975650024,
+  "nanoFiles": 29,
+  "missingJobs": 0,
+  "eventsWritten": 2628,
+  "pass": {
+   "Selection_Zmumu": {
+    "n": 975,
+    "frac": 0.00011780050242724033
+   },
+   "Selection_Zee": {
+    "n": 1173,
+    "frac": 0.0001420143815556388
+   },
+   "GenSelection_Zmumu": {
+    "n": 870,
+    "frac": 0.00010533035150135769
+   },
+   "GenSelection_Zee": {
+    "n": 804,
+    "frac": 9.733977262369836e-05
+   },
+   "any": {
+    "n": 2628,
+    "frac": 0.0003179281410441417
+   }
+  }
+ },
+ "tbarWp_lnu2q": {
+  "genEventCount": 16485994,
+  "genEventSumw": 594379448.4600012,
+  "nanoFiles": 54,
+  "missingJobs": 0,
+  "eventsWritten": 1635,
+  "pass": {
+   "Selection_Zmumu": {
+    "n": 415,
+    "frac": 2.5173790925699166e-05
+   },
+   "Selection_Zee": {
+    "n": 1220,
+    "frac": 7.400488679265988e-05
+   },
+   "GenSelection_Zmumu": {
+    "n": 0,
+    "frac": 0.0
+   },
+   "GenSelection_Zee": {
+    "n": 0,
+    "frac": 0.0
+   },
+   "any": {
+    "n": 1635,
+    "frac": 9.917868110703638e-05
+   }
+  }
+ },
+ "tbarWp_4q": {
+  "genEventCount": 13443780,
+  "genEventSumw": 220905518.59599996,
+  "nanoFiles": 48,
+  "missingJobs": 0,
+  "eventsWritten": 126,
+  "pass": {
+   "Selection_Zmumu": {
+    "n": 11,
+    "frac": 8.182520672011292e-07
+   },
+   "Selection_Zee": {
+    "n": 115,
+    "frac": 8.554453567977637e-06
+   },
+   "GenSelection_Zmumu": {
+    "n": 0,
+    "frac": 0.0
+   },
+   "GenSelection_Zee": {
+    "n": 0,
+    "frac": 0.0
+   },
+   "any": {
+    "n": 126,
+    "frac": 9.372705652447222e-06
+   }
+  }
+ },
+ "ZH_bb": {
+  "genEventCount": 2062940,
+  "genEventSumw": 176314.58423039992,
+  "nanoFiles": 7,
+  "missingJobs": 0,
+  "eventsWritten": 34247,
+  "pass": {
+   "Selection_Zmumu": {
+    "n": 14741,
+    "frac": 0.007231452559741233
+   },
+   "Selection_Zee": {
+    "n": 12917,
+    "frac": 0.006357881883485868
+   },
+   "GenSelection_Zmumu": {
+    "n": 16359,
+    "frac": 0.008053454461027657
+   },
+   "GenSelection_Zee": {
+    "n": 15227,
+    "frac": 0.0074851696327129045
+   },
+   "any": {
+    "n": 34247,
+    "frac": 0.016850012533389302
+   }
+  }
+ },
+ "ZH_cc": {
+  "genEventCount": 2955696,
+  "genEventSumw": 252604.99618079994,
+  "nanoFiles": 10,
+  "missingJobs": 0,
+  "eventsWritten": 52216,
+  "pass": {
+   "Selection_Zmumu": {
+    "n": 22907,
+    "frac": 0.007878021488008414
+   },
+   "Selection_Zee": {
+    "n": 19886,
+    "frac": 0.006807197765386251
+   },
+   "GenSelection_Zmumu": {
+    "n": 25128,
+    "frac": 0.008657292910151488
+   },
+   "GenSelection_Zee": {
+    "n": 23183,
+    "frac": 0.007937771332069521
+   },
+   "any": {
+    "n": 52216,
+    "frac": 0.017943762112752143
+   }
+  }
+ },
+ "ZH_gg": {
+  "genEventCount": 250000,
+  "genEventSumw": 21383.769640799997,
+  "nanoFiles": 16,
+  "missingJobs": 0,
+  "eventsWritten": 4865,
+  "pass": {
+   "Selection_Zmumu": {
+    "n": 2098,
+    "frac": 0.008546427801276485
+   },
+   "Selection_Zee": {
+    "n": 1855,
+    "frac": 0.007496195110325058
+   },
+   "GenSelection_Zmumu": {
+    "n": 2367,
+    "frac": 0.00961366852384329
+   },
+   "GenSelection_Zee": {
+    "n": 2227,
+    "frac": 0.009018394547417393
+   },
+   "any": {
+    "n": 4865,
+    "frac": 0.019733319192268648
+   }
+  }
+ },
+ "ZH_WW4q": {
+  "genEventCount": 1388643,
+  "genEventSumw": 1170074.531378999,
+  "nanoFiles": 25,
+  "missingJobs": 0,
+  "eventsWritten": 28317,
+  "pass": {
+   "Selection_Zmumu": {
+    "n": 12401,
+    "frac": 0.009022889309110035
+   },
+   "Selection_Zee": {
+    "n": 10499,
+    "frac": 0.007663201609133454
+   },
+   "GenSelection_Zmumu": {
+    "n": 14019,
+    "frac": 0.01021683546356646
+   },
+   "GenSelection_Zee": {
+    "n": 12556,
+    "frac": 0.009152566169135222
+   },
+   "any": {
+    "n": 28317,
+    "frac": 0.020624732961149077
+   }
+  }
+ },
+ "ZH_WWlnu2q": {
+  "genEventCount": 1398296,
+  "genEventSumw": 1177832.5853579985,
+  "nanoFiles": 17,
+  "missingJobs": 0,
+  "eventsWritten": 17857,
+  "pass": {
+   "Selection_Zmumu": {
+    "n": 7926,
+    "frac": 0.005739844988828196
+   },
+   "Selection_Zee": {
+    "n": 6708,
+    "frac": 0.004875437990225969
+   },
+   "GenSelection_Zmumu": {
+    "n": 8330,
+    "frac": 0.006047799178704073
+   },
+   "GenSelection_Zee": {
+    "n": 7517,
+    "frac": 0.005479913151066252
+   },
+   "any": {
+    "n": 17857,
+    "frac": 0.012965341630744257
+   }
+  }
+ },
+ "ggZH_bb": {
+  "genEventCount": 2068050,
+  "genEventSumw": 14142.318563999997,
+  "nanoFiles": 7,
+  "missingJobs": 0,
+  "eventsWritten": 68454,
+  "pass": {
+   "Selection_Zmumu": {
+    "n": 28756,
+    "frac": 0.013904884112905695
+   },
+   "Selection_Zee": {
+    "n": 25243,
+    "frac": 0.012206182415413127
+   },
+   "GenSelection_Zmumu": {
+    "n": 32532,
+    "frac": 0.015730757728845867
+   },
+   "GenSelection_Zee": {
+    "n": 30202,
+    "frac": 0.014604093442766709
+   },
+   "any": {
+    "n": 68454,
+    "frac": 0.03310074204523457
+   }
+  }
+ },
+ "ggZH_cc": {
+  "genEventCount": 2944353,
+  "genEventSumw": 20134.899103439984,
+  "nanoFiles": 11,
+  "missingJobs": 0,
+  "eventsWritten": 102948,
+  "pass": {
+   "Selection_Zmumu": {
+    "n": 43559,
+    "frac": 0.014794079419889545
+   },
+   "Selection_Zee": {
+    "n": 38797,
+    "frac": 0.013176746314868055
+   },
+   "GenSelection_Zmumu": {
+    "n": 48296,
+    "frac": 0.01640292198647238
+   },
+   "GenSelection_Zee": {
+    "n": 45452,
+    "frac": 0.01543700510672537
+   },
+   "any": {
+    "n": 102948,
+    "frac": 0.034964552092361004
+   }
+  }
+ },
+ "ggZH_gg": {
+  "genEventCount": 100000,
+  "genEventSumw": 683.8480000000003,
+  "nanoFiles": 12,
+  "missingJobs": 0,
+  "eventsWritten": 3694,
+  "pass": {
+   "Selection_Zmumu": {
+    "n": 1525,
+    "frac": 0.015249998659093166
+   },
+   "Selection_Zee": {
+    "n": 1397,
+    "frac": 0.013969998352041409
+   },
+   "GenSelection_Zmumu": {
+    "n": 1763,
+    "frac": 0.01762999871182015
+   },
+   "GenSelection_Zee": {
+    "n": 1682,
+    "frac": 0.016819998658809565
+   },
+   "any": {
+    "n": 3694,
+    "frac": 0.03693999537797587
+   }
+  }
+ },
+ "ggZH_WW4q": {
+  "genEventCount": 974000,
+  "genEventSumw": 66360.7628000001,
+  "nanoFiles": 22,
+  "missingJobs": 1,
+  "eventsWritten": 39313,
+  "pass": {
+   "Selection_Zmumu": {
+    "n": 16474,
+    "frac": 0.016913759152826415
+   },
+   "Selection_Zee": {
+    "n": 14738,
+    "frac": 0.01513141795449633
+   },
+   "GenSelection_Zmumu": {
+    "n": 18596,
+    "frac": 0.019092404387790755
+   },
+   "GenSelection_Zee": {
+    "n": 17643,
+    "frac": 0.01811396470591543
+   },
+   "any": {
+    "n": 39313,
+    "frac": 0.04036242729371891
+   }
+  }
+ },
+ "ggZH_WWlnu2q": {
+  "genEventCount": 999000,
+  "genEventSumw": 68064.0678000001,
+  "nanoFiles": 19,
+  "missingJobs": 0,
+  "eventsWritten": 27068,
+  "pass": {
+   "Selection_Zmumu": {
+    "n": 11536,
+    "frac": 0.011547548372137888
+   },
+   "Selection_Zee": {
+    "n": 10191,
+    "frac": 0.010201202569924859
+   },
+   "GenSelection_Zmumu": {
+    "n": 12392,
+    "frac": 0.01240440543533249
+   },
+   "GenSelection_Zee": {
+    "n": 11716,
+    "frac": 0.011727729103604492
+   },
+   "any": {
+    "n": 27068,
+    "frac": 0.02709509707592875
+   }
+  }
+ }
+}

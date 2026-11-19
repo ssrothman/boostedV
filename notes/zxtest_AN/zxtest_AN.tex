@@ -1228,6 +1228,29 @@ factor of 3, and the lepton acceptance and mass window a further factor of about
 of the earlier version of this table, on 30\,000 events of another file, was 0.26\% (0.20\%). The difference in the
 $\mu\mu$ channel (81 versus 78 events) is about two standard deviations of the two independent counts.
 
+\paragraph{Final efficiencies from the full productions.} The last block of each table gives, for every sample, the
+reco efficiency of the full selection per channel in the complete earlier productions:
+\begin{itemize}
+\item \code{20261116\_zxb2b} for signal and Drell--Yan, \code{20261117\_zxb2bbkg} for $t\bar t$, $WW$ and single top,
+  and \code{20261117\_zh} for $ZH$;
+\item the events with \code{Selection\_<c>}, counted over all their NANO files, and the generator-weighted fraction of
+  the processed events of the merged jobs (\code{genEventSumw} of the \code{Runs} tree);
+\item \code{notes/zxtest\_AN/final\_rows.py}; all tables are rebuilt by \code{notes/zxtest\_AN/make\_cutflow.sh}.
+\end{itemize}
+These productions predate the extra-lepton veto, the inclusive goodVertex boundaries and the $150\GeV$ gen-jet
+threshold. The reco selection has changed since then only by the extra-lepton veto, which can only remove events,
+and by the goodVertex boundaries, which add only events exactly on a boundary, so these efficiencies are upper bounds
+on those of the current selection. This was checked on the events of each cutflow input file, which
+the earlier productions also processed: for $ZZ\to2\ell2q$, \code{PTLL} 200--400, $t\bar t$ and $ZH(b\bar b)$, every
+event selected now was also selected then, and the earlier productions select 1--3\% more events (in $t\bar t$, 5
+instead of 1 in the $ee$ channel). At gen level the lower jet threshold adds events (16\% in \code{PTLL} 200--400 and
+25--44\% in $ZH(b\bar b)$ on the same events), so no gen efficiencies are quoted from the earlier productions.
+
+With these upper bounds the conclusion for the backgrounds is unaffected by the size of the cutflow files: the reco
+efficiency of the full selection is at most 0.019\% for $t\bar t$, 0.0085\% for $WW$ and 0.014\% for any single-top
+sample, the largest being $tW\to2\ell2\nu$. Most of these events are in the $ee$ channel for the samples without two
+prompt leptons.
+
 \paragraph{Event cleaning.} In the samples with two prompt leptons, the cleaning step removes 3--9\% of the reco events
 after the trigger, for example 5.0\% (5.0\%) of the $ZZ\to2\ell2q$ $\mu\mu$ ($ee$) events and 6.1\% of the $\mu\mu$
 events of \code{PTLL} 200--400. Almost all of it is the jet veto map. The vertex and MET-filter requirements each remove at most
@@ -1267,8 +1290,10 @@ $\ptll \geq 200\GeV$ (33 of 72 and 42 of 77 events).
 \begin{table}[htbp]
 \centering
 \caption{Cutflow per level and channel on one input file per sample (production \code{20261118\_cutflow}): events
-(generator-weighted percentage of the processed events). The last row counts the events passing the full selection in at
-least one channel at one level, i.e.\ the events written by \code{ZX\_test}. Signal, Drell--Yan, $t\bar t$ and $WW$.}
+(generator-weighted percentage of the processed events). The row ``Written'' counts the events passing the full
+selection in at least one channel at one level, i.e.\ the events written by \code{ZX\_test}. The last block gives the
+reco efficiencies of the full selection in the complete earlier productions, which are upper bounds for the current
+selection (see text). Signal, Drell--Yan, $t\bar t$ and $WW$.}
 \label{tab:cutflow}
 \scriptsize
 \setlength{\tabcolsep}{3pt}
@@ -1501,8 +1526,9 @@ The following checks were made on the implementation; details are recorded in \c
   scaled by 0.27 and 0.51, which corresponds to no jet energy correction. None was found in 1.5\,M other AK8 jets. The
   question has been written up for the JetMET and PAT experts (\code{pog\_question\_ak8\_corrupt\_pt.md}).
 \item \textbf{Cutflow.} Tables~\ref{tab:cutflow}--\ref{tab:cutflowZH} use one input file per sample. For the
-  $t\bar t$, $WW$ and single-top samples this leaves at most a few tens of events after the $\ptll$ requirement; their
-  efficiencies need the full productions.
+  $t\bar t$, $WW$ and single-top samples this leaves at most a few tens of events after the $\ptll$ requirement. Their
+  final reco efficiencies are therefore quoted from the earlier full productions, as upper bounds; exact values, and
+  the gen-level ones, need a production with the current configuration.
 \item \textbf{Jet veto map.} Its effect on the jet occupancy is shown in Figure~\ref{fig:vetomap}; its effect on the
   analysis observables, which the JetMET POG also asks for, is still to be shown.
 \item \textbf{Soft-drop mass and MET.} The corrected soft-drop mass (\code{axisSoftDropMass}, AK4 JEC and JER on the

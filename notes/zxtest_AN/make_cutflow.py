@@ -4,12 +4,15 @@ event passing a dilepton selection (including the extra-lepton veto) at either l
 translator threshold (reco 200 GeV after JEC and JER, gen 150 GeV). The extra-jet veto is disabled in ZX_test and not
 modelled.
 
-Usage: python3 make_cutflow.py OUT.tex NAME=nano.root [NAME=nano.root ...]
+Usage: python3 make_cutflow.py OUT.tex [--final ROWS.json] NAME=nano.root [NAME=nano.root ...]
+--final: final_rows.py output keyed by the same NAMEs; adds the reco <c> efficiencies of a full production, labelled as
+upper bounds (valid only if that production's reco selection contains the current one).
 Steps per (level, channel), cumulative, as unweighted counts and genWeight-weighted fractions of the processed events
 (Runs-tree genEventCount / genEventSumw). The jet steps require at least one jet passing all jet requirements so far;
 the back-to-back steps use the leading such jet. Cut values are those of ZX_test.yaml. Events failing the channel at
 both levels are not written, so the first reco steps are fractions of the written events' flags.
 """
+import json
 import math
 import sys
 
@@ -69,7 +72,13 @@ def steps(ev, level, ch):
 
 
 def main():
-    out, pairs = sys.argv[1], [a.split('=', 1) for a in sys.argv[2:]]
+    args = sys.argv[1:]
+    final = None
+    if '--final' in args:
+        i = args.index('--final')
+        final = json.load(open(args[i + 1]))
+        del args[i:i + 2]
+    out, pairs = args[0], [a.split('=', 1) for a in args[1:]]
     rows = {}  # (level, ch) -> {sample: [(n, frac_w), ...]}
     totals = {}
     for name, path in pairs:
@@ -101,6 +110,15 @@ def main():
         lines.append(r'\midrule')
     lines.append(r'\multicolumn{2}{l}{Written (any level, channel)} & ' +
                  ' & '.join('%d (%s)' % (totals[n][2], fmt(totals[n][3])) for n in names) + r' \\')
+    if final:
+        lines.append(r'\midrule')
+        for k, ch in enumerate(CHANNELS):
+            head = ('full production', '(upper bound)')[k]
+            cells = ['%d (%s)' % (final[n]['pass']['Selection_' + ch]['n'], fmt(final[n]['pass']['Selection_' + ch]['frac']))
+                     if n in final else '--' for n in names]
+            lines.append('%s & reco %s, full selection & %s \\\\' % (head, ch, ' & '.join(cells)))
+        lines.append(r'\multicolumn{2}{l}{full production: processed events} & ' +
+                     ' & '.join('%d' % final[n]['genEventCount'] if n in final else '--' for n in names) + r' \\')
     lines += [r'\bottomrule', r'\end{tabular}']
     with open(out, 'w') as f:
         f.write('\n'.join(lines) + '\n')
