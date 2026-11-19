@@ -11,6 +11,7 @@ Plan: `SENSITIVITY_PLAN.md`. Newest entries at the end.
 - [2026-11-19 Phase A results (existing NANOs)](#2026-11-19-phase-a-results-existing-nanos)
 - [2026-11-19 Constituents-only production, lostTracks, Python bindings](#2026-11-19-constituents-only-production-losttracks-python-bindings)
 - [2026-11-19 Tagger working points and per-pT-slice thresholds](#2026-11-19-tagger-working-points-and-per-pt-slice-thresholds)
+- [2026-11-19 Half-sample stability; VV with the bb score, ZH with the V score](#2026-11-19-half-sample-stability-vv-with-the-bb-score-zh-with-the-v-score)
 
 ## 2026-11-19 Decisions and starting point
 User decisions:
@@ -148,3 +149,20 @@ pnXbbVsQCD, at DY efficiency 10%-0.1%, one global threshold or one per jet-pT sl
   χ²/ndf jumps to 10²-10³ between neighbouring settings and the significance rises with the bin count, the signature
   of a noisy covariance estimate. The ZH 5.9 is one of these. A stability check (bootstrap of the MC jets, or fewer
   bins) is needed before using any tight-point number.
+
+## 2026-11-19 Half-sample stability; VV with the bb score, ZH with the V score
+`~/nobackup/boostedV/sensitivity_20261119d_tagger/scan.md`. Each point also gets Z_shape (no MC term) from two random
+halves of the MC (weights x 2) and Z_corr = sqrt(2 Z^2 - mean Z_half^2), which removes at first order the upward bias
+of sᵀĈ⁻¹s from an estimated covariance (bias ∝ bins / MC jets). Toy check (200 bins, known covariance): 2000 MC jets
+give Z 294 vs true 277, Z_corr 275; 20000 give 278.8 / 277.3 vs 277.4.
+Stable means Z_half ≈ Z ≈ Z_corr. Quoted: Z_shape with MC term (Z_corr without it).
+- VV, gpV: stable down to 1% DY efficiency with n = 1 and 5 slices (14.0; Z_corr 16.2) and down to 3% with 10 slices
+  or both n (14.4-15.3; Z_corr 16.0-17.4). Tighter or finer settings are unstable (one half jumps to 35-300): too
+  few DY MC jets (≤ 40k at 1%) for 400-800 bins. Reliable best VV ≈ 14-15 (baseline 9.2-10.0).
+- VV, gpHbb (asked): worse than no cut at every stable point: 5.7 / 4.8 at 10%, 3.2 / 2.7 at 3%, 3.1 / 2.6 at 1%,
+  5.5 / 4.6 at 0.3% (Z_shape / with MC; n = 1, 5 slices; baseline 10.7 / 9.2). The bb score keeps only Z → bb and
+  removes W → qq'.
+- ZH, gpV (asked): 1.1 / 1.0 at 3%, 1.4 / 1.2 at 1%, 1.7 / 1.5 at 0.3% (stable), ~3x the baseline 0.5;
+  with both n 1.6-1.9. Comparable but below pnXbbVsQCD (2.1 / 1.9 at 0.3%) and gpHbb (2.2 / 1.8 at 0.3%).
+- ZH tops out at ≈ 2 at the stable points; the larger values (3.5-37) are all at unstable points.
+- Tight working points need either more DY MC or fewer bins / a regularised covariance before they can be judged.
