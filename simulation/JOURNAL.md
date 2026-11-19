@@ -31,6 +31,7 @@
 - 2026-11-18 AN review 2: vertex boundaries, 150 GeV gen jets, extra-jet veto, E1C frame scheme, veto-map occupancy
 - 2026-11-18 Truth rho: realistic window, full tables, joint helicities, shape validation, singly-resonant Z->4f
 - 2026-11-18 Cutflow regenerated: all 30 processes, production `20261118_cutflow`
+- 2026-11-18 Cutflow final rows from the full productions; LHE and full-production manifests
 
 ## 2026-11-11 A.2 setup and DataFormats
 - Plan: `stepA2_plan.md`. New local repos (remotes pending): `EECDataFormats` (pkg `SRothman/DataFormats`),
@@ -626,3 +627,26 @@ Reply to the Appendix A comments of `notes/zxtest_AN/human-review-2.md`; study `
 - Closure (1000 DY 200-400 events, ZX_cutflow vs ZX_test): make_cutflow's last step equals `<c>` in all four
   level-channel pairs (114, 99, 149, 145). Asymmetry 0.25 / dphi 2.9 change 2-3 / 8-20 events. Removing the jet ID
   changes nothing: failing jets overlap a lepton.
+
+## 2026-11-18 Cutflow final rows from the full productions; LHE and full-production manifests
+User decisions: no high-statistics cutflow production (final rows from the completed productions instead); nominal
+datasets only; a separate LHE production; QCD/Higgs dR figures with the parton / Higgs truth. Nothing submitted.
+- `notes/zxtest_AN/final_rows.py`: <c> counts and weighted efficiencies over all NANOs of a merged production
+  (xrootd); asserts that the events passing any flag equal `eventsWritten` (holds for all 30).
+  `make_cutflow.py --final` appends them as an "upper bound" block; `make_cutflow.sh` rebuilds all five tables.
+- Old productions (20261116_zxb2b, 20261117_zxb2bbkg, 20261117_zh) predate the extra-lepton veto, the goodVertex
+  boundaries and the 150 GeV gen jets. Event-by-event on each cutflow input file (`compare_old_new.py`, scratch):
+  - reco: new ⊂ old in all four samples checked; old selects 1-3% more (ZZ, DY 200-400, ZH bb); ttbar Zee 5 vs 1;
+  - gen: new adds 16% (DY) to 25-44% (ZH bb), so no gen rows from the old productions.
+- Reco upper bounds: ttbar ≤ 0.019%, WW ≤ 0.0085%, single top ≤ 0.014% (tW 2l2nu); mostly in Zee for samples
+  without two prompt leptons.
+- Production tooling: optional per-sample `cmsswConfig` (eecNano_cfg.py | lheNano_cfg.py; condor job.sh arg 9, CRAB
+  psetName). lheNano_cfg.py accepts the production arguments, writes an empty histFile, and fills the Runs-tree sums
+  with genWeightsTable; its per-event weight tables are dropped (10x the size). Output 147 B/event + 2.4 MB/file
+  (ParameterSets). Tests: 5 mutations caught.
+- `samples_lhe.yaml`: ZZ (90 jobs), WZ (28), DY PTLL-200to400 (29), 400to600 (18), 600 (19), CRAB, 10 files/job.
+  `samples_zxall.yaml`: the 30 samples of zxb2b + zxb2b_bkg + zh with their splitting.
+- `axisDeltaR.py --truth vw|higgs|parton` (status 0 in 60-116 / status 0 in 120-130 / status 3); empty files are
+  skipped. Regression: vw reproduces the AN dR.md exactly. Unit test with a status-2 jet of 91 GeV (5 mutations
+  caught). Parton on 427 DY events: 388 reco jets; WTA is closer to the parton than the jet axis (median 0.021 vs
+  0.028 at 400-600), the reverse of W/Z. Higgs: no ZH NANO with axes yet (unit test only).

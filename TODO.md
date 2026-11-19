@@ -36,6 +36,10 @@ Open questions for outside groups and decisions are in `OPEN_QUESTIONS.md`; this
 - [ ] Before jet systematics: switch JES from `Total` to the `Regrouped_*` sources (`jme_review.md` item 5).
 - [ ] Jet veto map: document its effect on the observables (JME requirement); the (eta, phi) occupancy is done (`analysis/jetVetoMapOccupancy.py`, AN Fig. "vetomap", 2026-11-18).
 - [x] Regenerate the AN cutflow with the current configuration (veto map, extra-lepton veto, 150 GeV gen jets) and all produced processes (signal, DY, ttbar, WW, single top, ZH) (review 2): production `20261118_cutflow`, AN Tables "cutflow" to "cutflowZH", 2026-11-18.
-- [ ] Cutflow efficiencies of ttbar, WW and single top from full productions (one file leaves at most a few tens of events after the ptll cut).
+- [x] Cutflow efficiencies of ttbar, WW and single top from full productions: reco final rows from 20261116_zxb2b, 20261117_zxb2bbkg and 20261117_zh, as upper bounds (2026-11-18).
+- [ ] Exact final cutflow rows (reco and gen) from `samples_zxall.yaml` once produced.
+- [ ] Submit `samples_zxall.yaml` (all 30 samples, current code) and `samples_lhe.yaml` (unselected LHE NANO, ZZ/WZ and DY 200-400/400-600/600); prepared, not submitted (2026-11-18).
+- [ ] High-statistics AN Appendix A: `truthRho.py`/`truthStudy.py` hold every decay in memory; accumulate the sums per file.
+- [ ] High-statistics AN Appendix B: `axisStudy.py` concatenates the per-entry E1C tables; reduce each file to per-jet sums. Then QCD (DY, `axisDeltaR.py --truth parton`) and Higgs (ZH, `--truth higgs`) versions of the dR figure.
 - [ ] Analysis configs: switch from the MiniAOD `msoftdrop` to `axisSoftDropMass` once a production contains it.
 - [ ] Report the `PFJetIDSelectionFunctor` TIGHTLEPVETO NHF bug (CMSSW_15_0_22) to JME / CMSSW.
