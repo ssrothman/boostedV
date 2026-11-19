@@ -128,7 +128,7 @@ def crossCheck(cfg):
             if c not in sel[level]['channels']:
                 p.append('jets/cleaning/channels: channel %s missing at %s level' % (c, level))
     for level in ('reco', 'gen'):
-        jetColls = {n: c for n, c in cfg['jets']['collections'].items() if c['level'] == level}
+        jetColls = {n: c for n, c in cfg['jets']['collections'].items() if c['level'] == level and c['mode'] != 'event'}
         for name, ch in sel[level]['channels'].items():
             if not ch['backToBack']['enabled']:
                 continue
@@ -168,6 +168,31 @@ def crossCheck(cfg):
             if len(o['table'].get('coordNames', [])) != D or 'coordPrecision' not in o['table']:
                 p.append('observables/%s/table: unbinned output needs %d coordNames and coordPrecision' % (name, D))
     for name, o in cfg['observables'].items():
+        bad = set(o.get('collections', [])) - set(cfg['jets']['collections'])
+        if bad:
+            p.append('observables/%s/collections: unknown jet collections %s' % (name, sorted(bad)))
+    for name, c in cfg['jets']['collections'].items():
+        if c['mode'] != 'event':
+            continue
+        where = 'jets/collections/%s' % name
+        for k in ('variations', 'axes', 'jec', 'jerc', 'retag'):
+            if c.get(k):
+                p.append('%s: %s is not available for event collections' % (where, k))
+        if c['translator'].get('recoilHemisphere') and not any(
+                ch['backToBack']['enabled'] for ch in sel[c['level']]['channels'].values()):
+            p.append('%s/translator: recoilHemisphere needs a back-to-back channel at %s level' % (where, c['level']))
+        if c['level'] == 'gen' and c['translator'].get('minFromPV', -1) >= 0:
+            p.append('%s/translator: minFromPV needs reco candidates (use -1 at gen level)' % where)
+        if c['level'] == 'gen' and c['translator'].get('constituentDetails'):
+            p.append('%s/translator: constituentDetails needs reco candidates' % where)
+        if c['level'] == 'gen' and c['translator'].get('extraSrcs'):
+            p.append('%s/translator: extraSrcs needs reco candidates' % where)
+        notDilepton = [ch for ch in cfg['jets']['cleaning']['channels']
+                       if sel[c['level']]['channels'][ch]['type'] != 'dilepton']
+        if notDilepton:
+            p.append('%s: the selected leptons are removed exactly only for dilepton channels; jets/cleaning/channels '
+                     'has %s' % (where, notDilepton))
+    for name, o in cfg['observables'].items():
         if o['weight'] == 'Charge' and (o['n'] != int(o['n']) or (o['kind'] == 'penc' and o['angle'] != 'DeltaR')):
             p.append('observables/%s: charge weights need an integer n (and angle DeltaR for penc)' % name)
         if 'axis' in o:
@@ -176,6 +201,8 @@ def crossCheck(cfg):
             if name in cfg['aggregation']['observables']:
                 p.append('observables/%s: axis observables (nominal jets only) cannot be aggregated' % name)
             for cname, c in cfg['jets']['collections'].items():
+                if cname not in o.get('collections', [cname]):
+                    continue
                 if o['axis'] not in [d['name'] for d in c.get('axes', {'definitions': []})['definitions']]:
                     p.append('observables/%s: axis %s is not defined for jets/collections/%s' % (name, o['axis'], cname))
     tables = {}
@@ -184,7 +211,9 @@ def crossCheck(cfg):
     for name, c in cfg['jets']['collections'].items():
         where = 'jets/collections/%s' % name
         t = set(c['translator'])
-        expect = ({'ptMin', 'algorithm', 'applyPuppiWeights', 'puppiValueMap', 'dropAbsPdgIds'} if c['mode'] == 'recluster'
+        expect = ({'applyPuppiWeights', 'puppiValueMap', 'dropAbsPdgIds', 'absEtaMax', 'minFromPV', 'recoilHemisphere',
+                   'constituentDetails', 'extraSrcs'} if c['mode'] == 'event'
+                  else {'ptMin', 'algorithm', 'applyPuppiWeights', 'puppiValueMap', 'dropAbsPdgIds'} if c['mode'] == 'recluster'
                   else {'ptMin', 'applyPuppiWeights', 'puppiValueMap', 'jetId'} if c['level'] == 'reco'
                   else {'ptMin'})
         if t != expect:

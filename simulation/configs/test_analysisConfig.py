@@ -871,5 +871,94 @@ class BackToBack(unittest.TestCase):
         self.assertFalse(hasattr(pd, 'extraJetsJER'))
 
 
+
+def addEventCollections(cfg):
+    """Back-to-back Zmumu (no jet variations) plus jet-free collections: reco charged-PV, reco PUPPI recoil hemisphere,
+    gen; E3C restricted to the AK8 collections. The names sort after Reco and Gen (writeTmp sorts keys), so a jet-free
+    collection that wrongly set the channels' back-to-back flags would override the AK8 one."""
+    enableBackToBack(cfg)
+    cfg['jets']['collections']['Reco'].update(variations={})
+    cfg['jets']['cleaning']['channels'] = ['Zmumu', 'Zee']
+    base = dict(mcOnly=False, jetCuts=dict(ptMin=0.0, absEtaMax=1e9, idMask=0, minConstituents=2), cleaningDR=0.0)
+    tr = dict(applyPuppiWeights=False, puppiValueMap='', dropAbsPdgIds=[], absEtaMax=2.4, minFromPV=2,
+              recoilHemisphere=False, constituentDetails=False, extraSrcs=[])
+    cc = dict(ptMin=0.0, chargedOnly=True, keepAbsPdgIds=[], dropAbsPdgIds=[], minPuppiWeight=0.0)
+    table = lambda n: dict(name=n, precision=-1, extraVariables=[])
+    cfg['jets']['collections'].update(
+        RecoEvtCh=dict(base, level='reco', mode='event', src='packedPFCandidates',
+                       translator=dict(tr, constituentDetails=True, extraSrcs=['lostTracks']), constituentCuts=cc,
+                       table=table('RecoEvtCh')),
+        RecoEvtPuppiHemi=dict(base, level='reco', mode='event', src='packedPFCandidates',
+                          translator=dict(tr, applyPuppiWeights=True, minFromPV=-1, recoilHemisphere=True),
+                          constituentCuts=dict(cc, chargedOnly=False), table=table('RecoEvtPuppiHemi')),
+        GenEvt=dict(base, level='gen', mode='event', mcOnly=True, src='packedGenParticles',
+                    translator=dict(tr, minFromPV=-1, dropAbsPdgIds=[12, 14, 16]), constituentCuts=cc,
+                    table=table('GenEvt')))
+    cfg['observables']['E3C']['collections'] = ['Reco', 'Gen']
+    return cfg
+
+
+class EventCollections(unittest.TestCase):
+    """Jet-free collections (mode event; simulation/jetFreeEEC_plan.md)."""
+
+    def assertRejected(self, mutate, *fragments):
+        LoaderRejects.assertRejected(self, lambda c: (addEventCollections(c), mutate(c)), *fragments)
+
+    def test_checks(self):
+        analysisConfig.load(writeTmp(addEventCollections(loadDefault())))   # one AK8 collection per level still
+        coll = lambda c, n: c['jets']['collections'][n]
+        self.assertRejected(lambda c: coll(c, 'RecoEvtCh').update(R=0.8), 'jets/collections/RecoEvtCh')
+        self.assertRejected(lambda c: coll(c, 'Reco').pop('R'), 'jets/collections/Reco')
+        self.assertRejected(lambda c: coll(c, 'RecoEvtCh')['translator'].pop('constituentDetails'), 'jets/collections/RecoEvtCh')
+        self.assertRejected(lambda c: coll(c, 'GenEvt')['translator'].update(constituentDetails=True), 'GenEvt/translator',
+                            'constituentDetails')
+        self.assertRejected(lambda c: coll(c, 'GenEvt')['translator'].update(extraSrcs=['lostTracks']), 'GenEvt/translator',
+                            'extraSrcs')
+        self.assertRejected(lambda c: c['jets']['cleaning'].update(channels=['Zmumu', 'Zee', 'Wmunu']),
+                            'RecoEvtCh: the selected leptons are removed exactly only for dilepton channels')
+        self.assertRejected(lambda c: coll(c, 'GenEvt')['translator'].update(minFromPV=1), 'GenEvt/translator',
+                            'minFromPV')
+        var = loadDefault()['jets']['collections']['Reco']['variations']
+        self.assertTrue(var)
+        self.assertRejected(lambda c: coll(c, 'RecoEvtCh').update(variations=var), 'RecoEvtCh: variations')
+        self.assertRejected(lambda c: c['observables']['E2C'].update(collections=['Nope']), 'observables/E2C/collections')
+        self.assertRejected(lambda c: c['selection']['reco']['channels']['Zmumu']['backToBack'].update(enabled=False),
+                            'RecoEvtPuppiHemi/translator', 'recoilHemisphere')
+
+    def test_wiring(self):
+        cfg = addEventCollections(loadDefault())
+        p = buildProcess(cfg, extra=('globalTag=' + TEST_GT, 'writeConstituents=1'))
+        ch, hemi, gen = p.jetsRecoEvtChRaw, p.jetsRecoEvtPuppiHemiRaw, p.jetsGenEvtRaw
+        self.assertEqual(ch.type_(), 'EventEECJetProducer')
+        self.assertEqual((ch.src.value(), ch.minFromPV.value(), ch.applyPuppiWeights.value(), ch.absEtaMax.value(),
+                          ch.recoilHemisphere.value()), ('packedPFCandidates', 2, False, 2.4, False))
+        # the selected leptons of every cleaning channel at the collection's level, by pointer
+        self.assertEqual(list(ch.excludePtrs), ['ZmumuSel:leptonPtrs', 'ZeeSel:leptonPtrs'])
+        self.assertEqual(list(gen.excludePtrs), ['genZmumuSel:leptonPtrs', 'genZeeSel:leptonPtrs'])
+        self.assertEqual((ch.excludeBy.value(), gen.excludeBy.value()), ('sourceCandidates', 'daughters'))
+        # packed-candidate details only where asked
+        d = p.jetsRecoEvtChConstituentDetailsTable
+        self.assertEqual((d.jets.value(), labels(d.candidates), d.name.value()),
+                         ('jetsRecoEvtCh', ['packedPFCandidates', 'lostTracks'], 'RecoEvtCh'))
+        self.assertEqual((labels(ch.extraSrcs), labels(hemi.extraSrcs)), (['lostTracks'], []))
+        self.assertFalse(hasattr(p, 'jetsRecoEvtPuppiHemiConstituentDetailsTable'))
+        self.assertTrue(p.jetsRecoEvtChTable.writeConstituents.value())
+        self.assertEqual(list(ch.recoilFlags), [])
+        self.assertEqual((labels(hemi.recoilFlags), list(hemi.recoilObjects)), (['ZmumuSel'], ['ZmumuSel:boson']))
+        self.assertEqual((hemi.applyPuppiWeights.value(), hemi.minFromPV.value()), (True, -1))
+        self.assertEqual(list(gen.dropAbsPdgIds), [12, 14, 16])
+        self.assertEqual(p.jetsRecoEvtChConst.chargedOnly.value(), True)
+        self.assertEqual(p.jetsRecoEvtChTable.name.value(), 'RecoEvtCh')
+        self.assertEqual(p.jetsRecoEvtCh.minConstituents.value(), 2)
+        # observables: E2C everywhere, E3C only on the AK8 collections; no aggregation or back-to-back for event jets
+        self.assertEqual(p.eecRecoEvtChE2C.src.value(), 'jetsRecoEvtCh')
+        self.assertFalse(hasattr(p, 'eecRecoEvtChE3C'))
+        self.assertTrue(hasattr(p, 'eecRecoE3C'))
+        self.assertFalse(hasattr(p, 'Zmumu_reco_eecRecoEvtChE2C'))
+        self.assertTrue(hasattr(p, 'Zmumu_reco_eecRecoE2C'))
+        self.assertFalse(hasattr(p, 'jetsRecoEvtChBackToBackZmumu'))
+        clean = ['goodVertexFlag', 'metFilterFlag', 'ecalBadCalibFlag', 'jetVetoMapFlag']
+        self.assertEqual(labels(p.Zmumu.srcs), ['ZmumuTrigger'] + clean + ['ZmumuSel', 'jetsRecoBackToBackZmumu'])
+
 if __name__ == '__main__':
     unittest.main()

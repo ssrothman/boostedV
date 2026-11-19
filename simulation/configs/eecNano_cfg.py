@@ -14,7 +14,7 @@ import FWCore.ParameterSet.Config as cms
 from FWCore.ParameterSet.VarParsing import VarParsing
 from SRothman.EECs.eecTools import addAggregator, addObservable
 from SRothman.EventSelection.eventSelection_cff import (addSelection, bosonTag, extraJetsTag, label, muonSFLabel,
-                                                        processModifiers, selectedObjects)
+                                                        processModifiers, selectedLeptonPtrs, selectedObjects)
 from SRothman.EventSelection.eventTables_cff import addAK4Jets, addEventTables
 from SRothman.JetSetup.eecJets_cff import backToBackFlag, setupJets
 
@@ -73,7 +73,7 @@ process.anySelectedPath = cms.Path(process.anySelectedFilter, task)
 
 # ---- jets ----
 cleaning = cfg['jets']['cleaning']['channels']
-collections = []  # (EEC name prefix, jet collection label)
+collections = []  # (EEC name prefix, jet collection label, collection name)
 b2bFlags = {}  # (level, channel) -> flag: the channel's dilepton/object selection passes and has a back-to-back jet
 for name, spec in cfg['jets']['collections'].items():
     if spec['mcOnly'] and not isMC:
@@ -86,10 +86,13 @@ for name, spec in cfg['jets']['collections'].items():
                     extraJetAlphaMax=c['backToBack']['extraJetAlphaMax'],
                     extraJets=dict(sel[lev]['extraJets'], src=extraJetsTag(lev, sel[lev])))
            for ch, c in sel[lev]['channels'].items() if c['backToBack']['enabled']}
+    excludePtrs = selectedLeptonPtrs(sel[lev], lev, cleaning) if spec['mode'] == 'event' else None
     labels = setupJets(process, 'jets' + name, spec, isMC, vetoSrcs=vetoes,
-                       writeConstituents=bool(opts.writeConstituents), task=task, backToBack=b2b)
-    collections += [(name + v, lab) for v, lab in labels.items()]
-    b2bFlags.update({(lev, ch): backToBackFlag('jets' + name, ch) for ch in b2b})
+                       writeConstituents=bool(opts.writeConstituents), task=task, backToBack=b2b,
+                       excludePtrs=excludePtrs)
+    collections += [(name + v, lab, name) for v, lab in labels.items()]
+    if spec['mode'] != 'event':   # event collections only read the channels' bosons (recoil hemisphere)
+        b2bFlags.update({(lev, ch): backToBackFlag('jets' + name, ch) for ch in b2b})
 
 # The channel flag <ch> (hence anyChannel, the event filter and <ch>Filter) includes the back-to-back requirement.
 for (lev, ch), f in b2bFlags.items():
@@ -102,8 +105,10 @@ for (lev, ch), f in b2bFlags.items():
 # Axis observables exist for the nominal jets only, which are the ones carrying EECJet::axes.
 nominalAxes = {name: [d['name'] for d in spec.get('axes', {'definitions': []})['definitions']]
                for name, spec in cfg['jets']['collections'].items()}
-for prefix, jets in collections:
+for prefix, jets, cname in collections:
     for obs, spec in cfg['observables'].items():
+        if cname not in spec.get('collections', [cname]):
+            continue
         if 'axis' in spec:
             if prefix not in nominalAxes:
                 continue
@@ -119,10 +124,14 @@ for level in levels:
         seq = getattr(process, label(level, ch) + 'Filter')
         # Reco-level MC histograms carry the channel's muon efficiency scale factors.
         weights = [muonSFLabel(ch)] if isMC and level == 'reco' and ch in sel['reco']['muonScaleFactors'] else []
-        for prefix, jets in collections:
+        for prefix, jets, cname in collections:
+            if cfg['jets']['collections'][cname]['mode'] == 'event':
+                continue
             # Jets overlapping this channel's selected objects are skipped (other channels' vetoes are not applied).
             mask = '%sVetoTable:%s' % (jets, ch) if ch in cleaning else ''
             for obs in agg['observables']:
+                if cname not in cfg['observables'][obs].get('collections', [cname]):
+                    continue
                 lab = 'eec%s%s' % (prefix, obs)
                 seq = seq + addAggregator(process, '%s_%s_%s' % (ch, level, lab), lab, cfg['observables'][obs],
                                           genInfo, agg['maxBins'], weights, mask)

@@ -32,6 +32,7 @@
 - 2026-11-18 Truth rho: realistic window, full tables, joint helicities, shape validation, singly-resonant Z->4f
 - 2026-11-18 Cutflow regenerated: all 30 processes, production `20261118_cutflow`
 - 2026-11-18 Cutflow final rows from the full productions; LHE and full-production manifests
+- 2026-11-19 Jet-free EEC collections (mode event)
 
 ## 2026-11-11 A.2 setup and DataFormats
 - Plan: `stepA2_plan.md`. New local repos (remotes pending): `EECDataFormats` (pkg `SRothman/DataFormats`),
@@ -650,3 +651,9 @@ datasets only; a separate LHE production; QCD/Higgs dR figures with the parton /
   skipped. Regression: vw reproduces the AN dR.md exactly. Unit test with a status-2 jet of 91 GeV (5 mutations
   caught). Parton on 427 DY events: 388 reco jets; WTA is closer to the parton than the jet axis (median 0.021 vs
   0.028 at 400-600), the reverse of W/Z. Higgs: no ZH NANO with axes yet (unit test only).
+
+## 2026-11-19 Jet-free EEC collections (mode event)
+`EventEECJetProducer` (one pseudo-jet per event; exact removal of the selected leptons), constituent details table,
+`DileptonSelector` `leptonPtrs`, observable `collections:`, manifest `writeConstituents`, `ZX_jetfree.yaml`. Details,
+validation and decisions: `simulation/jetFreeEEC_plan.md`, `analysis/SENSITIVITY_JOURNAL.md`.
+

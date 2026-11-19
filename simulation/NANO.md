@@ -266,6 +266,23 @@ the jet four-momentum.
 - With `writeConstituents=1`, every jet table also gets `<jet table>Constituents`: `iJet`, `pt`, `eta`, `phi`, `E`,
   `charge`, `pdgId`, `puppiWeight` (already applied to the momentum), `srcIdx`.
 
+**Jet-free collections (`mode: event`).** One pseudo-jet per event (0 or 1 row; 0 when fewer than `minConstituents`
+particles pass) made of the event's candidates (`src`: packed PF or packed gen particles) with |η| < `absEtaMax`,
+charged candidates with `fromPV() >= minFromPV` (if ≥ 0), optionally only the recoil hemisphere (|Δφ| > π/2 to the
+first passing back-to-back channel's boson), PUPPI-weighted if `applyPuppiWeights`, without the selected leptons of
+every `jets.cleaning` channel (all must be dilepton channels): at reco their PF candidates and, for electrons, the
+candidate matching their CTF track (`sourceCandidatePtr`s; a
+selected electron usually has one, its PF electron, but can have several, including photons and charged hadrons), at gen the
+dressed lepton's bare lepton and the photons used in its dressing. Then the usual `constituentCuts` (e.g.
+`chargedOnly`). The p4 is the vector sum of the (weighted) particles before `constituentCuts`; `rawPt` = `pt`; no ID,
+axes, variations, cleaning or back-to-back columns. Observables are restricted to collections with their
+`collections:` key. Translator `extraSrcs` (reco, e.g. `[lostTracks]`) adds more packed candidates after `src`;
+constituent `srcIdx` then indexes the concatenation. `simulation/configs/ZX_jetfree.yaml` (from
+`make_jetfree_config.py`) defines `RecoEvtAll` (packed PF candidates and lostTracks, no PV cut or PUPPI weighting) and
+`GenEvtAll`, constituents only. With translator `constituentDetails` (reco), `<table>Constituents` also has `source`
+(0: `src`, then `extraSrcs`), `fromPV`, `pvAssociationQuality` (uint8), `dz`, `dxy` (cm; NaN for neutrals), `dzError`,
+`dxyError` (NaN without track details), `puppiWeightRaw`, `puppiWeightNoLep`.
+
 ### 4.6 EEC observables
 For each jet collection `<C>`, variation `<v>` and observable `<obs>` (name `<C><v><obs>`):
 

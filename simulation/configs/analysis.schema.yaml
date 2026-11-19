@@ -236,6 +236,19 @@ definitions:
         required: [ptMin]
         properties:
           ptMin: {$ref: '#/definitions/num'}
+      - type: object          # event (EventEECJetProducer)
+        additionalProperties: false
+        required: [applyPuppiWeights, puppiValueMap, dropAbsPdgIds, absEtaMax, minFromPV, recoilHemisphere,
+                   constituentDetails, extraSrcs]
+        properties:
+          applyPuppiWeights: {type: boolean}
+          puppiValueMap: {type: string}
+          dropAbsPdgIds: {$ref: '#/definitions/intList'}
+          absEtaMax: {type: number, exclusiveMinimum: 0}
+          minFromPV: {type: integer}        # charged candidates: fromPV() >= this; < 0: no cut
+          recoilHemisphere: {type: boolean}
+          constituentDetails: {type: boolean}   # reco: fromPV, dz, dxy, PUPPI weights per constituent
+          extraSrcs: {$ref: '#/definitions/strList'}   # reco: more packed candidates after src, e.g. [lostTracks]
       - type: object          # recluster
         additionalProperties: false
         required: [ptMin, algorithm, applyPuppiWeights, puppiValueMap, dropAbsPdgIds]
@@ -249,10 +262,13 @@ definitions:
   collection:
     type: object
     additionalProperties: false
-    required: [level, mode, mcOnly, src, R, translator, jetCuts, constituentCuts, cleaningDR, table]
+    required: [level, mode, mcOnly, src, translator, jetCuts, constituentCuts, cleaningDR, table]
+    if: {properties: {mode: {enum: [pat, recluster]}}}
+    then: {required: [R]}
+    else: {not: {required: [R]}}    # event: one pseudo-jet per event, no radius
     properties:
       level: {enum: [reco, gen]}
-      mode: {enum: [pat, recluster]}
+      mode: {enum: [pat, recluster, event]}
       mcOnly: {type: boolean}
       src: {$ref: '#/definitions/str'}
       R: {type: number, exclusiveMinimum: 0}
@@ -379,6 +395,7 @@ definitions:
           norm: {enum: [sumE, sumPt, jetE, jetPt, unity]}
           output: {enum: [Dense, SparseMerged, SparseUnmerged, Unbinned]}
           axes: {type: array, items: {$ref: '#/definitions/axis'}, minItems: 1, maxItems: 1}
+          collections: {$ref: '#/definitions/strList'}   # default: every jet collection
           table: {$ref: '#/definitions/obsTable'}
       - type: object
         additionalProperties: false
@@ -392,6 +409,7 @@ definitions:
           output: {enum: [Dense, SparseMerged, SparseUnmerged, Unbinned]}
           axes: {type: array, items: {$ref: '#/definitions/axis'}, minItems: 2, maxItems: 2}
           axis: {$ref: '#/definitions/axisName'}   # frame jetAxis about this jet axis; nominal jets only
+          collections: {$ref: '#/definitions/strList'}   # default: every jet collection
           table: {$ref: '#/definitions/obsTable'}
 
   obsTable:
