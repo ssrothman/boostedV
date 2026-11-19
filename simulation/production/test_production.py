@@ -61,6 +61,18 @@ class Manifest(unittest.TestCase):
         self.assertRejected(lambda m: m['samples'][MC].update(maxJobs=0), 'maxJobs')
         self.assertRejected(lambda m: m['samples'].update({'bad/name': m['samples'][MC]}), 'bad/name')
         self.assertRejected(lambda m: m.update(outputBase='/eos/uscms/store/user/x'), 'outputBase')
+        self.assertRejected(lambda m: m['samples'][MC].update(cmsswConfig='other_cfg.py'), 'cmsswConfig')
+
+    def test_cmssw_config_default(self):
+        man = loadRaw()
+        man['samples'][DATA]['cmsswConfig'] = 'lheNano_cfg.py'
+        path = writeManifest(man)
+        try:
+            s = manifest.load(path)['samples']
+        finally:
+            os.unlink(path)
+        self.assertEqual(s[MC]['cmsswConfig'], 'eecNano_cfg.py')
+        self.assertEqual(s[DATA]['cmsswConfig'], 'lheNano_cfg.py')
 
     def test_cross_checks(self):
         self.assertRejected(lambda m: m['samples'][DATA].update(lumiMask=''), 'data needs a lumiMask')
@@ -123,11 +135,18 @@ class Condor(unittest.TestCase):
                                       'root://in')
         self.assertEqual(lines, [
             '0 root://in//store/a.root,root://in//store/b.root root://eos//store/user/x/T/S root://eos//t.tgz '
-            'default.yaml 130X_dataRun3_PromptAnalysis_v1 0 Cert_Collisions2022_eraF_360390_362167_Golden.json',
+            'default.yaml 130X_dataRun3_PromptAnalysis_v1 0 Cert_Collisions2022_eraF_360390_362167_Golden.json '
+            'eecNano_cfg.py',
             '1 root://other//store/c.root root://eos//store/user/x/T/S root://eos//t.tgz '
-            'default.yaml 130X_dataRun3_PromptAnalysis_v1 0 Cert_Collisions2022_eraF_360390_362167_Golden.json'])
+            'default.yaml 130X_dataRun3_PromptAnalysis_v1 0 Cert_Collisions2022_eraF_360390_362167_Golden.json '
+            'eecNano_cfg.py'])
         mc = condorBackend.jobArgs(self.sample[MC], files[:1], 'o', 't', 'root://in')
-        self.assertEqual(mc[0].split()[5:], ['130X_mcRun3_2022_realistic_postEE_v6', '1', 'none'])
+        self.assertEqual(mc[0].split()[5:], ['130X_mcRun3_2022_realistic_postEE_v6', '1', 'none', 'eecNano_cfg.py'])
+        lhe = dict(self.sample[MC], cmsswConfig='lheNano_cfg.py')
+        self.assertEqual(condorBackend.jobArgs(lhe, files[:1], 'o', 't', 'root://in')[0].split()[-1], 'lheNano_cfg.py')
+        shipped = [os.path.basename(f) for f in condorBackend.jobInputs(lhe)]
+        self.assertIn('lheNano_cfg.py', shipped)
+        self.assertNotIn('eecNano_cfg.py', shipped)
 
     def test_jdl_ships_cfg_and_mask(self):
         w = tempfile.mkdtemp()
@@ -379,6 +398,10 @@ class Crab(unittest.TestCase):
         self.assertFalse(hasattr(c.Data, 'lumiMask'))
         self.assertEqual(c.Data.outLFNDirBase, '/store/user/srothman/boostedV/20261112_t/S')
         self.assertEqual(c.Site.storageSite, 'T3_US_FNALLPC')
+        self.assertEqual(os.path.basename(c.JobType.psetName), 'eecNano_cfg.py')
+        lhe = self.crab.makeConfig(dict(s, cmsswConfig='lheNano_cfg.py'), 'S', '20261112_t', self.man, '/w')
+        self.assertEqual(os.path.basename(lhe.JobType.psetName), 'lheNano_cfg.py')
+        self.assertTrue(os.path.isfile(lhe.JobType.psetName))
         self.assertEqual(c.JobType.pyCfgParams, ['config=' + s['config'],
                                                  'globalTag=130X_mcRun3_2022_realistic_postEE_v6', 'isMC=1',
                                                  'outputFile=nano.root', 'histFile=hists.root'])

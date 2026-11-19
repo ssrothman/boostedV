@@ -8,7 +8,7 @@ import tarfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CONFIGS = os.path.join(os.path.dirname(HERE), 'configs')
-CFG_FILES = [os.path.join(CONFIGS, f) for f in ('eecNano_cfg.py', 'analysisConfig.py', 'analysis.schema.yaml')]
+CFG_FILES = [os.path.join(CONFIGS, f) for f in ('analysisConfig.py', 'analysis.schema.yaml')]
 # Not needed at run time; EECs/build also contains symlink loops back into the package.
 TAR_EXCLUDE = {'tmp', '.git', 'build', '__pycache__', 'test', 'bench', 'docs'}
 
@@ -80,12 +80,13 @@ def jobArgs(sample, files, outDir, tarballUrl, redirector):
     for i, chunk in enumerate(chunks(files, sample['splitting']['unitsPerJob'], sample['maxJobs'])):
         lines.append(' '.join([str(i), ','.join(url(f, redirector) for f in chunk), outDir, tarballUrl,
                                os.path.basename(sample['config']), sample['globalTag'], str(int(sample['isMC'])),
-                               mask]))
+                               mask, sample['cmsswConfig']]))
     return lines
 
 
 def jobInputs(sample):
-    return CFG_FILES + [sample['config']] + ([sample['lumiMask']] if sample['lumiMask'] else [])
+    return ([os.path.join(CONFIGS, sample['cmsswConfig'])] + CFG_FILES + [sample['config']]
+            + ([sample['lumiMask']] if sample['lumiMask'] else []))
 
 
 def snapshotInputs(sample, workDir):

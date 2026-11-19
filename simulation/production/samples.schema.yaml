@@ -1,4 +1,4 @@
-# JSON Schema (draft-07) for the production manifest (samples.yaml). Closed objects, all keys required;
+# JSON Schema (draft-07) for the production manifest (samples.yaml). Closed objects, all keys required except cmsswConfig;
 # cross-checks (backend/splitting compatibility, data needs a lumi mask, configs valid) are in manifest.py.
 $schema: http://json-schema.org/draft-07/schema#
 type: object
@@ -27,6 +27,7 @@ definitions:
       isMC: {type: boolean}
       globalTag: {$ref: '#/definitions/str'}
       config: {$ref: '#/definitions/str'}         # analysis YAML, relative to this manifest
+      cmsswConfig: {enum: [eecNano_cfg.py, lheNano_cfg.py]}   # optional, default eecNano_cfg.py (in ../configs)
       lumiMask: {type: string}                     # certification JSON for data, '' for MC
       backend: {enum: [crab, condor]}
       splitting:

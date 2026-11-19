@@ -3,7 +3,7 @@ import json
 import os
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-CFG = os.path.join(os.path.dirname(HERE), 'configs', 'eecNano_cfg.py')
+CONFIGS = os.path.join(os.path.dirname(HERE), 'configs')
 SPLITTING = {'files': 'FileBased', 'events': 'EventAwareLumiBased'}
 
 
@@ -15,7 +15,7 @@ def makeConfig(sample, name, tag, man, workArea):
     c.General.transferOutputs = True
     c.General.transferLogs = False
     c.JobType.pluginName = 'Analysis'
-    c.JobType.psetName = CFG
+    c.JobType.psetName = os.path.join(CONFIGS, sample['cmsswConfig'])
     # The cfg is evaluated here at submission, so the YAML is read locally; CRAB applies Data.lumiMask itself.
     c.JobType.pyCfgParams = ['config=' + sample['config'], 'globalTag=' + sample['globalTag'],
                              'isMC=%d' % sample['isMC'], 'outputFile=nano.root', 'histFile=hists.root']
