@@ -80,7 +80,7 @@ def jobArgs(sample, files, outDir, tarballUrl, redirector):
     for i, chunk in enumerate(chunks(files, sample['splitting']['unitsPerJob'], sample['maxJobs'])):
         lines.append(' '.join([str(i), ','.join(url(f, redirector) for f in chunk), outDir, tarballUrl,
                                os.path.basename(sample['config']), sample['globalTag'], str(int(sample['isMC'])),
-                               mask, sample['cmsswConfig']]))
+                               mask, sample['cmsswConfig'], str(int(sample['writeConstituents']))]))
     return lines
 
 

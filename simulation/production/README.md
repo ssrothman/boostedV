@@ -5,7 +5,7 @@ Runs `../configs/eecNano_cfg.py` (or, per sample with `cmsswConfig: lheNano_cfg.
 
 | File | Role |
 |---|---|
-| `samples.yaml` | manifest: one entry per sample (dataset or file list, MC/data, GlobalTag, analysis YAML, lumi mask, backend, splitting; optional `cmsswConfig`) |
+| `samples.yaml` | manifest: one entry per sample (dataset or file list, MC/data, GlobalTag, analysis YAML, lumi mask, backend, splitting; optional `cmsswConfig` and `writeConstituents` (default false: cmsRun `writeConstituents=1`)) |
 | `samples_zxall.yaml` | all 30 ZX_test samples (signal, DY, ttbar, WW, single top, ZH) with the current code |
 | `samples_lhe.yaml` | unselected LHE NANO of ZZ/WZ -> 2l2q and DY PTLL-200to400/400to600/600 (truth rho, AN Appendix A) |
 | `samples.schema.yaml`, `manifest.py` | schema and loader; the loader also validates every referenced analysis YAML |

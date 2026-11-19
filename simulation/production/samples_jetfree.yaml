@@ -1,0 +1,75 @@
+# Jet-free test production (simulation/jetFreeEEC_plan.md; analysis/SENSITIVITY_PLAN.md Phase B): ZX_jetfree.yaml
+# (make_jetfree_config.py: constituents only, RecoEvtAll with lostTracks, GenEvtAll) with writeConstituents. Measured on
+# 1000 DY PTLL-400to600 dev events: 55.7 kB per written event; written fractions from the earlier productions: DY 400-600
+# 43%, DY 600 48%, WZ 0.41%, ZZ 0.23%, qq->ZH(bb) 1.7%. Signals in full; DY 18 and 19 one-file jobs (~10%); ~28 GB.
+# PREPARED, NOT SUBMITTED.
+outputBase: /store/user/srothman/boostedV
+storageSite: T3_US_FNALLPC
+eosRedirector: root://cmseos.fnal.gov
+inputRedirector: root://cmsxrootd.fnal.gov
+samples:
+  DYto2L-4Jets_MLL-50_PTLL-400to600_MLM:
+    input:
+      dataset: /DYto2L-4Jets_MLL-50_PTLL-400to600_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer22EEMiniAODv4-130X_mcRun3_2022_realistic_postEE_v6-v3/MINIAODSIM
+    isMC: true
+    globalTag: 130X_mcRun3_2022_realistic_postEE_v6
+    config: ../configs/ZX_jetfree.yaml
+    lumiMask: ''
+    backend: crab
+    splitting:
+      mode: files
+      unitsPerJob: 1
+    maxJobs: 18
+    writeConstituents: true
+  DYto2L-4Jets_MLL-50_PTLL-600_MLM:
+    input:
+      dataset: /DYto2L-4Jets_MLL-50_PTLL-600_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer22EEMiniAODv4-130X_mcRun3_2022_realistic_postEE_v6-v3/MINIAODSIM
+    isMC: true
+    globalTag: 130X_mcRun3_2022_realistic_postEE_v6
+    config: ../configs/ZX_jetfree.yaml
+    lumiMask: ''
+    backend: crab
+    splitting:
+      mode: files
+      unitsPerJob: 1
+    maxJobs: 19
+    writeConstituents: true
+  WZto2L2Q_powheg:
+    input:
+      dataset: /WZto2L2Q_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EEMiniAODv4-130X_mcRun3_2022_realistic_postEE_v6-v2/MINIAODSIM
+    isMC: true
+    globalTag: 130X_mcRun3_2022_realistic_postEE_v6
+    config: ../configs/ZX_jetfree.yaml
+    lumiMask: ''
+    backend: crab
+    splitting:
+      mode: files
+      unitsPerJob: 6
+    maxJobs: -1
+    writeConstituents: true
+  ZZto2L2Q_powheg:
+    input:
+      dataset: /ZZto2L2Q_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EEMiniAODv4-130X_mcRun3_2022_realistic_postEE_v6-v2/MINIAODSIM
+    isMC: true
+    globalTag: 130X_mcRun3_2022_realistic_postEE_v6
+    config: ../configs/ZX_jetfree.yaml
+    lumiMask: ''
+    backend: crab
+    splitting:
+      mode: files
+      unitsPerJob: 6
+    maxJobs: -1
+    writeConstituents: true
+  ZH_Hto2B_Zto2L_powheg:
+    input:
+      dataset: /ZH_Hto2B_Zto2L_M-125_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EEMiniAODv4-130X_mcRun3_2022_realistic_postEE_v6-v2/MINIAODSIM
+    isMC: true
+    globalTag: 130X_mcRun3_2022_realistic_postEE_v6
+    config: ../configs/ZX_jetfree.yaml
+    lumiMask: ''
+    backend: crab
+    splitting:
+      mode: files
+      unitsPerJob: 9
+    maxJobs: -1
+    writeConstituents: true

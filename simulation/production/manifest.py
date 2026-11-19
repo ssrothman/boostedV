@@ -36,6 +36,7 @@ def load(path):
     for name, s in man['samples'].items():
         s['config'] = os.path.join(base, s['config'])
         s.setdefault('cmsswConfig', 'eecNano_cfg.py')
+        s.setdefault('writeConstituents', False)
         if s['lumiMask']:
             s['lumiMask'] = os.path.join(base, s['lumiMask'])
         if 'fileList' in s['input']:
