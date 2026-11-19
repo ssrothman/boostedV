@@ -11,7 +11,7 @@ cd analysis
 
 ## Run and plot
 ```
-python3 run.py configs/zxtest.yaml --tag 20261113_zxtest [--samples NAME ...] [--lumi PB] -o out.coffea [--export out.root]
+python3 run.py configs/zxtest.yaml --tag 20261113_zxtest [TAG ...] [--samples NAME ...] [--lumi PB] -o out.coffea [--export out.root]
 python3 run.py configs/zxtest.yaml --files DY=nano_dy.root TT=nano_tt.root -o out.coffea
 python3 plot.py out.coffea --hist bosonPt --region ZmumuReco --norm area --logy -o zpt.pdf
 python3 plot.py out.coffea --hist E2Cn1 --region ZmumuReco --samples DY --split jetpt --project dR \
@@ -23,7 +23,7 @@ python3 plot.py out.coffea --hist E1CHelicity --region ZmumuReco --samples TT -o
 - `run.py` output: `hists[hist][region][sample]` (`hist.Hist`), `cutflow[region][sample][cut]` (`n`, `sumw`, `jets`),
   `sumw[sample]`.
 - `plot.py`: overlay samples (default), regions (`--regions`), or the bins of an axis (`--split`); `--slice AXIS=LO:HI`
-  (bin edges), `--project`, `--norm area`, `--width linear|log`, `--stack`, `--ratio LEGEND`, `--ratio-sum PREFIX` (pad: (D + X)/D per other sample and for their sum, D = samples starting with PREFIX), `--group NAME=PREFIX` (sum samples into one curve; empty PREFIX = all), log axes. Two remaining
+  (bin edges), `--project`, `--norm area`, `--width linear|log`, `--stack`, `--ratio LEGEND`, `--ratio-sum PREFIX` (pad: (D + X)/D per other sample and for their sum, D = samples starting with PREFIX), `--group NAME=PREFIX[,PREFIX...]` (sum the samples starting with any PREFIX into one curve; empty PREFIX = all), log axes. Ratio panels take their y range from the points with uncertainty < 0.2 (`RATIO_MAXERR`); more than six curves use the Petroff 10-colour cycle. Two remaining
   axes give a map. Label: "CMS Simulation Work in progress".
 
 ## LPC HTCondor (`condor.py`, design: `CONDOR_PLAN.md`)

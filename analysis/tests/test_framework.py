@@ -240,6 +240,53 @@ class Plotting(unittest.TestCase):
             plotting.plot1d(hs, norm='area', ratioSum=('DY', ['DY']))
         with self.assertRaises(ValueError):
             plotting.group(hs, ['X=nomatch'])
+        g = plotting.group(hs, ['B=TT,V'])
+        self.assertEqual(list(g), ['DY', 'B'])
+        np.testing.assert_allclose(g['B'].values(), [3, 7])
+
+    def test_ten_curves_have_distinct_colours(self):
+        import hist
+        import matplotlib.colors as mc
+        hs = {}
+        for k in range(10):
+            h = hist.Hist(makeAxis({'regular': [2, 0, 2]}, 'x', ''), storage='weight')
+            h.fill([0.5], weight=[k + 1.0])
+            hs['s%d' % k] = h
+        for stack in (True, False):
+            handles = plotting.plot1d(hs, stack=stack).axes[0].get_legend().legend_handles
+            colours = {mc.to_hex(h.get_facecolor() if stack else h.get_color()) for h in handles}
+            self.assertEqual(len(colours), 10)
+
+    def test_ratio_limits_ignore_imprecise_points(self):
+        r = (np.array([0.9, 1.2, 5.0, np.inf, np.nan]), np.array([0.05, 0.1, 0.5, 0.0, 0.1]))
+        np.testing.assert_allclose(plotting.ratioLimits([r]), (0.87, 1.23))
+        # no precise point: all finite ones
+        np.testing.assert_allclose(plotting.ratioLimits([(np.array([0.5, 3.0]), np.array([1.0, 1.0]))]), (0.25, 3.25))
+        # 1 is always inside; the minimum range is 0.02
+        np.testing.assert_allclose(plotting.ratioLimits([(np.array([1.03]), np.array([0.01]))]), (0.997, 1.033))
+        fig = plotting.plot1d({'a': self._h([1.0, 1.0]), 'b': self._h([1.1, 1.0])}, ratio='a')
+        self.assertEqual(fig.axes[1].get_ylim()[1] < 1.2, True)
+
+    @staticmethod
+    def _h(w):
+        import hist
+        h = hist.Hist(makeAxis({'regular': [2, 0, 2]}, 'x', ''), storage='weight')
+        h.fill([0.5, 1.5], weight=w)
+        return h
+
+    def test_ratio_lines_keep_the_curve_colours(self):
+        import hist
+        import matplotlib.colors as mc
+        hs = {}
+        for k in range(3):
+            h = hist.Hist(makeAxis({'regular': [2, 0, 2]}, 'x', ''), storage='weight')
+            h.fill([0.5, 1.5], weight=[k + 1.0, 1.0])
+            hs['s%d' % k] = h
+        fig = plotting.plot1d(hs, norm='area', ratio='s0')
+        main = {t.get_text(): mc.to_hex(h.get_color()) for t, h in
+                zip(fig.axes[0].get_legend().get_texts(), fig.axes[0].get_legend().legend_handles)}
+        ratio = [mc.to_hex(c[0].get_color()) for c in fig.axes[1].containers[::2]]   # two containers per curve
+        self.assertEqual(ratio, [main['s1'], main['s2']])
 
 
 @unittest.skipUnless(os.environ.get('ANALYSIS_TEST_NANO'), 'set ANALYSIS_TEST_NANO')

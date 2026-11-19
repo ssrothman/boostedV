@@ -39,13 +39,14 @@ def reduce(h, slices=(), project=None):
 
 
 def group(curves, specs):
-    """specs: 'NAME=PREFIX' strings; the curves whose legend starts with PREFIX are summed into NAME (others kept)."""
+    """specs: 'NAME=PREFIX[,PREFIX...]' strings; the curves whose legend starts with any PREFIX are summed into NAME
+    (others kept)."""
     out = dict(curves)
     for spec in specs:
-        name, prefix = spec.split('=', 1)
-        members = [k for k in out if k.startswith(prefix)]
+        name, prefixes = spec.split('=', 1)
+        members = [k for k in out if k.startswith(tuple(prefixes.split(',')))]
         if not members:
-            raise ValueError('group %s: no curve starts with %r' % (name, prefix))
+            raise ValueError('group %s: no curve starts with %r' % (name, prefixes))
         total = sum((out[k] for k in members[1:]), out[members[0]].copy())
         out = {(name if k == members[0] else k): (total if k == members[0] else v)
                for k, v in out.items() if k not in members[1:]}
@@ -74,6 +75,25 @@ def values(h, norm='none', width='none'):
     return v / d, e / d
 
 
+RATIO_MAXERR = 0.2
+
+
+def ratioLimits(points):
+    """Ratio-panel y range from [(ratio, error)] arrays: the points with error < RATIO_MAXERR (all finite points if
+    none), and 1, padded by 10%; less precise points may leave the panel."""
+    r = np.concatenate([x for x, _ in points]) if points else np.array([])
+    e = np.concatenate([x for _, x in points]) if points else np.array([])
+    ok = np.isfinite(r) & np.isfinite(e)
+    use = r[ok & (e < RATIO_MAXERR)]
+    if not len(use):
+        use = r[ok]
+    if not len(use):
+        return 0.0, 2.0
+    lo, hi = min(use.min(), 1.0), max(use.max(), 1.0)
+    pad = 0.1 * max(hi - lo, 0.02)
+    return lo - pad, hi + pad
+
+
 def label(ax, lumi=None, fontsize=None):
     hep.cms.label(LABEL, data=False, lumi=lumi, com=13.6, ax=ax, fontsize=fontsize)
 
@@ -86,6 +106,8 @@ def plot1d(hists, norm='none', width='none', stack=False, ratio=None, logx=False
     ratioSum: (label, legends); the ratio panel shows (D + X) / D for each remaining curve X and for their sum, with D
     the sum of those legends; it needs norm 'none' and excludes `ratio`."""
     hep.style.use('CMS')
+    if len(hists) > 6:   # the CMS style cycles 6 colours; CMS recommends Petroff's 10-colour set beyond that
+        plt.rcParams['axes.prop_cycle'] = plt.style.library['petroff10']['axes.prop_cycle']
     if ratioSum is not None and (ratio is not None or norm != 'none'):
         raise ValueError('ratioSum needs norm none and no ratio')
     if ratio is not None or ratioSum is not None:
@@ -114,24 +136,24 @@ def plot1d(hists, norm='none', width='none', stack=False, ratio=None, logx=False
         # each rest sample is independent of the denominator, so (den + rest) / den - 1 = rest / den
         for n, v, e, c in lines:
             with np.errstate(divide='ignore', invalid='ignore'):
-                ratio = 1 + v / den
-                hep.histplot(ratio, edges, yerr=e / np.abs(den), ax=rax, color=c)
-                r.append(ratio[np.isfinite(ratio) & (den > 0)])
+                ratio, err = 1 + v / den, e / np.abs(den)
+                hep.histplot(ratio, edges, yerr=err, ax=rax, color=c)
+                r.append((ratio, err))
         rax.axhline(1, color='gray', lw=1)
-        r = np.concatenate(r) if r else np.array([])
-        if len(r):
-            pad = 0.1 * max(r.max() - r.min(), 0.02)
-            rax.set_ylim(min(r.min(), 1) - pad, r.max() + pad)
+        rax.set_ylim(*ratioLimits(r))
         rax.set_ylabel('(%s + X) / %s' % (rlabel, rlabel))
         rax.set_xlabel(xlabel or first.axes[0].label)
     elif rax is not None:
-        den = vals[ratio][0]
+        den, r = vals[ratio][0], []
+        colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
         for n in names:
             if n == ratio:
                 continue
             with np.errstate(divide='ignore', invalid='ignore'):
-                hep.histplot(vals[n][0] / den, edges, yerr=vals[n][1] / np.abs(den), ax=rax, label=n)
+                r.append((vals[n][0] / den, vals[n][1] / np.abs(den)))
+            hep.histplot(r[-1][0], edges, yerr=r[-1][1], ax=rax, label=n, color=colors[names.index(n) % len(colors)])
         rax.axhline(1, color='gray', lw=1)
+        rax.set_ylim(*ratioLimits(r))
         rax.set_ylabel('ratio to %s' % ratio)
         rax.set_xlabel(xlabel or first.axes[0].label)
     else:

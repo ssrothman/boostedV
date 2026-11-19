@@ -36,8 +36,8 @@ def main():
     ap.add_argument('--ratio', metavar='LEGEND', help='ratio panel with this curve as denominator')
     ap.add_argument('--ratio-sum', metavar='PREFIX',
                     help='ratio panel of the sum of all samples to the sum of those starting with PREFIX')
-    ap.add_argument('--group', action='append', default=[], metavar='NAME=PREFIX',
-                    help='sum the samples starting with PREFIX into one curve NAME (empty PREFIX: all)')
+    ap.add_argument('--group', action='append', default=[], metavar='NAME=PREFIX[,PREFIX]',
+                    help='sum the samples starting with any PREFIX into one curve NAME (empty PREFIX: all)')
     ap.add_argument('--ylim-rel', type=float, nargs=2, metavar=('LO', 'HI'),
                     help='main-panel y range as multiples of the largest bin of the (stacked) total')
     ap.add_argument('--logx', action='store_true')
