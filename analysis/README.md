@@ -82,12 +82,14 @@ in the selection's 61.19–121.19 GeV window, nothing on the hadronic one: the t
 ## Jet-axis study (`axisStudy.py`, `axisDeltaR.py`)
 ```
 python3 axisStudy.py nano*.root --rho-json rho.json [--level Reco|Gen] -o axes.md   # rest-frame E1C moments per axis
-python3 axisDeltaR.py nano*.root -o outdir                                            # dR(axis, truth V) plots and table
+python3 axisDeltaR.py nano*.root -o outdir [--truth vw|higgs|parton]                 # dR(axis, truth) plots and table
 ```
 Signal NANOs with the axis columns and `E1CLab<axis>` tables. Jets matched to a truth W/Z inside its mass window
 (low-mass gamma* would dominate the rest-frame weights). `axisStudy.py` also needs LHEPart and the unselected truth rho
 of `truthRho.py` (hadronic bins of the same bosons) for the L/T reweighting; it prints paired differences of the
-sensitivity between axes. Documented in the ZX_test AN, Appendix B.
+sensitivity between axes. `axisDeltaR.py --truth` selects the reference: a W/Z in its window (default), a Higgs boson
+(120-130 GeV; ZH samples) or a hard-process parton not from a boson (QCD jets, e.g. Drell-Yan). Documented in the
+ZX_test AN, Appendix B.
 
 ## Tests
 ```
