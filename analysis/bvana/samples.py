@@ -39,8 +39,8 @@ class Sample:
         return {'files': {f: 'Events' for f in self.files}, 'metadata': {'sample': self.name, 'isMC': self.isMC}}
 
 
-def load(tag, names=None, work=WORK, xsecFile=XSEC):
-    """Samples of a production tag that have been merged; names restricts the list."""
+def load(tag, names=None, work=WORK, xsecFile=XSEC, required=True):
+    """Samples of a production tag that have been merged; names restricts the list (all must exist if required)."""
     with open(xsecFile) as f:
         xs = yaml.safe_load(f) or {}
     base = os.path.join(work, tag)
@@ -53,6 +53,6 @@ def load(tag, names=None, work=WORK, xsecFile=XSEC):
             info = json.load(f)
         out[name] = Sample(name, info, (xs.get(name) or {}).get('xsec'))
     missing = set(names or ()) - set(out)
-    if missing:
+    if missing and required:
         raise ValueError('not merged under %s: %s' % (tag, sorted(missing)))
     return out

@@ -55,6 +55,35 @@ class Samples(unittest.TestCase):
             with self.assertRaises(ValueError):
                 samples.load('tag', ['A', 'C'], work=d, xsecFile=xs)
 
+    def test_fileset_over_tags(self):
+        import argparse
+        import functools
+        from unittest import mock
+        import run
+        with tempfile.TemporaryDirectory() as d:
+            for tag, names in (('t1', ('A', 'B')), ('t2', ('C',)), ('t3', ('A',))):
+                for name in names:
+                    os.makedirs(os.path.join(d, tag, name, 'merged'))
+                    with open(os.path.join(d, tag, name, 'merged', 'sample.json'), 'w') as f:
+                        json.dump({'isMC': True, 'nanoFiles': [tag + name + '.root'], 'genEventSumw': 2.0}, f)
+            xs = os.path.join(d, 'xs.yaml')
+            with open(xs, 'w') as f:
+                f.write('A: {xsec: 1.0, source: test}\nB: {xsec: 3.0, source: test}\nC: {xsec: 5.0, source: test}\n')
+
+            def fs(tags, names=None):
+                a = argparse.Namespace(fileset=None, files=None, tag=tags, samples=names, lumi=10.0)
+                return run.fileset(a)
+            with mock.patch.object(run.samples, 'load', functools.partial(samples.load, work=d, xsecFile=xs)):
+                out = fs(['t1', 't2'])
+                self.assertEqual(sorted(out), ['A', 'B', 'C'])
+                self.assertEqual(list(out['C']['files']), ['t2C.root'])
+                self.assertAlmostEqual(out['C']['metadata']['lumiScale'], 25.0)
+                self.assertEqual(sorted(fs(['t1', 't2'], ['C', 'A'])), ['A', 'C'])
+                with self.assertRaises(SystemExit):
+                    fs(['t1', 't2'], ['A', 'D'])
+                with self.assertRaises(SystemExit):
+                    fs(['t1', 't3'])
+
 
 if __name__ == '__main__':
     unittest.main()

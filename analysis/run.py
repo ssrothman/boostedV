@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Runs the configured analysis over merged production samples or local NANO files.
 
-  python3 run.py configs/zxtest.yaml --tag 20261113_zxtest [--samples NAME ...] [--lumi PB] -o out.coffea
+  python3 run.py configs/zxtest.yaml --tag 20261113_zxtest [TAG ...] [--samples NAME ...] [--lumi PB] -o out.coffea
   python3 run.py configs/zxtest.yaml --files [NAME=]nano.root ... [--name local] -o out.coffea
   python3 run.py configs/zxtest.yaml --fileset fileset.json -o out.coffea       (coffea fileset, metadata included)
   [--workers N] [--chunksize N] [--export out.root | out.pkl]
@@ -31,8 +31,17 @@ def fileset(args):
             name, path = item.split('=', 1) if '=' in item else (args.name, item)
             out.setdefault(name, {'files': {}, 'metadata': {'sample': name}})['files'][path] = 'Events'
         return out
+    found = {}
+    for tag in args.tag:
+        for name, s in samples.load(tag, args.samples, required=False).items():
+            if name in found:
+                raise SystemExit('%s is merged under more than one tag' % name)
+            found[name] = s
+    missing = set(args.samples or ()) - set(found)
+    if missing:
+        raise SystemExit('not merged under %s: %s' % (args.tag, sorted(missing)))
     out = {}
-    for name, s in samples.load(args.tag, args.samples).items():
+    for name, s in found.items():
         fs = s.fileset()
         if args.lumi is not None:
             fs['metadata']['lumiScale'] = s.lumiScale(args.lumi)
@@ -58,7 +67,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('config')
     src = ap.add_mutually_exclusive_group(required=True)
-    src.add_argument('--tag')
+    src.add_argument('--tag', nargs='+', help='one or more production tags')
     src.add_argument('--files', nargs='+')
     src.add_argument('--fileset')
     ap.add_argument('--samples', nargs='+')

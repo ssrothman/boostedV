@@ -18,6 +18,8 @@ class Processor(processor.ProcessorABC):
     def process(self, events):
         md = events.metadata
         sample = md['sample']
+        if len(events) == 0:   # a NANO without events has no branches
+            return {'hists': {}, 'cutflow': {}, 'sumw': {sample: 0.0}}
         isMC = md.get('isMC', 'genWeight' in events.fields)
         w = events.genWeight * md.get('lumiScale', 1.0) if isMC else ak.ones_like(events.run, dtype=np.float64)
         out = {'hists': {}, 'cutflow': {}, 'sumw': {sample: float(ak.sum(w))}}
