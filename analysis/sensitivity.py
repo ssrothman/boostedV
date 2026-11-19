@@ -26,7 +26,7 @@ SIGNALS = {'VV': (('WZ', 'ZZ'), 91.1876), 'ZH': (('ZH',), 125.0)}
 DY_EFFS = (0.5, 0.3, 0.1, 0.03)
 TAGGER_EFFS = (0.1, 0.03, 0.01, 0.003, 0.001)
 TEN_SLICES = np.array([200, 250, 300, 350, 400, 500, 600, 800, 1000, 1500, np.inf])
-TAGGERS = {'VV': 'gpV', 'ZH': 'pnXbbVsQCD'}
+TAGGER_PAIRS = ('VV:gpV', 'VV:gpHbb', 'ZH:pnXbbVsQCD', 'ZH:gpV', 'ZH:gpHbb')
 MZ = 91.1876
 
 
@@ -123,11 +123,25 @@ class Evaluator:
         self.baseStats = self.stats(base)
         self.baseYield = {g: self.w[base & (t['group'] == g)].sum() for g in self.groups}
 
-    def stats(self, mask):
+    def stats(self, mask, scale=1.0):
         out = {}
         for g in self.groups:
             m = mask & (self.t['group'] == g)
-            out[g] = sv.Stats(self.V[m], self.w[m], self.t['pt'][m], self.slices)
+            out[g] = sv.Stats(self.V[m], self.w[m] * scale, self.t['pt'][m], self.slices)
+        return out
+
+    def halfSampleZ(self, mask, signal, seed=7):
+        """Z_shape (no MC term) from each random half of the MC jets (weights x 2). The estimated-covariance bias grows
+        like (bins / MC jets), so Z_corr^2 = 2 Z_full^2 - mean(Z_half^2) removes it at first order."""
+        names = SIGNALS[signal][0]
+        half = np.random.default_rng(seed).random(len(self.w)) < 0.5
+        out = []
+        for h in (half, ~half):
+            st = self.stats(mask & h, scale=2.0)
+            sig = sum((st[g] for g in names[1:]), st[names[0]])
+            bkgNames = [g for g in self.groups if g not in names]
+            bkg = sum((st[g] for g in bkgNames[1:]), st[bkgNames[0]])
+            out.append(sv.significance(sig.H, bkg.H, bkg.C)[1])
         return out
 
     def evaluate(self, mask, signal):
@@ -215,10 +229,10 @@ def slicedThresholdMask(x, pt, base, isDY, w, eff, slices):
     return keep
 
 
-def taggerScans(t, base, w, signal):
+def taggerScans(t, base, w, var):
     """[(label, mask)]: the signal's tagger at fixed baseline DY efficiencies, one global threshold or one per jet-pT
     slice (TEN_SLICES)."""
-    var, isDY = TAGGERS[signal], t['group'] == 'DY'
+    isDY = t['group'] == 'DY'
     out = [('baseline', base)]
     for e, c in zip(TAGGER_EFFS, thresholds(t[var], base, isDY, w, True, effs=TAGGER_EFFS)):
         out.append(('%s > %.4g (DY eff %g)' % (var, c, e), base & (t[var] > c)))
@@ -242,6 +256,7 @@ def main():
     ap.add_argument('--signals', nargs='+', default=list(SIGNALS), choices=list(SIGNALS))
     ap.add_argument('--lumi-pb', type=float, default=326030.0, help='target luminosity')
     ap.add_argument('--table-lumi-pb', type=float, default=326030.0, help='--lumi given to run.py')
+    ap.add_argument('--taggers', nargs='+', default=list(TAGGER_PAIRS), help='tagger mode: SIGNAL:variable pairs')
     ap.add_argument('--scan', default='full', choices=['full', 'tagger'],
                     help='full: all cuts and binnings; tagger: the signal tagger (taggerScans) with 5 and 10 pT slices')
     a = ap.parse_args()
@@ -260,19 +275,25 @@ def main():
              'Columns: eff sig | eff DY | eff bkg | S/B peak window | Z_tot | Z_shape | Z_tot, Z_shape (+MC stat cov.) | '
              'DY chi2/ndf vs baseline | DY max |ratio - 1|', '']
     if a.scan == 'tagger':
-        for signal in a.signals:
-            cuts = taggerScans(t, base, t['weight'], signal)
+        lines += ['Tagger tables add Z_shape (no MC term) from each random half of the MC and the first-order corrected',
+                  'Z_corr = sqrt(2 Z_shape^2 - mean Z_half^2); a stable point has Z_half ~ Z_shape.', '']
+        for pair in a.taggers:
+            signal, var = pair.split(':')
+            cuts = taggerScans(t, base, t['weight'], var)
             for obs in a.obs:
                 for nS, slices in ((5, sv.PT_SLICES), (10, TEN_SLICES)):
                     ev = Evaluator(t, base, obs, centers, a.lumi_pb / a.table_lumi_pb, slices=slices)
-                    lines += ['## Tagger, %s, %s, %d pT slices' % (signal, obs, nS), '',
-                              '| cut | eff sig | eff DY | eff bkg | S/B peak | Z_tot | Z_shape | Z_tot MC | Z_shape MC | DY chi2/ndf | DY max dev |',
-                              '|---|---|---|---|---|---|---|---|---|---|---|']
+                    lines += ['## Tagger, %s, %s, %s, %d pT slices' % (signal, var, obs, nS), '',
+                              '| cut | eff sig | eff DY | eff bkg | S/B peak | Z_tot | Z_shape | Z_tot MC | Z_shape MC | DY chi2/ndf | DY max dev | Z_half A, B | Z_corr |',
+                              '|---|---|---|---|---|---|---|---|---|---|---|---|---|']
                     for label, mask in cuts:
                         r = ev.evaluate(mask, signal)
-                        results.setdefault(signal, {}).setdefault('%s/%d' % (obs, nS), {})[label] = r
-                        lines.append('| %s | %s |' % (label, fmt(r)))
-                        print(signal, obs, nS, label, fmt(r), flush=True)
+                        za, zb = ev.halfSampleZ(mask, signal)
+                        r.update(ZhalfA=za, ZhalfB=zb, Zcorr=float(np.sqrt(max(2 * r['Zshape'] ** 2 - (za ** 2 + zb ** 2) / 2, 0))))
+                        results.setdefault(pair, {}).setdefault('%s/%d' % (obs, nS), {})[label] = r
+                        extra = '%.1f, %.1f | %.1f' % (za, zb, r['Zcorr'])
+                        lines.append('| %s | %s | %s |' % (label, fmt(r), extra))
+                        print(pair, obs, nS, label, fmt(r), extra, flush=True)
                     lines.append('')
         with open(os.path.join(a.outdir, 'scan.md'), 'w') as f:
             f.write('\n'.join(lines) + '\n')
