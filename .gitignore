@@ -41,3 +41,6 @@ __pycache__/
 # Axis/truth study inputs and outputs (LHE and NANO copies, plots)
 /axisStudy_20261118/
 /cutflow_20261118/
+
+# Sensitivity scan outputs (analysis/sensitivity.py -o ~/nobackup/boostedV/...)
+/sensitivity_*/

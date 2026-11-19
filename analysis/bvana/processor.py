@@ -4,6 +4,7 @@ Output (accumulates across chunks and files):
   hists[hist][region][sample]   hist.Hist
   cutflow[region][sample][cut]  {'n', 'sumw', 'jets'}  ('channel', then the region's cuts)
   sumw[sample]                  sum of event weights before any selection
+  tables[table][region][sample] {column: column_accumulator}   (only with `tables:` in the configuration)
 Event weight: genWeight (MC) times metadata['lumiScale'] when given; 1 for data.
 """
 import awkward as ak
@@ -35,6 +36,10 @@ class Processor(processor.ProcessorABC):
                     except Exception as e:
                         raise RuntimeError('histogram %s, region %s, sample %s: %s' % (hname, rname, sample, e)) from e
                     out['hists'].setdefault(hname, {}).setdefault(rname, {})[sample] = h
+            for tname, tdef in self.config.tables.items():
+                if rname in self.config.tableRegions[tname]:
+                    cols = {c: processor.column_accumulator(v) for c, v in tdef.fill(view).items()}
+                    out.setdefault('tables', {}).setdefault(tname, {}).setdefault(rname, {})[sample] = cols
         return out
 
     def postprocess(self, accumulator):

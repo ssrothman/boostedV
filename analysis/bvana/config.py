@@ -6,6 +6,7 @@ Top-level keys:
   binning     {name: binning spec}
   regions     {name: {level, channel, cuts: [...], weights: [...]}}
   histograms  {name: {granularity, axes, cuts, weight, renormalise, regions: [names] (default: all)}}
+  tables      {name: {regions, columns, eec, ak4}}  per-jet tables (bvana/tables.py)
   anchors     ignored; a place for YAML anchors
 """
 import yaml
@@ -13,8 +14,9 @@ import yaml
 from .expr import ExprError, compileVariables
 from .histograms import HistDef, HistError
 from .region import Region, RegionError
+from .tables import TableDef, TableError
 
-KEYS = {'jetTables', 'variables', 'binning', 'regions', 'histograms', 'anchors'}
+KEYS = {'jetTables', 'variables', 'binning', 'regions', 'histograms', 'tables', 'anchors'}
 
 
 class ConfigError(ValueError):
@@ -40,7 +42,15 @@ class Config:
                 if bad:
                     raise ConfigError('histogram %s: unknown regions %s' % (n, sorted(bad)))
                 self.histRegions[n] = regs
-        except (ExprError, HistError, RegionError, KeyError) as e:
+            self.tables = {n: TableDef(n, t, self.binning, self.variables) for n, t in (spec.get('tables') or {}).items()}
+            self.tableRegions = {}
+            for n, t in (spec.get('tables') or {}).items():
+                regs = t.get('regions', list(self.regions))
+                bad = set(regs) - set(self.regions)
+                if bad:
+                    raise ConfigError('table %s: unknown regions %s' % (n, sorted(bad)))
+                self.tableRegions[n] = regs
+        except (ExprError, HistError, RegionError, TableError, KeyError) as e:
             raise ConfigError(str(e)) from None
         if not self.regions:
             raise ConfigError('no regions')

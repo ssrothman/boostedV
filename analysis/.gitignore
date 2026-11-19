@@ -1,1 +1,3 @@
 work/
+# built by build_eecs_py.sh
+bvana/_ext/*.so*

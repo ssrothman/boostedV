@@ -68,6 +68,28 @@ Each expression has a level, which decides what a cut does:
   `weight: eec.ERest / eec.weight`. See `bvana/frames.py`; the closure against the C++ `E1CHelicity` is in
   `tests/test_frames.py`.
 
+- `tables:` {name: {regions, columns, eec, ak4}}: per-jet tables, one row per kept jet (`bvana/tables.py`). `columns`
+  are event- or jet-level expressions; `eec` gives each jet's EEC histogram as one row (flow bins included, weight ×
+  symfactor, no event weight); `ak4` adds `ak4N`, `ak4HT`, `ak4MaxBtag` (AK4 jets away from the jet and the leptons). Each
+  table has the event weight `weight`. Output `tables[table][region][sample][column]` (column accumulators).
+
+## Sensitivity scans (`sensitivity.py`, plan and results: `SENSITIVITY_PLAN.md`, `SENSITIVITY_JOURNAL.md`)
+```
+python3 run.py configs/sensitivity.yaml --tag 20261116_zxb2b 20261117_zxb2bbkg 20261117_zh --lumi 326030 -o tables.coffea --backend condor
+python3 sensitivity.py tables.coffea -o outdir [--obs e2cn1 e2cn2 both] [--signals VV ZH]
+```
+Signal VV (WZ + ZZ) or ZH, the rest background. For each cut and E2C binning: efficiencies, peak-window S/B, the
+stat-only Z of the E2C in (Delta R, jet pT) bins with the jet-by-jet covariance (with and without the MC statistical
+covariance; `bvana/sensitivity.py`) and the DY shape distortion. Output `outdir/scan.md`, `scan.json`.
+
+## Correlators from stored constituents (`bvana/eecext.py`)
+`eecext.projectedENC(constituents, norms, N, n, edges, weight='Pt', angle='DeltaR')`: the production's projected ENC
+calculator (`simulation/EECs`, pybind11 module) on [jet][particle] arrays with pt, eta, phi, E; returns (jets,
+len(edges) + 1) with the flow bins. `eecext.byJet` regroups a NANO `<table>Constituents` by `iJet`. Build the module
+once (and after changing `simulation/EECs`) with `./build_eecs_py.sh` (dev env and condor-container versions in
+`bvana/_ext/`, git-ignored, shipped with `bvana/` to condor). Tests: `tests/test_eecext.py`
+(`ANALYSIS_TEST_EECNANO=<NANO>` adds the closure against production tables).
+
 ## Truth spin-density matrix (`truthRho.py`)
 ```
 cmsRun ../simulation/configs/lheNano_cfg.py inputFiles=file:in.root outputFile=lhe.root   # LHE tables, every event

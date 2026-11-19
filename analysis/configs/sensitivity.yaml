@@ -1,0 +1,92 @@
+# Per-jet tables for the sensitivity study (SENSITIVITY_PLAN.md): jet, dilepton, MET and AK4 features plus each jet's
+# E2C (n = 1, 2) binned in Delta R, for the back-to-back Z(ll)+jet NANOs (20261116_zxb2b, 20261117_zxb2bbkg,
+# 20261117_zh). Cuts are deliberately loose; the scans apply tighter ones offline (sensitivity.py).
+# Syntax: bvana/config.py, bvana/tables.py.
+
+binning:
+  dRTable: {log: [40, 1.0e-3, 1.6], label: '$\Delta R$'}   # above 1.0: pairs across the AK8 jet
+
+regions:
+  ZmumuJets:
+    level: reco
+    channel: Zmumu
+    cuts: [jets.pt > 200, abs(jets.eta) < 2.4, num(jets) >= 1]
+  ZeeJets:
+    level: reco
+    channel: Zee
+    cuts: [jets.pt > 200, abs(jets.eta) < 2.4, num(jets) >= 1]
+
+anchors:
+  columns: &columns
+    pt: jets.pt
+    eta: jets.eta
+    phi: jets.phi
+    mass: jets.mass
+    msd: jets.msoftdrop
+    tau1: jets.tau1
+    tau2: jets.tau2
+    tau3: jets.tau3
+    n2b1: jets.n2b1
+    n3b1: jets.n3b1
+    nConstituents: jets.nConstituents
+    chMultiplicity: jets.chMultiplicity
+    neMultiplicity: jets.neMultiplicity
+    chHEF: jets.chHEF
+    neHEF: jets.neHEF
+    chEmEF: jets.chEmEF
+    neEmEF: jets.neEmEF
+    hadronFlavour: jets.hadronFlavour
+    partonFlavour: jets.partonFlavour
+    nBHadrons: jets.nBHadrons
+    nCHadrons: jets.nCHadrons
+    gpXbb: jets.globalParT3_Xbb
+    gpXcc: jets.globalParT3_Xcc
+    gpXcs: jets.globalParT3_Xcs
+    gpXqq: jets.globalParT3_Xqq
+    gpQCD: jets.globalParT3_QCD
+    gpXWW4q: jets.globalParT3_XWW4q
+    gpXWW3q: jets.globalParT3_XWW3q
+    gpTopbWqq: jets.globalParT3_TopbWqq
+    gpTopbWq: jets.globalParT3_TopbWq
+    gpWvsQCD: jets.globalParT3_WvsQCD
+    gpWithMassWvsQCD: jets.globalParT3_withMassWvsQCD
+    gpWithMassZvsQCD: jets.globalParT3_withMassZvsQCD
+    pnXbbVsQCD: jets.particleNet_XbbVsQCD
+    pnXccVsQCD: jets.particleNet_XccVsQCD
+    pnXqqVsQCD: jets.particleNet_XqqVsQCD
+    pnXggVsQCD: jets.particleNet_XggVsQCD
+    pnQCD: jets.particleNet_QCD
+    pnmWvsQCD: jets.particleNetWithMass_WvsQCD
+    pnmZvsQCD: jets.particleNetWithMass_ZvsQCD
+    pnmHbbvsQCD: jets.particleNetWithMass_HbbvsQCD
+    dRjZ: deltaR(jets, boson)
+    zPt: boson.pt
+    zEta: boson.eta
+    zPhi: boson.phi
+    zMass: boson.mass
+    lmPt: sum(leptons.pt * (leptons.charge < 0))       # the negative lepton (exactly one per opposite-sign pair)
+    lmEta: sum(leptons.eta * (leptons.charge < 0))
+    lmPhi: sum(leptons.phi * (leptons.charge < 0))
+    nLeptons: num(leptons)
+    metPt: met.pt
+    metPhi: met.phi
+    metSignificance: met.significance
+    nJets: num(jets)
+  eec: &eec
+    e2cn1: {observable: E2Cn1, var: eec.dR, bins: dRTable, cuts: [eec.dR > 0]}
+    e2cn2: {observable: E2Cn2, var: eec.dR, bins: dRTable, cuts: [eec.dR > 0]}
+  ak4: &ak4 {ptMin: 30.0, absEtaMax: 2.5, dRJet: 0.8, dRLepton: 0.4}
+
+tables:
+  mumu:
+    regions: [ZmumuJets]
+    columns:
+      <<: *columns
+      allMediumId: all(leptons.mediumId)
+    eec: *eec
+    ak4: *ak4
+  ee:
+    regions: [ZeeJets]
+    columns: *columns
+    eec: *eec
+    ak4: *ak4
