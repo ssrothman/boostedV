@@ -358,6 +358,6 @@ EOS: the LPC input sandbox limit refuses them as condor inputs). Checksums agree
 | ak8const | 5617850738 | 32c4364e |
 | evt | 5729703087 | cc021c82 |
 | evtvtx | 3844194851 | 5a2e1936 |
-| gen | pending (DY + ZH rerun with the truth block) | |
+| gen | 3037024416 | ee19ffcf |
 
 Scans: `scanCondor.py submit configs/scans_20261120_jetfree.yaml -n scans_20261120_jetfree --memory 24000` (70 jobs).
