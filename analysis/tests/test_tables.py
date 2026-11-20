@@ -59,11 +59,17 @@ class Tables(unittest.TestCase):
         self.assertEqual(cols['e'].value.shape, (5, len(EDGES) + 1))
         np.testing.assert_array_equal(cols['weight'].value, [1, 1, 2, 2, 3])
 
+    def test_truth_without_genpart(self):
+        out = config([], {'truth': {'dRMax': 0.8}}).tables['t'].fill(self.select(config([], {})))
+        self.assertEqual(out['truthStatus'].tolist(), [2] * 5)
+        self.assertTrue(np.isnan(out['truthPt']).all())
+
     def test_config_errors(self):
         for table in ({'columns': {'x': 'eec.dR'}}, {'columns': {'x': 'leptons.pt'}}, {'colums': {}},
                       {'eec': {'e': {'observable': 'X', 'bins': 'b'}}},
                       {'eec': {'e': {'observable': 'X', 'var': 'eec.dR', 'bins': 'nope'}}},
-                      {'columns': {'weight': 'jets.pt'}}, {'ak4': {'ptMin': 30}}, {'regions': ['nope']}):
+                      {'columns': {'weight': 'jets.pt'}}, {'ak4': {'ptMin': 30}}, {'regions': ['nope']},
+                      {'truth': {}}, {'truth': {'dRMax': 0.8}, 'columns': {'truthPt': 'jets.pt'}}):
             with self.assertRaises(ConfigError, msg=str(table)):
                 config([], table)
 

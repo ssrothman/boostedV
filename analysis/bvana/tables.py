@@ -9,6 +9,8 @@ Spec (configuration key `tables:`, {name: spec}):
   ak4       optional {ptMin, absEtaMax, dRJet, dRLepton}: AK4 jets (event table AK4Jet) with pt > ptMin and
             |eta| < absEtaMax, farther than dRJet from the row's jet and dRLepton from every selected lepton; adds
             ak4N, ak4HT and ak4MaxBtag (max btagRobustParTAK4B, -1 without any)
+  truth     optional {dRMax}: the jet's truth match in GenPart (bvana/truth.py), columns truthPt, truthEta, truthPhi,
+            truthMass, truthPdgId, truthStatus (NaN and status 2 without a match or without GenPart)
 Every table also has the column `weight` (the event weight of the region). Missing values become NaN.
 Output: {column: numpy array}; EEC rows are float32 arrays of shape (jets, nbins + 2), other columns float64.
 """
@@ -16,6 +18,7 @@ import awkward as ak
 import numpy as np
 
 from . import eec as eecTools
+from . import truth as truthTools
 from .expr import Expr, asBool, combine
 from .histograms import makeAxis
 
@@ -29,7 +32,7 @@ class TableError(ValueError):
 class TableDef:
     def __init__(self, name, spec, binnings, variables):
         self.name = name
-        unknown = set(spec) - {'regions', 'columns', 'eec', 'ak4'}
+        unknown = set(spec) - {'regions', 'columns', 'eec', 'ak4', 'truth'}
         if unknown:
             raise TableError('table %s: unknown keys %s' % (name, sorted(unknown)))
         self.columns = {}
@@ -55,6 +58,11 @@ class TableDef:
         self.ak4 = spec.get('ak4')
         if self.ak4 is not None and set(self.ak4) != AK4_KEYS:
             raise TableError('table %s: ak4 needs exactly %s' % (name, sorted(AK4_KEYS)))
+        self.truth = spec.get('truth')
+        if self.truth is not None and set(self.truth) != {'dRMax'}:
+            raise TableError('table %s: truth needs exactly dRMax' % name)
+        if self.truth is not None and set(truthTools.COLUMNS) & set(self.columns):
+            raise TableError('table %s: columns clash with the truth columns' % name)
         if {'weight'} & (set(self.columns) | set(self.eec)) or set(self.columns) & set(self.eec):
             raise TableError('table %s: duplicate or reserved (weight) column names' % name)
 
@@ -72,6 +80,13 @@ class TableDef:
         if self.ak4 is not None:
             out.update({k: perJet(v) for k, v in ak4Columns(view.events.AK4Jet, ns['jets'], ns.get('leptons'),
                                                             **self.ak4).items()})
+        if self.truth is not None:
+            if 'GenPart' in view.events.fields:
+                t = truthTools.truthColumns(ns['jets'], view.events.GenPart, self.truth['dRMax'])
+            else:
+                t = {k: ak.full_like(jetPt, 2 if k == 'truthStatus' else np.nan, dtype=np.float64)
+                     for k in truthTools.COLUMNS}
+            out.update({k: perJet(v) for k, v in t.items()})
         return out
 
 
