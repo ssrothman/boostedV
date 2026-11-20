@@ -350,7 +350,7 @@ selection:
           enabled: true
           dPhiMin: 2.8
           asymmetryMax: 0.3
-          extraJetAlphaMax: -1.0
+          extraJetAlphaMax: 0.0
       Zee:
         type: dilepton
         triggers:
@@ -373,7 +373,7 @@ selection:
           enabled: true
           dPhiMin: 2.8
           asymmetryMax: 0.3
-          extraJetAlphaMax: -1.0
+          extraJetAlphaMax: 0.0
   gen:
     extraJets:
       src: slimmedGenJets
@@ -423,7 +423,7 @@ selection:
           enabled: true
           dPhiMin: 2.8
           asymmetryMax: 0.3
-          extraJetAlphaMax: -1.0
+          extraJetAlphaMax: 0.0
       Zee:
         type: dilepton
         objects: genTightElectrons
@@ -441,7 +441,7 @@ selection:
           enabled: true
           dPhiMin: 2.8
           asymmetryMax: 0.3
-          extraJetAlphaMax: -1.0
+          extraJetAlphaMax: 0.0
 jets:
   cleaning:
     channels:

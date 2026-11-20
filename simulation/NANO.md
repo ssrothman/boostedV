@@ -142,7 +142,7 @@ The channel types, with the YAML keys of each:
 The `<ch>Boson` mass of a leptonMET channel is the invariant mass of lepton + reconstructed neutrino, not m_T.
 
 **Back-to-back jet** (every channel, key `backToBack: {enabled, dPhiMin, asymmetryMax, extraJetAlphaMax}`; enabled in
-`ZX_test.yaml` with 2.8, 0.3 and −1, disabled in `default.yaml`). For an enabled channel, the highest-pt jet of the level's collection that
+`ZX_test.yaml` and `ZX_jetfree.yaml` with 2.8, 0.3 and 0, disabled in `default.yaml`). For an enabled channel, the highest-pt jet of the level's collection that
 passes `jetCuts` and is not `veto<ch>` must have Δφ > `dPhiMin` to the channel's highest-pt `<ch>Boson`/`<ch>Objects`
 candidate and |pt_jet − pt_V| / (pt_jet + pt_V) < `asymmetryMax`; a failing leading jet is not replaced by the next one.
 With `extraJetAlphaMax` ≥ 0 (extra-jet veto), no jet of `selection.<level>.extraJets` may have pt ≥
