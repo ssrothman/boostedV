@@ -23,6 +23,7 @@ Plan: `SENSITIVITY_PLAN.md`. Newest entries at the end.
 - [2026-11-20 VV jets that are not the boson (Q4 follow-ups)](#2026-11-20-vv-jets-that-are-not-the-boson-q4-follow-ups)
 - [2026-11-20 Non-boson VV jets are background (VVother)](#2026-11-20-non-boson-vv-jets-are-background-vvother)
 - [2026-11-20 Jet-free tables of `20261119_jetfreefull` on EOS](#2026-11-20-jet-free-tables-of-20261119_jetfreefull-on-eos)
+- [2026-11-20 Jet-free E2C scans (plan items 2-3)](#2026-11-20-jet-free-e2c-scans-plan-items-2-3)
 
 ## 2026-11-19 Decisions and starting point
 User decisions:
@@ -361,3 +362,58 @@ EOS: the LPC input sandbox limit refuses them as condor inputs). Checksums agree
 | gen | 3037024416 | ee19ffcf |
 
 Scans: `scanCondor.py submit configs/scans_20261120_jetfree.yaml -n scans_20261120_jetfree --memory 24000` (70 jobs).
+
+## 2026-11-20 Jet-free E2C scans (plan items 2-3)
+Scans `configs/scans_20261120_jetfree.yaml` (condor `work/scans_20261120_jetfree`, 70/70 jobs) on the `jf_*_20261120`
+tables; outputs `~/nobackup/boostedV/sensitivity_20261120{a_ak8obs,b_ak8const,c_evt,d_evtvtx}/`. First scans with
+VVother/ZHother in the background; production without the extra-jet veto. Z_shape with MC statistics, 5 Z-pT slices,
+at the baseline and the tagger cuts keeping 10% and 3% of the baseline DY (row definitions:
+`configs/make_jetfree_tables.py`). `*`: the two half-sample Z differ by more than 10% (unstable).
+
+| observable | VV gpV: base / 10% / 3% | ZH pnXbb: base / 10% / 3% |
+|---|---|---|
+| e2cn1 | 8.78 / 13.57 / 15.05 | 0.27 / 1.20 / 1.83 |
+| c_e2c | 8.78 / 13.57 / 15.05 | 0.27 / 1.20 / 1.83 |
+| c_e2cn2 | 10.13 / 10.93 / 11.46* | 0.19 / 0.79 / 1.42* |
+| c_e2cnHalf | 5.64 / 11.21 / 13.07 | 0.22 / 0.98 / 1.49 |
+| c_e3c | 8.27 / 12.78 / 14.07 | 0.25 / 1.15 / 1.76 |
+| c_e3cXi | 9.33 / 12.67 / 13.93 | 0.27* / 1.17 / 1.80 |
+| c_e3cPhi | 8.99 / 12.49 / 13.82 | 0.25 / 1.13 / 1.91 |
+| c_e2cPt05 | 8.81 / 13.59 / 15.07 | 0.27 / 1.21 / 1.84 |
+| c_e2cPt1 | 8.98 / 13.69 / 15.14 | 0.27 / 1.23 / 1.86 |
+| c_e2cPt2 | 9.36 / 13.88 / 15.25 | 0.28 / 1.25 / 1.91 |
+| c_e2cPV | 8.63 / 13.18 / 14.58 | 0.23 / 1.10 / 1.71 |
+| c_e2cDz | 8.66 / 13.23 / 14.63 | 0.24 / 1.12 / 1.74 |
+| c_e2cPuppi05 | 8.78 / 13.57 / 15.05 | 0.27 / 1.20 / 1.83 |
+| c_coneCh | 8.80 / 13.53 / 14.94 | 0.27 / 1.20 / 1.81 |
+| c_coneAll | 10.38 / 15.79 / 17.53 | 0.31 / 1.31 / 1.96 |
+| c_evtPV | 2.66* / 7.80* / 11.15 | 0.06* / 0.30* / 0.89 |
+| c_evtPVHemi | 4.21* / 8.42* / 11.76* | 0.12* / 0.51* / 1.09* |
+| c_evtPuppi | 9.39 / 14.54 / 16.01 | 0.24 / 0.95 / 1.42 |
+| c_evtPuppiHemi | 9.36 / 14.54 / 15.99 | 0.24 / 0.95 / 1.43 |
+| c_evtPVPt02 | 2.66* / 7.81* / 11.15 | 0.06* / 0.30* / 0.89 |
+| c_evtPVPt05 | 2.66* / 7.82* / 11.16 | 0.06* / 0.29* / 0.90 |
+| c_evtPVPt1 | 2.69* / 7.83* / 11.14 | 0.06* / 0.30* / 0.91 |
+| c_evtPVPt2 | 2.71 / 7.93* / 11.19 | 0.06 / 0.30* / 0.93 |
+| c_evtDz01Dxy005 | 3.87* / 8.79* / 11.90 | 0.09 / 0.47* / 0.94 |
+| c_evtDz02Dxy01 | 3.83* / 8.72* / 11.61 | 0.11 / 0.53* / 1.01* |
+| c_evtDisp002 | 1.61* / 2.78* / 4.28* | 0.39* / 0.67* / 0.81* |
+| c_evtDisp002NoLost | 3.34 / 4.06* / 4.94* | 0.92 / 0.97* / 0.99* |
+| c_evtDisp005 | 0.95* / 2.37* / 3.77* | 0.19* / 0.43* / 0.58* |
+| c_evtDisp005NoLost | 1.84* / 2.89 / 3.59* | 0.43 / 0.53* / 0.61 |
+| c_evtDisp01 | 0.56* / 1.74* / 3.19* | 0.11* / 0.32 / 0.78 |
+| c_evtDisp01NoLost | 1.04* / 2.12 / 2.79* | 0.13* / 0.26 / 0.36* |
+
+- Cross-checks: `c_e2c` (jet E2C rebuilt from the stored constituents) reproduces `e2cn1` (8.77527 vs 8.77526);
+  `c_e2cPuppi05` changes Z by 0.001 (the PUPPI >= 0.5 cut removes almost no energy).
+- VV: the cone of all PUPPI-weighted particles within 0.8 of the jet axis (`c_coneAll`) is the best row at every point
+  (10.4 / 15.8 / 17.5 vs 8.8 / 13.6 / 15.1 for the jet E2C). The event-level PUPPI E2C (`c_evtPuppi`, hemisphere
+  or not) is next (9.4 / 14.5 / 16.0). Particle pT thresholds help slightly (`c_e2cPt2` +0.2-0.6); PV and dz selections
+  lower Z slightly. n = 2 is the best at the baseline (10.1) but gains little from the tagger (11.5*).
+- ZH: all rows stay below 2 at 3% DY efficiency; `c_coneAll` 1.96 and `c_e3cPhi` 1.91 vs e2cn1 1.83, within the
+  stable-point scatter seen before (~0.3-0.5).
+- Charged-PV event rows (`c_evtPV*`, `c_evtDz*`) are much lower (2.7-4.2 at the baseline) and mostly unstable, as are
+  all displaced-track rows (`c_evtDisp*`, Z below 5). At the baseline the displaced rows without lost tracks are
+  higher than with them (VV 3.3 vs 1.6 at 0.02); at 3% DY efficiency neither is consistently higher.
+  The one stable outlier is ZH `c_evtDisp002NoLost` at the baseline (0.92 vs 0.27), which the b tagger then removes
+  (0.99 at 3% vs 1.83).
