@@ -35,6 +35,7 @@
 - 2026-11-19 Jet-free EEC collections (mode event)
 - 2026-11-19 Jet-free test production `20261119_jetfree` submitted
 - 2026-11-19 Jet-free production: zero-pT dressing photon failure, fix
+- 2026-11-19 Jet-free collections split per channel
 
 ## 2026-11-11 A.2 setup and DataFormats
 - Plan: `stepA2_plan.md`. New local repos (remotes pending): `EECDataFormats` (pkg `SRothman/DataFormats`),
@@ -681,3 +682,20 @@ Expected output ~28 GB (55.7 kB per written event).
   leptons.
 - Decision (user): keep the running tasks (old code) and merge without the failed job(s) (`merge.py --allow-missing`);
   the fix applies from the next production.
+
+## 2026-11-19 Jet-free collections split per channel
+- Before: one event collection removed the selected leptons of every passing cleaning channel. The reco channels are
+  not exclusive (channel objects have kinematic cuts only, the vetoes need ID), so both pass in 6 of 132822 DY 600+
+  reco events of `20261119_jetfree` (0 at gen, where the tight leptons are a subset of the veto leptons), and those
+  lose all four leptons.
+- Now (decision: user): one collection `<C><ch>` per cleaning channel, removing that channel's leptons only, produced
+  only when its dilepton selection (`<ch>Sel`) passes (`EventEECJetProducer` `requireFlag`), with the recoil
+  hemisphere of its own boson (no longer needs a back-to-back channel; `analysisConfig` instead rejects event
+  collections without cleaning channels). Tables `<table name><ch>`, EEC prefix `<C><ch>`. `20261119_jetfree` keeps
+  the old layout; the next production picks this up.
+- Tests: wiring (`test_analysisConfig.EventCollections`: per-channel leptons, flag, recoil boson, table and EEC names)
+  caught 5/5 mutations (all channels' leptons, no requireFlag, Zmumu recoil for Zee, table name without channel, empty
+  cleaning check off); module test of `requireFlag` (flag true: 1 jet, false: none) caught ignoring the flag.
+- End to end, 500 dev DY PTLL-400to600 events (215 written): each of the four collections is filled exactly in the
+  events where its channel passes (reco Zmumu 104/104, Zee 99/99; gen 104/104, 107/107); no selected lepton (208 muons,
+  198 electrons) has a constituent within dR 0.01 and 20% in pt in its own channel's collection.

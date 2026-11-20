@@ -178,9 +178,8 @@ def crossCheck(cfg):
         for k in ('variations', 'axes', 'jec', 'jerc', 'retag'):
             if c.get(k):
                 p.append('%s: %s is not available for event collections' % (where, k))
-        if c['translator'].get('recoilHemisphere') and not any(
-                ch['backToBack']['enabled'] for ch in sel[c['level']]['channels'].values()):
-            p.append('%s/translator: recoilHemisphere needs a back-to-back channel at %s level' % (where, c['level']))
+        if not cfg['jets']['cleaning']['channels']:
+            p.append('%s: event collections are made per jets/cleaning/channels entry, which is empty' % where)
         if c['level'] == 'gen' and c['translator'].get('minFromPV', -1) >= 0:
             p.append('%s/translator: minFromPV needs reco candidates (use -1 at gen level)' % where)
         if c['level'] == 'gen' and c['translator'].get('constituentDetails'):

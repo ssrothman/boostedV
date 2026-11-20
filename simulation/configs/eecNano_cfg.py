@@ -86,10 +86,13 @@ for name, spec in cfg['jets']['collections'].items():
                     extraJetAlphaMax=c['backToBack']['extraJetAlphaMax'],
                     extraJets=dict(sel[lev]['extraJets'], src=extraJetsTag(lev, sel[lev])))
            for ch, c in sel[lev]['channels'].items() if c['backToBack']['enabled']}
-    excludePtrs = selectedLeptonPtrs(sel[lev], lev, cleaning) if spec['mode'] == 'event' else None
+    # Event collections: one per cleaning channel, removing only that channel's leptons (label suffix = channel).
+    eventChannels = {ch: dict(flag=label(lev, ch) + 'Sel', leptonPtrs=ptrs, boson=bosonTag(lev, ch, sel[lev]['channels'][ch]))
+                     for ch, ptrs in zip(cleaning, selectedLeptonPtrs(sel[lev], lev, cleaning))} \
+        if spec['mode'] == 'event' else None
     labels = setupJets(process, 'jets' + name, spec, isMC, vetoSrcs=vetoes,
                        writeConstituents=bool(opts.writeConstituents), task=task, backToBack=b2b,
-                       excludePtrs=excludePtrs)
+                       eventChannels=eventChannels)
     collections += [(name + v, lab, name) for v, lab in labels.items()]
     if spec['mode'] != 'event':   # event collections only read the channels' bosons (recoil hemisphere)
         b2bFlags.update({(lev, ch): backToBackFlag('jets' + name, ch) for ch in b2b})
