@@ -65,6 +65,10 @@ class TruthMatch(unittest.TestCase):
         for k in ('truthPt', 'truthEta', 'truthPhi', 'truthMass', 'truthPdgId'):
             self.assertTrue(np.isnan(self.out[k][0][2]) and np.isnan(self.out[k][1][0]), k)
 
+    def test_no_events(self):
+        out = truthColumns(jets(JETS)[:0], gen(EVENTS)[:0], 0.8)
+        self.assertEqual(ak.to_list(out['truthStatus']), [])
+
     def test_dRMax(self):
         out = truthColumns(jets(JETS), gen(EVENTS), 0.01)
         self.assertEqual(ak.to_list(out['truthStatus']), [[2, 2, 2, 2], [2], [1], [2]])

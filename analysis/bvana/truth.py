@@ -12,7 +12,7 @@ COLUMNS = ('truthPt', 'truthEta', 'truthPhi', 'truthMass', 'truthPdgId', 'truthS
 def candidates(gen):
     """GenPart fields plus `truthStatus` per particle ([event][particle]); NONE for non-candidates."""
     counts = ak.to_numpy(ak.num(gen.pdgId))
-    start = np.concatenate([[0], np.cumsum(counts)[:-1]])
+    start = np.cumsum(counts) - counts
     pdg = ak.to_numpy(ak.flatten(gen.pdgId)).astype(np.int64)
     status = ak.to_numpy(ak.flatten(gen.status))
     flags = ak.to_numpy(ak.flatten(gen.statusFlags)).astype(np.int64)
