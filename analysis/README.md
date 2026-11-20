@@ -99,6 +99,13 @@ Condor: `python3 scanCondor.py submit configs/scans_20261119.yaml -n NAME`, then
 (one job per tagger pair or signal and observable, tables read from EOS by xrootd; collect writes each scan's
 `scan.md`, `scan.json`, `run.log` under the scan file's `outBase`, in local-run section order).
 
+Truth studies of the scan tables and NANOs (docstrings give the details):
+```
+python3 ptResolution.py tables.coffea -o outdir       # jet pT and Z pT vs the true pT of the jet's truth particle
+python3 vvTruthSplit.py tables.coffea -o outdir       # VV jets that are not the boson vs DY (needs ~20 GB: condor)
+python3 vvBosonLocation.py nano*.root -o out.md [--label WZ]   # where the hadronic V is, per selected-jet truth
+```
+
 ## Correlators from stored constituents (`bvana/eecext.py`)
 `eecext.projectedENC(constituents, norms, N, n, edges, weight='Pt', angle='DeltaR')`: the production's projected ENC
 calculator (`simulation/EECs`, pybind11 module) on [jet][particle] arrays with pt, eta, phi, E; returns (jets,
