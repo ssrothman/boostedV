@@ -22,7 +22,7 @@ import yaml
 
 ANALYSIS = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, ANALYSIS)
-from condor import IMAGE, WORK, codeState, load, logStatus, proxyPath, removeFromQueue  # noqa: E402
+from condor import IMAGE, WORK, codeState, jobStates, load, proxyPath, removeFromQueue  # noqa: E402
 from condor import condorCommand, parseSubmit  # noqa: E402
 
 
@@ -132,15 +132,7 @@ def submit(args):
 
 
 def status(workDir):
-    state = load(workDir)
-    log = logStatus(workDir, state)
-    out = {}
-    for j in range(state['nJobs']):
-        if os.path.exists(os.path.join(workDir, 'parts', 'out_%d.tgz' % j)):
-            out[j] = 'complete'
-        else:
-            out[j] = {'done': 'failed', None: 'unsubmitted'}.get(log.get(j), log.get(j))
-    return out
+    return jobStates(workDir, load(workDir), 'out_%d.tgz')
 
 
 def merge(a, b, where=''):

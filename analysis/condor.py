@@ -15,9 +15,12 @@ import re
 import subprocess
 import sys
 import tarfile
+import time
 
 ANALYSIS = os.path.dirname(os.path.abspath(__file__))
 WORK = os.path.join(ANALYSIS, 'work')
+# The schedd writes parts over NFS; the submit host may see them only after a delay.
+OUTPUT_GRACE_S = 600
 IMAGE = '/cvmfs/unpacked.cern.ch/registry.hub.docker.com/coffeateam/coffea-almalinux9:2026.11.0-py3.13'
 sys.path.insert(0, os.path.join(os.path.dirname(ANALYSIS), 'simulation', 'production'))
 from condorBackend import condorCommand, parseSubmit  # noqa: E402
@@ -131,7 +134,8 @@ def load(workDir):
 
 
 def logStatus(workDir, state):
-    """{job: 'done' | 'failed' | 'running' | 'idle'} from the condor user log (last event per job wins)."""
+    """{job: (state, event time in s since the epoch)}, state 'done' | 'failed' | 'running' | 'idle', from the condor user
+    log (last event per job wins)."""
     jobOf = {(c['cluster'], p): j for c in state['clusters'] for p, j in enumerate(c['jobs'])}
     out = {}
     path = os.path.join(workDir, 'logs', 'condor.log')
@@ -139,33 +143,44 @@ def logStatus(workDir, state):
         return out
     with open(path) as f:
         text = f.read()
-    for m in re.finditer(r'^(\d{3}) \((\d+)\.(\d+)\.\d+\)[^\n]*\n(.*?)^\.\.\.', text, re.M | re.S):
+    for m in re.finditer(r'^(\d{3}) \((\d+)\.(\d+)\.\d+\) (\S+ \S+)[^\n]*\n(.*?)^\.\.\.', text, re.M | re.S):
         code, key = m.group(1), (int(m.group(2)), int(m.group(3)))
         if key not in jobOf:
             continue
+        t = time.mktime(time.strptime(m.group(4), '%Y-%m-%d %H:%M:%S'))   # the log is in local time
         if code == '005':
-            rv = re.search(r'return value (\d+)', m.group(4))
-            out[jobOf[key]] = 'done' if rv and rv.group(1) == '0' else 'failed'
+            rv = re.search(r'return value (\d+)', m.group(5))
+            out[jobOf[key]] = ('done' if rv and rv.group(1) == '0' else 'failed', t)
         elif code in ('009', '012'):      # aborted, held
-            out[jobOf[key]] = 'failed'
+            out[jobOf[key]] = ('failed', t)
         elif code == '001':
-            out[jobOf[key]] = 'running'
+            out[jobOf[key]] = ('running', t)
         elif code == '000':
-            out[jobOf[key]] = 'idle'
+            out[jobOf[key]] = ('idle', t)
+    return out
+
+
+def jobStates(workDir, state, partName, now=None):
+    """{job: state}; 'complete' only when parts/<partName % job> exists, whatever the log says. A job that ended with 0
+    but whose part is not visible is 'finishing' for OUTPUT_GRACE_S after it ended, then 'failed'."""
+    log = logStatus(workDir, state)
+    partsDir = os.path.join(workDir, 'parts')
+    parts = set(os.listdir(partsDir)) if os.path.isdir(partsDir) else set()
+    now = time.time() if now is None else now
+    out = {}
+    for j in range(state['nJobs']):
+        s, t = log.get(j, (None, None))
+        if partName % j in parts:
+            out[j] = 'complete'
+        elif s == 'done':
+            out[j] = 'finishing' if now - t < OUTPUT_GRACE_S else 'failed'
+        else:
+            out[j] = s or 'unsubmitted'
     return out
 
 
 def status(workDir):
-    """{job: state}; a job is complete only when its part file exists, whatever the log says."""
-    state = load(workDir)
-    log = logStatus(workDir, state)
-    out = {}
-    for j in range(state['nJobs']):
-        if os.path.exists(os.path.join(workDir, 'parts', 'part_%d.coffea' % j)):
-            out[j] = 'complete'
-        else:
-            out[j] = {'done': 'failed', None: 'unsubmitted'}.get(log.get(j), log.get(j))
-    return out
+    return jobStates(workDir, load(workDir), 'part_%d.coffea')
 
 
 def collect(parts, allowMissing=False):

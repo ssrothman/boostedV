@@ -3,6 +3,7 @@ import json
 import os
 import sys
 import tempfile
+import time
 import unittest
 
 import hist
@@ -67,6 +68,11 @@ class Status(unittest.TestCase):
             self.assertEqual(condor.status(d)[1], 'failed')
             os.remove(os.path.join(d, 'parts', 'part_0.coffea'))
             self.assertEqual(condor.status(d)[0], 'failed')   # ended with 0 but no output came back
+            ended = time.mktime((2026, 11, 17, 17, 5, 0, 0, 0, -1))
+            states = lambda dt: condor.jobStates(d, state, 'part_%d.coffea', now=ended + dt)
+            self.assertEqual(states(condor.OUTPUT_GRACE_S - 1)[0], 'finishing')   # its part may not be visible yet
+            self.assertEqual(states(condor.OUTPUT_GRACE_S)[0], 'failed')
+            self.assertEqual(states(1)[1], 'failed')                              # nonzero exit: no grace
 
 
 def part(value, cut):
