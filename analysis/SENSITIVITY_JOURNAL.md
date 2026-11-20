@@ -14,6 +14,8 @@ Plan: `SENSITIVITY_PLAN.md`. Newest entries at the end.
 - [2026-11-19 Half-sample stability; VV with the bb score, ZH with the V score](#2026-11-19-half-sample-stability-vv-with-the-bb-score-zh-with-the-v-score)
 - [2026-11-19 Bug: signal-only bins in the MC-statistics significance](#2026-11-19-bug-signal-only-bins-in-the-mc-statistics-significance)
 - [2026-11-19 Corrected scans: binning, pT x dR, |eta|, m_SD](#2026-11-19-corrected-scans-binning-pt-x-dr-eta-m_sd)
+- [2026-11-19 E2C kept; plan for the remaining ideas](#2026-11-19-e2c-kept-plan-for-the-remaining-ideas)
+- [2026-11-19 Data products: tables and scan outputs](#2026-11-19-data-products-tables-and-scan-outputs)
 
 ## 2026-11-19 Decisions and starting point
 User decisions:
@@ -210,3 +212,26 @@ the tagger thresholds of `taggerScans`); baseline in brackets. "x/y": pT slices 
   score now has no stable point below baseline at the 10% criterion (earlier quoted 2.6-4.8 with a looser one). ZH
   m_SD baseline at 10 slices 2.0 -> 0.59 (the bug).
 
+## 2026-11-19 E2C kept; plan for the remaining ideas
+- User: keep the E2C as the search observable and pursue the remaining ideas despite the stronger m_SD fit.
+- Draft plan for discussion: `E2C_NEXT_PLAN.md` (boson-pT x dR; projected E3C and energy weights n; constituent
+  choice; jet-free EECs; theory shape deferred; tight working points). Facts it rests on: the `20261119_jetfree` AK8
+  constituents are charged only (`ZX_jetfree.yaml`), its DY is p_T^ll > 400 with ~10% of the files, and the
+  bindings take a real n (`eecs_py.cc`).
+- Production status: `simulation/JOURNAL.md`, entry "`20261119_jetfree` status".
+
+## 2026-11-19 Data products: tables and scan outputs
+Tables (`run.py configs/sensitivity.yaml --tag 20261116_zxb2b 20261117_zxb2bbkg 20261117_zh --lumi 326030
+--backend condor`, 80 jobs, provenance in `work/<condor dir>/state.json`); local copies in `analysis/work/`
+(git-ignored), masters on EOS `/store/user/srothman/boostedV/analysis_tables/`:
+| file | condor dir | code | size, adler32 | content |
+|---|---|---|---|---|
+| `sens_tables_20261119.coffea` | `work/sens_20261119` | 260b1a0 + the uncommitted tables code, committed in d63894a | 1979056787 B, 9cded72e | ΔR columns |
+| `sens_tables_20261119b.coffea` | `work/sens_20261119b` | bd4445a + the pT·ΔR columns, committed in 94970f8 (`configs/sensitivity.yaml` identical) | 2762999036 B, 75cab58d | + `e2cn{1,2}ptdR` |
+Validation of `b`: same row sums and mean log as the first on one DY file; its ΔR rows reproduce the ΔR scans exactly.
+
+Scan outputs (`scan.md`, `scan.json`, `run.log`) in `~/nobackup/boostedV/` (not backed up); current ones are those of
+`configs/scans_20261119.yaml` (condor `work/scans_20261119`, 48 jobs, code 94970f8), rerun after the MC-term fix:
+`sensitivity_20261119b` (cut scan), `_d_tagger`, `_e_fewbins`, `_f_eta2`, `_g_eta4`, `_h_msd`, `_i_ptdR`.
+Stale (before the fix, not rerun; superseded): `sensitivity_20261119` (old distortion normalisation) and
+`sensitivity_20261119c_tagger` (no half-sample check; superseded by `_d_tagger`).

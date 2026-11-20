@@ -1,4 +1,4 @@
-# Signal-sensitivity study plan (2026-11-19; Phase A done, Phase B in preparation; results: SENSITIVITY_JOURNAL.md)
+# Signal-sensitivity study plan (2026-11-19; Phase A done; remaining ideas: E2C_NEXT_PLAN.md; results: SENSITIVITY_JOURNAL.md)
 
 ## Contents
 - [Starting point](#starting-point)

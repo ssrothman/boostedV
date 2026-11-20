@@ -36,6 +36,7 @@
 - 2026-11-19 Jet-free test production `20261119_jetfree` submitted
 - 2026-11-19 Jet-free production: zero-pT dressing photon failure, fix
 - 2026-11-19 Jet-free collections split per channel
+- 2026-11-19 `20261119_jetfree` status: three WZ jobs lost to the zero-pT photon
 
 ## 2026-11-11 A.2 setup and DataFormats
 - Plan: `stepA2_plan.md`. New local repos (remotes pending): `EECDataFormats` (pkg `SRothman/DataFormats`),
@@ -699,3 +700,11 @@ Expected output ~28 GB (55.7 kB per written event).
 - End to end, 500 dev DY PTLL-400to600 events (215 written): each of the four collections is filled exactly in the
   events where its channel passes (reco Zmumu 104/104, Zee 99/99; gen 104/104, 107/107); no selected lepton (208 muons,
   198 electrons) has a constituent within dR 0.01 and 20% in pt in its own channel's collection.
+
+## 2026-11-19 `20261119_jetfree` status: three WZ jobs lost to the zero-pT photon
+CRAB status (`status.py --tag 20261119_jetfree`), evening of 2026-11-19: DY 400-600 18/18 and DY 600+ 19/19 complete;
+WZ 32/47 finished, 3 failed, 12 running or transferring; ZZ 127/149 finished, 22 running or transferring; ZH 6/7.
+WZ jobs 2, 17 and 19 failed all three attempts with exit 8001 in `EventEECJetProducer/jetsGenEvtAllRaw`, each on a
+dressing photon whose pt packs to 0 (2.8e-12, 4.9e-13, 9.9e-11 GeV; events 1:9001:6318081, 1:19230:13499399,
+1:15698:11019348): the failure fixed above, deterministic, so resubmitting is useless. Whether to merge without them
+(as for job 17) awaits the user.
