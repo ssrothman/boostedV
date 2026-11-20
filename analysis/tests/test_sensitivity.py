@@ -154,6 +154,22 @@ class Templates(unittest.TestCase):
         np.testing.assert_array_equal(v[:, 8:], sensitivity.msdRows(t['msd']))
         with self.assertRaises(ValueError):
             sensitivity.vectors(dict(t, e2cn1ptdR=t['e2cn1']), 'e2cn1ptdR', dRMin=0.01, centers=np.ones(8))
+        with self.assertRaises(ValueError):
+            sensitivity.vectors(dict(t, e2cn1ptlldR=t['e2cn1']), 'e2cn1ptlldR', dRMin=0.01, centers=np.ones(8))
+        u = dict(t, e2cn1ptlldR=t['e2cn2'], e2cn2ptlldR=t['e2cn1'])
+        np.testing.assert_array_equal(sensitivity.vectors(u, 'bothptlldR'), sensitivity.vectors(t, 'e2cn2+e2cn1'))
+
+    def test_slice_var(self):
+        """Z-pT slicing puts each jet in the slice of its zPt, not of its jet pT."""
+        import sensitivity
+        t = {'group': np.array(['DY', 'WZ', 'DY', 'WZ']), 'weight': np.ones(4), 'pt': np.array([250.0, 250, 450, 450]),
+             'zPt': np.array([450.0, 450, 250, 250]), 'absEta': np.zeros(4), 'msd': np.array([10.0, 90, 10, 90]),
+             'e2cn1': np.zeros((4, 42))}
+        base, sl = np.ones(4, bool), np.array([200.0, 400.0, np.inf])
+        jet = sensitivity.Evaluator(t, base, 'msd', None, 1.0, slices=sl)
+        z = sensitivity.Evaluator(t, base, 'msd', None, 1.0, slices=sl, sliceVar='zPt')
+        self.assertEqual(jet.key.tolist(), [0, 0, 1, 1])
+        self.assertEqual(z.key.tolist(), [1, 1, 0, 0])
 
     def test_category(self):
         import sensitivity

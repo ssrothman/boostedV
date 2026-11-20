@@ -113,8 +113,9 @@ def msdRows(msd):
 
 def vectors(t, obs, rebin=1, dRMin=0.0, centers=None):
     """Per-jet rows of obs, '+'-joined parts concatenated: an E2C column without the flow bins ('both' = e2cn1+e2cn2,
-    'bothptdR' = e2cn1ptdR+e2cn2ptdR) or 'msd' (msdRows). rebin merges groups of adjacent E2C bins (the number of
-    bins must divide by it), dRMin drops the Delta R bins (not allowed with ptdR columns) whose centre is below it (before merging)."""
+    'bothptdR' = e2cn1ptdR+e2cn2ptdR, 'bothptlldR' likewise) or 'msd' (msdRows). rebin merges groups of adjacent E2C
+    bins (the number of bins must divide by it), dRMin drops the bins whose centre is below it (before merging; plain
+    Delta R columns only)."""
     def one(x):
         x = x[:, 1:-1]
         if dRMin > 0:
@@ -123,8 +124,9 @@ def vectors(t, obs, rebin=1, dRMin=0.0, centers=None):
         if x.shape[1] % rebin:
             raise ValueError('rebin %d does not divide %d bins' % (rebin, x.shape[1]))
         return x.reshape(len(x), -1, rebin).sum(axis=2)
-    parts = obs.replace('bothptdR', 'e2cn1ptdR+e2cn2ptdR').replace('both', 'e2cn1+e2cn2').split('+')
-    if dRMin > 0 and any(c.endswith('ptdR') for c in parts):
+    parts = obs.replace('bothptlldR', 'e2cn1ptlldR+e2cn2ptlldR').replace('bothptdR', 'e2cn1ptdR+e2cn2ptdR') \
+        .replace('both', 'e2cn1+e2cn2').split('+')
+    if dRMin > 0 and any(c not in ('e2cn1', 'e2cn2', 'msd') for c in parts):
         raise ValueError('dRMin applies to Delta R binned columns only')
     return np.concatenate([msdRows(t['msd']) if c == 'msd' else one(t[c]) for c in parts], axis=1)
 
@@ -140,12 +142,12 @@ def category(pt, absEta, slices, etaSlices):
 
 class Evaluator:
     def __init__(self, t, base, obs, binCenters, lumiScale, rebin=1, slices=sv.PT_SLICES, dRMin=0.0,
-                 etaSlices=(0.0, np.inf)):
+                 etaSlices=(0.0, np.inf), sliceVar='pt'):
         self.t, self.obs, self.binCenters = t, obs, binCenters
         self.w = t['weight'] * lumiScale
         self.V = vectors(t, obs, rebin, dRMin, binCenters)
         nCells = (len(slices) - 1) * (len(etaSlices) - 1)
-        self.key = category(t['pt'], t['absEta'], slices, np.asarray(etaSlices, dtype=np.float64))
+        self.key = category(t[sliceVar], t['absEta'], slices, np.asarray(etaSlices, dtype=np.float64))
         self.slices = np.arange(nCells + 1, dtype=np.float64)   # Stats blocks: one per cell
         self.groups = [g for g, _ in GROUPS]
         self.baseStats = self.stats(base)
@@ -282,7 +284,8 @@ def main():
     ap.add_argument('tables')
     ap.add_argument('-o', '--outdir', required=True)
     ap.add_argument('--obs', nargs='+', default=['e2cn1'],
-                    help="e2cn1, e2cn2, both, e2cn1ptdR, e2cn2ptdR, bothptdR, msd, or '+'-joined (vectors)")
+                    help="e2cn1, e2cn2, both, e2cn1ptdR, e2cn2ptdR, bothptdR, e2cn1ptlldR, e2cn2ptlldR, bothptlldR, msd, "
+                         "or '+'-joined (vectors)")
     ap.add_argument('--signals', nargs='+', default=list(SIGNALS), choices=list(SIGNALS))
     ap.add_argument('--lumi-pb', type=float, default=326030.0, help='target luminosity')
     ap.add_argument('--table-lumi-pb', type=float, default=326030.0, help='--lumi given to run.py')
@@ -294,6 +297,8 @@ def main():
                     help='tagger mode: jet-pT slicings')
     ap.add_argument('--eta-slices', nargs='+', type=float, default=[0.0, np.inf],
                     help='tagger mode: |eta| slice edges, crossed with the pT slices')
+    ap.add_argument('--slice-var', default='pt', choices=['pt', 'zPt'],
+                    help='tagger mode: the pT of the --nslices slices (jet or Z); tagger thresholds stay per jet pT')
     a = ap.parse_args()
     os.makedirs(a.outdir, exist_ok=True)
     edges = np.geomspace(1e-3, 1.6, 41)   # configs/sensitivity.yaml dRTable
@@ -318,12 +323,13 @@ def main():
             for obs in a.obs:
                 for rebin, nS in itertools.product(a.rebin, a.nslices):
                     ev = Evaluator(t, base, obs, centers, a.lumi_pb / a.table_lumi_pb, rebin=rebin, slices=SLICINGS[nS],
-                                   etaSlices=a.eta_slices)
+                                   etaSlices=a.eta_slices, sliceVar=a.slice_var)
                     nE = len(a.eta_slices) - 1
                     key = '%s/%d' % (obs, nS) + ('/%d' % ((len(edges) - 1) // rebin) if rebin > 1 else '') \
-                        + ('/eta%d' % nE if nE > 1 else '')
-                    lines += ['## Tagger, %s, %s, %s, %d pT slices x %d |eta| slices (%s), E2C rebin %d'
-                              % (signal, var, obs, nS, nE, ' '.join('%g' % e for e in a.eta_slices), rebin), '',
+                        + ('/eta%d' % nE if nE > 1 else '') + ('/zPt' if a.slice_var == 'zPt' else '')
+                    lines += ['## Tagger, %s, %s, %s, %d %s slices x %d |eta| slices (%s), E2C rebin %d'
+                              % (signal, var, obs, nS, 'jet pT' if a.slice_var == 'pt' else 'Z pT', nE,
+                                 ' '.join('%g' % e for e in a.eta_slices), rebin), '',
                               '| cut | eff sig | eff DY | eff bkg | S/B peak | Z_tot | Z_shape | Z_tot MC | Z_shape MC | DY chi2/ndf | DY max dev | Z_half A, B | Z_corr |',
                               '|---|---|---|---|---|---|---|---|---|---|---|---|---|']
                     for label, mask in cuts:
