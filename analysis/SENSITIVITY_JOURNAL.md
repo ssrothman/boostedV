@@ -24,6 +24,7 @@ Plan: `SENSITIVITY_PLAN.md`. Newest entries at the end.
 - [2026-11-20 Non-boson VV jets are background (VVother)](#2026-11-20-non-boson-vv-jets-are-background-vvother)
 - [2026-11-20 Jet-free tables of `20261119_jetfreefull` on EOS](#2026-11-20-jet-free-tables-of-20261119_jetfreefull-on-eos)
 - [2026-11-20 Jet-free E2C scans (plan items 2-3)](#2026-11-20-jet-free-e2c-scans-plan-items-2-3)
+- [2026-11-20 Jet-free event E2C at reco vs gen (plan item 4)](#2026-11-20-jet-free-event-e2c-at-reco-vs-gen-plan-item-4)
 
 ## 2026-11-19 Decisions and starting point
 User decisions:
@@ -417,3 +418,24 @@ at the baseline and the tagger cuts keeping 10% and 3% of the baseline DY (row d
   higher than with them (VV 3.3 vs 1.6 at 0.02); at 3% DY efficiency neither is consistently higher.
   The one stable outlier is ZH `c_evtDisp002NoLost` at the baseline (0.92 vs 0.27), which the b tagger then removes
   (0.99 at 3% vs 1.83).
+
+## 2026-11-20 Jet-free event E2C at reco vs gen (plan item 4)
+`jetfreeGenReco.py` on `jf_evt_20261120` and `jf_gen_20261120` (condor `work/genreco_20261120`, 30 GB); output
+`~/nobackup/boostedV/jetfreeGenReco_20261120/genReco.md`. Each level at its own baseline (jet pT > 200, |eta| < 2.0,
+Z pT > 200; reco also medium muon ID), 5 Z-pT slices. VVother/ZHother are background at both levels.
+
+| reco / gen | Z_shape VV, reco / gen | ZH, reco / gen | DY chi2/ndf (reco vs gen), per slice | DY max abs(reco/gen - 1) |
+|---|---|---|---|---|
+| charged PV / gen charged | 2.38 / 8.37 | 0.08 / 0.31 | 13-160 | 0.17-0.64 |
+| same, hemisphere | 3.81 / 8.38 | 0.14 / 0.30 | 13-139 | 0.16-0.63 |
+| PUPPI / gen all | 8.81 / 9.73 | 0.29 / 0.34 | 300-4400 | 0.49-0.59 |
+| same, hemisphere | 8.81 / 9.74 | 0.29 / 0.34 | 276-4371 | 0.49-0.58 |
+
+- At gen level the charged-only E2C keeps most of the sensitivity (VV 8.4 vs 9.7 for all particles). At reco the
+  charged-PV version loses most of it (2.4); the PUPPI version loses 10% (8.8 vs 9.7). The detector and pileup, not
+  the restriction to charged particles, make the charged-PV rows weak.
+- The reco DY shapes differ from gen by up to ~50% in well-measured bins at every Z pT, for both versions. The chi2
+  treats reco and gen as independent although they are the same events, so it is only a scale of the difference.
+- The reco Z here (PUPPI 8.81) is below the scan value (9.39, `sensitivity_20261120c_evt`): the scans slice in jet pT,
+  this study in Z pT. That matches the earlier jet-pT vs Z-pT slicing difference for VV (2026-11-19 entry); not
+  re-run to confirm.
