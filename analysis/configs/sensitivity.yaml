@@ -5,6 +5,7 @@
 
 binning:
   dRTable: {log: [40, 1.0e-3, 1.6], label: '$\Delta R$'}   # above 1.0: pairs across the AK8 jet
+  ptdRTable: {log: [40, 0.2, 5000], label: '$p_T \Delta R$ [GeV]'}   # jet pT x dRTable's range
 
 regions:
   ZmumuJets:
@@ -75,6 +76,8 @@ anchors:
   eec: &eec
     e2cn1: {observable: E2Cn1, var: eec.dR, bins: dRTable, cuts: [eec.dR > 0]}
     e2cn2: {observable: E2Cn2, var: eec.dR, bins: dRTable, cuts: [eec.dR > 0]}
+    e2cn1ptdR: {observable: E2Cn1, var: eec.dR * jets.pt, bins: ptdRTable, cuts: [eec.dR > 0]}
+    e2cn2ptdR: {observable: E2Cn2, var: eec.dR * jets.pt, bins: ptdRTable, cuts: [eec.dR > 0]}
   ak4: &ak4 {ptMin: 30.0, absEtaMax: 2.5, dRJet: 0.8, dRLepton: 0.4}
 
 tables:

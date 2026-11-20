@@ -12,6 +12,7 @@ at the luminosity, and the largest |ratio - 1| over bins with MC relative error 
 efficiencies.
 """
 import argparse
+import itertools
 import json
 import os
 
@@ -26,6 +27,7 @@ SIGNALS = {'VV': (('WZ', 'ZZ'), 91.1876), 'ZH': (('ZH',), 125.0)}
 DY_EFFS = (0.5, 0.3, 0.1, 0.03)
 TAGGER_EFFS = (0.1, 0.03, 0.01, 0.003, 0.001)
 TEN_SLICES = np.array([200, 250, 300, 350, 400, 500, 600, 800, 1000, 1500, np.inf])
+SLICINGS = {1: np.array([200.0, np.inf]), 5: sv.PT_SLICES, 10: TEN_SLICES}
 TAGGER_PAIRS = ('VV:gpV', 'VV:gpHbb', 'ZH:pnXbbVsQCD', 'ZH:gpV', 'ZH:gpHbb')
 MZ = 91.1876
 
@@ -98,9 +100,21 @@ def lrScore(t, base, sig, binCenters):
     return score
 
 
+MSD_EDGES = np.arange(0.0, 301.0, 5.0)
+
+
+def msdRows(msd):
+    """One-hot rows of the soft drop mass in MSD_EDGES; below 0 joins the first bin, above 300 GeV a last one."""
+    k = np.clip(np.searchsorted(MSD_EDGES, msd, side='right') - 1, 0, len(MSD_EDGES) - 1)
+    out = np.zeros((len(msd), len(MSD_EDGES)), dtype=np.float32)
+    out[np.arange(len(msd)), k] = 1.0
+    return out
+
+
 def vectors(t, obs, rebin=1, dRMin=0.0, centers=None):
-    """Per-jet E2C rows without the flow bins; rebin merges groups of adjacent Delta R bins (the number of bins must
-    divide by it), dRMin drops the bins whose centre is below it (before merging)."""
+    """Per-jet rows of obs, '+'-joined parts concatenated: an E2C column without the flow bins ('both' = e2cn1+e2cn2,
+    'bothptdR' = e2cn1ptdR+e2cn2ptdR) or 'msd' (msdRows). rebin merges groups of adjacent E2C bins (the number of
+    bins must divide by it), dRMin drops the Delta R bins (not allowed with ptdR columns) whose centre is below it (before merging)."""
     def one(x):
         x = x[:, 1:-1]
         if dRMin > 0:
@@ -109,16 +123,30 @@ def vectors(t, obs, rebin=1, dRMin=0.0, centers=None):
         if x.shape[1] % rebin:
             raise ValueError('rebin %d does not divide %d bins' % (rebin, x.shape[1]))
         return x.reshape(len(x), -1, rebin).sum(axis=2)
-    if obs == 'both':
-        return np.concatenate([one(t['e2cn1']), one(t['e2cn2'])], axis=1)
-    return one(t[obs])
+    parts = obs.replace('bothptdR', 'e2cn1ptdR+e2cn2ptdR').replace('both', 'e2cn1+e2cn2').split('+')
+    if dRMin > 0 and any(c.endswith('ptdR') for c in parts):
+        raise ValueError('dRMin applies to Delta R binned columns only')
+    return np.concatenate([msdRows(t['msd']) if c == 'msd' else one(t[c]) for c in parts], axis=1)
+
+
+def category(pt, absEta, slices, etaSlices):
+    """Index of the jet's (pT slice, |eta| slice) cell, pT-major, as a float for Stats; -1 outside every cell."""
+    i = np.searchsorted(slices, pt, side='right') - 1
+    j = np.searchsorted(etaSlices, absEta, side='right') - 1
+    nE = len(etaSlices) - 1
+    ok = (i >= 0) & (i < len(slices) - 1) & (j >= 0) & (j < nE)
+    return np.where(ok, i * nE + j, -1).astype(np.float64)
 
 
 class Evaluator:
-    def __init__(self, t, base, obs, binCenters, lumiScale, rebin=1, slices=sv.PT_SLICES, dRMin=0.0):
-        self.t, self.obs, self.binCenters, self.slices = t, obs, binCenters, slices
+    def __init__(self, t, base, obs, binCenters, lumiScale, rebin=1, slices=sv.PT_SLICES, dRMin=0.0,
+                 etaSlices=(0.0, np.inf)):
+        self.t, self.obs, self.binCenters = t, obs, binCenters
         self.w = t['weight'] * lumiScale
         self.V = vectors(t, obs, rebin, dRMin, binCenters)
+        nCells = (len(slices) - 1) * (len(etaSlices) - 1)
+        self.key = category(t['pt'], t['absEta'], slices, np.asarray(etaSlices, dtype=np.float64))
+        self.slices = np.arange(nCells + 1, dtype=np.float64)   # Stats blocks: one per cell
         self.groups = [g for g, _ in GROUPS]
         self.baseStats = self.stats(base)
         self.baseYield = {g: self.w[base & (t['group'] == g)].sum() for g in self.groups}
@@ -127,7 +155,7 @@ class Evaluator:
         out = {}
         for g in self.groups:
             m = mask & (self.t['group'] == g)
-            out[g] = sv.Stats(self.V[m], self.w[m] * scale, self.t['pt'][m], self.slices)
+            out[g] = sv.Stats(self.V[m], self.w[m] * scale, self.key[m], self.slices)
         return out
 
     def halfSampleZ(self, mask, signal, seed=7):
@@ -151,7 +179,8 @@ class Evaluator:
         bkgNames = [g for g in self.groups if g not in names]
         bkg = sum((st[g] for g in bkgNames[1:]), st[bkgNames[0]])
         ztot, zshape = sv.significance(sig.H, bkg.H, bkg.C)
-        ztotMC, zshapeMC = sv.significance(sig.H, bkg.H, bkg.C + bkg.Cmc + sig.Cmc)
+        # bins without background MC stay out: the signal MC variance alone would make them count
+        ztotMC, zshapeMC = sv.significance(sig.H, bkg.H, bkg.C + bkg.Cmc + sig.Cmc, support=np.diag(bkg.C) > 0)
         t, w = self.t, self.w
         win = (t['e2cn1'][:, 1:-1] * sv.peakWindow(self.binCenters, t['pt'], mass)).sum(axis=1)
         isSig = np.isin(t['group'], names)
@@ -252,13 +281,19 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('tables')
     ap.add_argument('-o', '--outdir', required=True)
-    ap.add_argument('--obs', nargs='+', default=['e2cn1'], choices=['e2cn1', 'e2cn2', 'both'])
+    ap.add_argument('--obs', nargs='+', default=['e2cn1'],
+                    help="e2cn1, e2cn2, both, e2cn1ptdR, e2cn2ptdR, bothptdR, msd, or '+'-joined (vectors)")
     ap.add_argument('--signals', nargs='+', default=list(SIGNALS), choices=list(SIGNALS))
     ap.add_argument('--lumi-pb', type=float, default=326030.0, help='target luminosity')
     ap.add_argument('--table-lumi-pb', type=float, default=326030.0, help='--lumi given to run.py')
     ap.add_argument('--taggers', nargs='+', default=list(TAGGER_PAIRS), help='tagger mode: SIGNAL:variable pairs')
     ap.add_argument('--scan', default='full', choices=['full', 'tagger'],
-                    help='full: all cuts and binnings; tagger: the signal tagger (taggerScans) with 5 and 10 pT slices')
+                    help='full: all cuts and binnings; tagger: the signal tagger (taggerScans) per binning')
+    ap.add_argument('--rebin', nargs='+', type=int, default=[1], help='tagger mode: Delta R bin merging factors')
+    ap.add_argument('--nslices', nargs='+', type=int, default=[5, 10], choices=sorted(SLICINGS),
+                    help='tagger mode: jet-pT slicings')
+    ap.add_argument('--eta-slices', nargs='+', type=float, default=[0.0, np.inf],
+                    help='tagger mode: |eta| slice edges, crossed with the pT slices')
     a = ap.parse_args()
     os.makedirs(a.outdir, exist_ok=True)
     edges = np.geomspace(1e-3, 1.6, 41)   # configs/sensitivity.yaml dRTable
@@ -281,19 +316,24 @@ def main():
             signal, var = pair.split(':')
             cuts = taggerScans(t, base, t['weight'], var)
             for obs in a.obs:
-                for nS, slices in ((5, sv.PT_SLICES), (10, TEN_SLICES)):
-                    ev = Evaluator(t, base, obs, centers, a.lumi_pb / a.table_lumi_pb, slices=slices)
-                    lines += ['## Tagger, %s, %s, %s, %d pT slices' % (signal, var, obs, nS), '',
+                for rebin, nS in itertools.product(a.rebin, a.nslices):
+                    ev = Evaluator(t, base, obs, centers, a.lumi_pb / a.table_lumi_pb, rebin=rebin, slices=SLICINGS[nS],
+                                   etaSlices=a.eta_slices)
+                    nE = len(a.eta_slices) - 1
+                    key = '%s/%d' % (obs, nS) + ('/%d' % ((len(edges) - 1) // rebin) if rebin > 1 else '') \
+                        + ('/eta%d' % nE if nE > 1 else '')
+                    lines += ['## Tagger, %s, %s, %s, %d pT slices x %d |eta| slices (%s), E2C rebin %d'
+                              % (signal, var, obs, nS, nE, ' '.join('%g' % e for e in a.eta_slices), rebin), '',
                               '| cut | eff sig | eff DY | eff bkg | S/B peak | Z_tot | Z_shape | Z_tot MC | Z_shape MC | DY chi2/ndf | DY max dev | Z_half A, B | Z_corr |',
                               '|---|---|---|---|---|---|---|---|---|---|---|---|---|']
                     for label, mask in cuts:
                         r = ev.evaluate(mask, signal)
                         za, zb = ev.halfSampleZ(mask, signal)
                         r.update(ZhalfA=za, ZhalfB=zb, Zcorr=float(np.sqrt(max(2 * r['Zshape'] ** 2 - (za ** 2 + zb ** 2) / 2, 0))))
-                        results.setdefault(pair, {}).setdefault('%s/%d' % (obs, nS), {})[label] = r
+                        results.setdefault(pair, {}).setdefault(key, {})[label] = r
                         extra = '%.1f, %.1f | %.1f' % (za, zb, r['Zcorr'])
                         lines.append('| %s | %s | %s |' % (label, fmt(r), extra))
-                        print(pair, obs, nS, label, fmt(r), extra, flush=True)
+                        print(pair, key, label, fmt(r), extra, flush=True)
                     lines.append('')
         with open(os.path.join(a.outdir, 'scan.md'), 'w') as f:
             f.write('\n'.join(lines) + '\n')

@@ -12,6 +12,8 @@ Plan: `SENSITIVITY_PLAN.md`. Newest entries at the end.
 - [2026-11-19 Constituents-only production, lostTracks, Python bindings](#2026-11-19-constituents-only-production-losttracks-python-bindings)
 - [2026-11-19 Tagger working points and per-pT-slice thresholds](#2026-11-19-tagger-working-points-and-per-pt-slice-thresholds)
 - [2026-11-19 Half-sample stability; VV with the bb score, ZH with the V score](#2026-11-19-half-sample-stability-vv-with-the-bb-score-zh-with-the-v-score)
+- [2026-11-19 Bug: signal-only bins in the MC-statistics significance](#2026-11-19-bug-signal-only-bins-in-the-mc-statistics-significance)
+- [2026-11-19 Corrected scans: binning, pT x dR, |eta|, m_SD](#2026-11-19-corrected-scans-binning-pt-x-dr-eta-m_sd)
 
 ## 2026-11-19 Decisions and starting point
 User decisions:
@@ -166,3 +168,45 @@ Stable means Z_half ≈ Z ≈ Z_corr. Quoted: Z_shape with MC term (Z_corr witho
   with both n 1.6-1.9. Comparable but below pnXbbVsQCD (2.1 / 1.9 at 0.3%) and gpHbb (2.2 / 1.8 at 0.3%).
 - ZH tops out at ≈ 2 at the stable points; the larger values (3.5-37) are all at unstable points.
 - Tight working points need either more DY MC or fewer bins / a regularised covariance before they can be judged.
+
+## 2026-11-19 Bug: signal-only bins in the MC-statistics significance
+- Z_tot/Z_shape "+MC" used C_bkg + Cmc_bkg + Cmc_sig. A bin with signal MC but no background MC then has positive
+  variance (signal MC only) and enters the pseudo-inverse with s^2 / sigma^2(signal MC). Found on the m_SD templates:
+  ZH, 10 pT slices, baseline Z_shape 0.7 without the MC term but 2.0 with it (adding covariance cannot raise Z).
+- Fix: the MC-term significance uses only bins with background MC (`significance(..., support=diag(C_bkg) > 0)`),
+  like the plain one. Test `SignalOnlyBins` (a signal-only bin: 5/sqrt(101.5) with the support, > 10 without) fails
+  when the support is ignored.
+- Every earlier "+MC" number (Phase A, tagger and stability tables) is affected wherever such bins exist (tight cuts,
+  fine binning, one-hot m_SD); the Z without the MC term and the half-sample numbers are not. All scans are being rerun
+  into the same directories; the entries above are superseded by the next one.
+
+## 2026-11-19 Corrected scans: binning, pT x dR, |eta|, m_SD
+All scans rerun with the support fix on condor (`scanCondor.py`, `configs/scans_20261119.yaml`, 48 jobs; outputs in
+the same `~/nobackup/boostedV/sensitivity_20261119*/`). Condor vs a local run of the m_SD scan: Z values agree to
+<= 2e-7 relative (DY chi2/ndf to 3.5e-3, an ill-conditioned pseudo-inverse). The ptdR tables' plain e2cn1 rows
+reproduce the ΔR scan exactly (consistency of `sens_tables_20261119b`).
+Numbers: Z_shape with MC stat. at the best *stable* working point (both half-sample Z_shape within 10% of the full one;
+the tagger thresholds of `taggerScans`); baseline in brackets. "x/y": pT slices / ΔR bins.
+| config | VV gpV | ZH pnXbb | ZH gpV |
+|---|---|---|---|
+| E2C n=1, 5/40 (reference) | 14.2 (9.2) | 1.2 (0.46) | 1.6 (0.46) |
+| E2C n=1, 10/40 | 14.9 (9.6) | 1.6 | 1.1 |
+| both orders, 10/40 | 15.3 (10.0) | 1.5 | 1.2 |
+| n=1, 5 slices, 20 / 10 / 5 ΔR bins | 13.6 / 11.9 / 10.7 | 1.4 / 1.9 / 1.6 | 1.4 / 1.0 / 0.8 |
+| n=1, 1 slice, 40 ΔR bins | 10.0 (7.1) | 1.2 | 1.0 |
+| n=1 in pT·ΔR, 1 / 5 / 10 slices | 14.0 / 14.7 / 15.4 | 1.8 / 1.8 / 1.6 | 1.7 / 1.7 / 1.4 |
+| n=1, 5 slices x 2 / 4 abs(eta) slices | 14.3 / 12.4 | 1.2 / 0.9 | 1.1 / 0.7 |
+| n=1, 10 slices x 2 / 4 abs(eta) slices | 15.5 / 10.0 (base only) | 0.9 / 0.9 | 1.5 / 2.3 (9/11 unstable) |
+| m_SD (5 GeV bins), 1 / 5 / 10 slices | 18.6 / 19.1 / 19.6 (10.5-11.3) | 3.4 / 4.9 / 5.5 (0.6) | 2.8 / 2.0 / 2.1 |
+| E2C n=1 + m_SD, 5 / 10 slices | 19.5 / 20.2 | 5.1 / 2.0 | 2.1 / 2.2 |
+- Fewer ΔR bins lower Z at every stable point; they make tighter working points stable only for ZH (pnXbb 0.3%:
+  1.9-2.5 with 10 bins), not for VV.
+- pT·ΔR: with one pT slice it matches the ΔR binning with 5-10 slices (VV 14.0 vs 10.0 for ΔR with one slice); with
+  slices, the same as ΔR within ~0.5. It removes the need for pT slicing, not more.
+- |eta| slices: no consistent gain; the doubled bin count makes more working points unstable.
+- m_SD: the stat-only m_SD template fit beats the E2C: VV 19-20 vs 14-15, ZH(pnXbb) 4.9-5.5 vs 1.2-1.6; adding the E2C
+  to m_SD changes VV by < 1 and does not help ZH. ZH gpHbb with m_SD: 4.8-5.3 (1 and 5 slices).
+- Superseded numbers of the previous entries: the VV E2C results moved by < 0.1 (few signal-only bins); VV with the bb
+  score now has no stable point below baseline at the 10% criterion (earlier quoted 2.6-4.8 with a looser one). ZH
+  m_SD baseline at 10 slices 2.0 -> 0.59 (the bug).
+

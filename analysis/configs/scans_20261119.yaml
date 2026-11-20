@@ -1,0 +1,36 @@
+# sensitivity.py scans of SENSITIVITY_JOURNAL.md (2026-11-19 entries), for scanCondor.py; outBase is relative to this file.
+outBase: ../..
+tables:
+  ak8: root://cmseos.fnal.gov//store/user/srothman/boostedV/analysis_tables/sens_tables_20261119.coffea
+  ak8ptdR: root://cmseos.fnal.gov//store/user/srothman/boostedV/analysis_tables/sens_tables_20261119b.coffea   # + pT dR columns
+anchors:
+  three: &three [VV:gpV, ZH:pnXbbVsQCD, ZH:gpV]
+scans:
+  sensitivity_20261119b:            # Phase A: all cuts and binnings
+    tables: ak8
+    args: []
+    split: {signals: [VV, ZH], obs: [e2cn1, e2cn2, both]}
+  sensitivity_20261119d_tagger:     # working points, 5 and 10 pT slices
+    tables: ak8
+    args: [--scan, tagger]
+    split: {taggers: [VV:gpV, VV:gpHbb, ZH:pnXbbVsQCD, ZH:gpV, ZH:gpHbb], obs: [e2cn1, both]}
+  sensitivity_20261119e_fewbins:
+    tables: ak8
+    args: [--scan, tagger, --rebin, 2, 4, 8, --nslices, 1, 5, 10]
+    split: {taggers: *three, obs: [e2cn1, both]}
+  sensitivity_20261119f_eta2:
+    tables: ak8
+    args: [--scan, tagger, --nslices, 5, 10, --eta-slices, 0, 1, 2]
+    split: {taggers: *three, obs: [e2cn1, both]}
+  sensitivity_20261119g_eta4:
+    tables: ak8
+    args: [--scan, tagger, --nslices, 5, 10, --eta-slices, 0, 0.5, 1, 1.5, 2]
+    split: {taggers: *three, obs: [e2cn1]}
+  sensitivity_20261119h_msd:
+    tables: ak8
+    args: [--scan, tagger, --nslices, 1, 5, 10]
+    split: {taggers: [VV:gpV, ZH:pnXbbVsQCD, ZH:gpV, ZH:gpHbb], obs: [msd, e2cn1+msd]}
+  sensitivity_20261119i_ptdR:
+    tables: ak8ptdR
+    args: [--scan, tagger, --nslices, 1, 5, 10]
+    split: {taggers: *three, obs: [e2cn1ptdR, bothptdR, e2cn1]}

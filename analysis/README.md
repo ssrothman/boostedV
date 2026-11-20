@@ -77,10 +77,20 @@ Each expression has a level, which decides what a cut does:
 ```
 python3 run.py configs/sensitivity.yaml --tag 20261116_zxb2b 20261117_zxb2bbkg 20261117_zh --lumi 326030 -o tables.coffea --backend condor
 python3 sensitivity.py tables.coffea -o outdir [--obs e2cn1 e2cn2 both] [--signals VV ZH]
+python3 sensitivity.py tables.coffea -o outdir --scan tagger [--taggers VV:gpV ...] [--obs ...] [--rebin 1 2 4]
+    [--nslices 1 5 10] [--eta-slices 0 1 2]
 ```
 Signal VV (WZ + ZZ) or ZH, the rest background. For each cut and E2C binning: efficiencies, peak-window S/B, the
 stat-only Z of the E2C in (Delta R, jet pT) bins with the jet-by-jet covariance (with and without the MC statistical
 covariance; `bvana/sensitivity.py`) and the DY shape distortion. Output `outdir/scan.md`, `scan.json`.
+`--obs`: `e2cn1`, `e2cn2`, `both`, the `pT Delta R` binned `e2cn1ptdR`, `e2cn2ptdR`, `bothptdR`, the soft drop mass
+`msd` (one-hot, 5 GeV bins to 300 GeV and an overflow), or `+`-joined (e.g. `e2cn1+msd`, one concatenated row per
+jet). The tagger mode scans the signal tagger's working points with the half-sample stability check, per E2C rebin
+factor, jet-pT slicing and `|eta|` slicing (the pT and `|eta|` slices are crossed into independent blocks).
+
+Condor: `python3 scanCondor.py submit configs/scans_20261119.yaml -n NAME`, then `status`, `resubmit`, `collect work/NAME`
+(one job per tagger pair or signal and observable, tables read from EOS by xrootd; collect writes each scan's
+`scan.md`, `scan.json`, `run.log` under the scan file's `outBase`, in local-run section order).
 
 ## Correlators from stored constituents (`bvana/eecext.py`)
 `eecext.projectedENC(constituents, norms, N, n, edges, weight='Pt', angle='DeltaR')`: the production's projected ENC

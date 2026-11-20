@@ -39,9 +39,12 @@ class Stats:
         return out
 
 
-def pinv(C):
-    """Pseudo-inverse on the bins with positive variance; eigenvalues below EIG_CUTOFF x the largest are dropped."""
+def pinv(C, support=None):
+    """Pseudo-inverse on the bins with positive variance (and in support, if given); eigenvalues below EIG_CUTOFF x
+    the largest are dropped."""
     keep = np.diag(C) > 0
+    if support is not None:
+        keep &= support
     out = np.zeros_like(C)
     if not keep.any():
         return out
@@ -51,9 +54,10 @@ def pinv(C):
     return out
 
 
-def significance(s, b, C):
-    """(Z_tot, Z_shape) of signal vector s over background vector b with covariance C."""
-    P = pinv(C)
+def significance(s, b, C, support=None):
+    """(Z_tot, Z_shape) of signal vector s over background vector b with covariance C, on the bins in support (default:
+    those with positive variance)."""
+    P = pinv(C, support)
     z2 = s @ P @ s
     bb = b @ P @ b
     shape = z2 - (s @ P @ b) ** 2 / bb if bb > 0 else z2

@@ -84,6 +84,18 @@ class StatsAndSignificance(unittest.TestCase):
         self.assertEqual(sv.slicedShapeChi2(np.r_[H[:3], 0, 0, 0], np.diag(np.r_[H[:3], 0, 0, 0]), H, 2)[1], 2)
 
 
+class SignalOnlyBins(unittest.TestCase):
+    def test_mc_term_never_increases_z(self):
+        """A bin with signal but no background MC: adding the MC covariance (signal included) must not let it count."""
+        s, b = np.array([5.0, 2.0]), np.array([100.0, 0.0])
+        C, Cmc, sigCmc = np.diag(b), np.diag([1.0, 0.0]), np.diag([0.5, 0.04])
+        z = sv.significance(s, b, C)[0]
+        zmc = sv.significance(s, b, C + Cmc + sigCmc, support=np.diag(C) > 0)[0]
+        self.assertAlmostEqual(z, 0.5)
+        self.assertAlmostEqual(zmc, 5 / np.sqrt(101.5))
+        self.assertGreater(sv.significance(s, b, C + Cmc + sigCmc)[0], 10)   # without the support: inflated
+
+
 class Kinematics(unittest.TestCase):
     def test_peak_window(self):
         m = sv.peakWindow(np.array([0.3, 0.6, 0.9, 1.5]), np.array([300.0]), 91.0)
@@ -103,8 +115,6 @@ class Kinematics(unittest.TestCase):
             self.assertAlmostEqual(c[0], np.cos(th), places=9)
 
 
-if __name__ == '__main__':
-    unittest.main()
 
 
 class Thresholds(unittest.TestCase):
@@ -122,3 +132,63 @@ class Thresholds(unittest.TestCase):
         glob = x > c
         self.assertAlmostEqual(glob.mean(), 0.1, delta=0.002)
         self.assertGreater(np.ptp([glob[pt == p].mean() for p in (250.0, 700.0, 1200.0)]), 0.1)   # global cut is not flat
+
+
+class Templates(unittest.TestCase):
+    """msd one-hot rows, '+'-joined observables and the (pT, |eta|) cells of the Evaluator."""
+
+    def test_msd_rows(self):
+        import sensitivity
+        r = sensitivity.msdRows(np.array([-0.5, 0.0, 4.99, 5.0, 299.0, 300.0, 1e4]))
+        np.testing.assert_array_equal(r.sum(axis=1), 1)
+        self.assertEqual(r.argmax(axis=1).tolist(), [0, 0, 0, 1, 59, 60, 60])
+
+    def test_vectors_join_and_rebin_only_e2c(self):
+        import sensitivity
+        rng = np.random.default_rng(2)
+        t = {'e2cn1': rng.random((3, 10)), 'e2cn2': rng.random((3, 10)), 'msd': np.array([7.0, 90.0, 400.0])}
+        v = sensitivity.vectors(t, 'both+msd', rebin=2)
+        self.assertEqual(v.shape, (3, 4 + 4 + 61))
+        np.testing.assert_allclose(v[:, :4], t['e2cn1'][:, 1:-1].reshape(3, 4, 2).sum(axis=2))
+        np.testing.assert_allclose(v[:, 4:8], t['e2cn2'][:, 1:-1].reshape(3, 4, 2).sum(axis=2))
+        np.testing.assert_array_equal(v[:, 8:], sensitivity.msdRows(t['msd']))
+        with self.assertRaises(ValueError):
+            sensitivity.vectors(dict(t, e2cn1ptdR=t['e2cn1']), 'e2cn1ptdR', dRMin=0.01, centers=np.ones(8))
+
+    def test_category(self):
+        import sensitivity
+        pt = np.array([250.0, 250.0, 350.0, 350.0, 150.0, 250.0, 300.0])
+        eta = np.array([0.5, 1.5, 0.5, 1.0, 0.5, 2.5, 1.99])
+        got = sensitivity.category(pt, eta, np.array([200.0, 300.0, np.inf]), np.array([0.0, 1.0, 2.0]))
+        self.assertEqual(got.tolist(), [0, 1, 2, 3, -1, -1, 3])
+
+    def test_eta_cells_in_the_evaluator(self):
+        """msd templates in (pT x |eta|) cells: Z_tot^2 is the Poisson sum over the cell x mass bins."""
+        import sensitivity
+        rng = np.random.default_rng(3)
+        n = 6000
+        g = np.where(rng.random(n) < 0.8, 'DY', 'WZ')
+        absEta = np.where(g == 'WZ', rng.random(n) * 0.8, rng.random(n) * 2.0)   # signal central
+        t = {'group': g, 'weight': rng.uniform(0.5, 2.0, n), 'pt': rng.uniform(200, 600, n), 'absEta': absEta,
+             'msd': np.where(g == 'WZ', rng.normal(90, 8, n), rng.exponential(40, n)), 'e2cn1': np.zeros((n, 42))}
+        base = np.ones(n, bool)
+        slices, etaS = np.array([200.0, 400.0, np.inf]), np.array([0.0, 1.0, 2.0])
+        ev = sensitivity.Evaluator(t, base, 'msd', None, 1.0, slices=slices, etaSlices=etaS)
+        st = ev.stats(base)
+        cell = (np.searchsorted(slices, t['pt'], side='right') - 1) * 2 + (t['absEta'] >= 1.0)
+        k = np.clip(np.searchsorted(sensitivity.MSD_EDGES, t['msd'], side='right') - 1, 0, 60)
+        flat = cell * 61 + k
+        hist = lambda m: np.bincount(flat[m], weights=t['weight'][m], minlength=4 * 61)
+        s, b = hist(g == 'WZ'), hist(g == 'DY')
+        np.testing.assert_allclose(st['WZ'].H, s)
+        np.testing.assert_allclose(st['DY'].H, b)
+        ok = b > 0
+        z2 = (s[ok] ** 2 / b[ok]).sum()
+        self.assertAlmostEqual(sv.significance(st['WZ'].H, st['DY'].H, st['DY'].C)[0] ** 2, z2, delta=1e-6 * z2)
+        one = sensitivity.Evaluator(t, base, 'msd', None, 1.0, slices=slices).stats(base)
+        z2one = sv.significance(one['WZ'].H, one['DY'].H, one['DY'].C)[0] ** 2
+        self.assertGreater(z2, 1.2 * z2one)   # the |eta| cells separate the central signal
+
+
+if __name__ == '__main__':
+    unittest.main()
