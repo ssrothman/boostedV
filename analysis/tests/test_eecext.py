@@ -31,10 +31,10 @@ def dRpy(p, q):
 
 
 def shapePy(a, b, c):
-    """(xi, phi) of arXiv:2201.07800 Eq. (3); (0, 0) for R_S = 0."""
+    """(xi, phi) of arXiv:2201.07800 Eq. (3); (-1, -1) for R_S = 0."""
     rs, rm, rl = sorted((a, b, c))
     if rs == 0:
-        return 0.0, 0.0
+        return -1.0, -1.0
     return rs / rm, np.arcsin(np.sqrt(np.clip(1 - ((rl - rm) / rs) ** 2, 0, 1)))
 
 

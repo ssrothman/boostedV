@@ -9,8 +9,9 @@ Spec {name: {source, N, n, bins, norm, select, eventTable, shape}}:
   bins        binning name (R_L for shape)
   norm        jetPt, zPt or sumPt (of the selected particles)
   shape       optional: xi or phi, the resolved E3C (N = 3) projected on (R_L, xi) or (R_L, phi), with
-              binnings shapeBins (default xi: 5 bins in [0, 1], phi: 5 in [0, pi/2]); rows of R_L bins x shape
-              bins without any flow bin (unlike the 1D rows), R_L fastest
+              binnings shapeBins (default xi: 5 bins in [0, 1], phi: 5 in [0, pi/2]); rows of R_L bins x (1 + shape
+              bins), R_L fastest, without flow bins (unlike the 1D rows) except the first shape column, which holds
+              the triples with R_S = 0 (eec::triangleShape puts them below every shape bin)
   select      particle filters, all optional:
               charged (true: charge != 0), ptMin, lostTracks (false: packed PF candidates only, `source == 0`),
               minFromPV, maxAbsDz, maxAbsDxy, minAbsDxy (charged particles only; neutral ones pass),
@@ -154,11 +155,15 @@ def rows(view, spec, edges, shapeEdges=None):
     else:
         norm = ak.to_numpy(ak.sum(flat.pt, axis=1)).astype(np.float64)
     norm = np.where(norm > 0, norm, 1.0)                                      # empty lists give zero rows anyway
-    cols = ak.zip({k: flat[k] for k in ('pt', 'eta', 'phi', 'E')})
+    return correlatorRows(ak.zip({k: flat[k] for k in ('pt', 'eta', 'phi', 'E')}), norm, spec, edges, shapeEdges)
+
+
+def correlatorRows(cols, norm, spec, edges, shapeEdges=None):
+    """rows() from the selected particles cols [jet][particle] (pt, eta, phi, E) and the per-jet norm."""
     if 'shape' not in spec:
         return eecext.projectedENC(cols, norm, spec['N'], spec['n'], edges).astype(np.float32)
     se = SHAPE_EDGES[spec['shape']] if shapeEdges is None else shapeEdges
     xi, phi = (se, np.array([0.0, 1.0])) if spec['shape'] == 'xi' else (np.array([0.0, 1.0]), se)
     full = eecext.resolvedE3C(cols, norm, spec['n'], edges, xi, phi)          # (jets, RL, xi, phi), flow bins
-    proj = (full.sum(axis=3) if spec['shape'] == 'xi' else full.sum(axis=2))[:, 1:-1, 1:-1]
+    proj = (full.sum(axis=3) if spec['shape'] == 'xi' else full.sum(axis=2))[:, 1:-1, :-1]   # shape underflow: R_S = 0
     return proj.transpose(0, 2, 1).reshape(len(proj), -1).astype(np.float32)   # R_L fastest

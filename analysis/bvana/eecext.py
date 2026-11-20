@@ -8,7 +8,8 @@ Row j: underflow, the len(edges) - 1 bins, overflow; self tuples (angle 0) are i
 
 resolvedE3C(constituents, norms, n, edgesRL, edgesXi, edgesPhi, weight='Pt', angle='DeltaR')
   -> numpy (jets, len(edgesRL) + 1, len(edgesXi) + 1, len(edgesPhi) + 1), flow bins on every axis: the E3C in
-  (R_L, xi, phi) of arXiv:2201.07800; summed over xi and phi it is projectedENC with N = 3.
+  (R_L, xi, phi) of arXiv:2201.07800, tuples with R_S = 0 in the xi and phi underflow; summed over xi and phi it is
+  projectedENC with N = 3.
 """
 import awkward as ak
 import numpy as np

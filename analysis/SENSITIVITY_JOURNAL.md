@@ -19,6 +19,7 @@ Plan: `SENSITIVITY_PLAN.md`. Newest entries at the end.
 - [2026-11-19 Truth match and jet-pT vs Z-pT resolution](#2026-11-19-truth-match-and-jet-pt-vs-z-pt-resolution)
 - [2026-11-19 Constituent correlator tables (ceec)](#2026-11-19-constituent-correlator-tables-ceec)
 - [2026-11-19 Z-pT x dR binning and Z-pT slices](#2026-11-19-z-pt-x-dr-binning-and-z-pt-slices)
+- [2026-11-20 Resolved E3C: R_S = 0 triples in their own bin (Q1)](#2026-11-20-resolved-e3c-r_s--0-triples-in-their-own-bin-q1)
 
 ## 2026-11-19 Decisions and starting point
 User decisions:
@@ -297,3 +298,12 @@ best stable point (both half-sample Z within 10%), "a / b / c" = 1 / 5 / 10 slic
   Z-pT slices vs 1.2-1.6 in jet-pT slices; baselines 0.52-0.56 vs 0.45-0.51. Consistent with the equal resolutions for
   ZH (b-jet response, neutrinos), while the Z pT does not depend on the jet. The ZH best points sit at 0.3-1% DY
   efficiency, where stability is marginal; the gain is of the size of the stable-point scatter (~0.3-0.5).
+
+## 2026-11-20 Resolved E3C: R_S = 0 triples in their own bin (Q1)
+User (Q1): track the triples with R_S = 0 separately. `eec::triangleShape` now gives them (xi, phi) = (-1, -1), the
+underflow of the shape axes, which no other triple reaches; the ceec shape rows keep that underflow as the first shape
+column (20 R_L x (1 + 5) = 120 columns). Repeated indices are detected by index: `Angle3D` gives a particle's angle to
+itself as a rounding-sized number, not 0 (the Angle3D plugin test found 21 of the 36 repeated-index triples at R_S
+> 0). Tests: `test_triangle_shape.cc`, `test_plugins.cc` (36 sentinel entries), `tests/test_ceec.py` ShapeRows (2- and
+3-particle jets), `tests/test_eecext.py`; mutations (old slice, old (0, 0) reference, no index check) caught.
+

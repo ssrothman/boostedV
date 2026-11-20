@@ -53,6 +53,28 @@ class Select(unittest.TestCase):
         self.assertEqual(self.mask(ps, {'minPuppi': 0.5}), [False, False, True])
 
 
+class ShapeRows(unittest.TestCase):
+    RL = np.geomspace(1e-3, 1.0, 4)
+
+    def rows(self, jet, shape):
+        cols = ak.Array([[{'pt': pt, 'eta': eta, 'phi': phi, 'E': pt} for pt, eta, phi in jet]])
+        return ceec.correlatorRows(cols, np.array([1.0]), {'N': 3, 'n': 1.0, 'shape': shape}, self.RL)[0]
+
+    def test_coincident_triples_in_the_first_shape_column(self):
+        two = [(0.5, 0.0, 0.0), (0.5, 0.3, 0.0)]
+        three = two + [(0.5, 0.0, 0.2)]
+        for shape in ('xi', 'phi'):
+            r = self.rows(two, shape).reshape(6, 3)              # (1 + 5 shape bins) x 3 R_L bins
+            self.assertEqual(r.shape, (6, 3))
+            # each ordered triple weighs 0.5^3; 6 of the 8 have R_S = 0 and R_L = 0.3 (bin 2), 2 have R_L = 0
+            np.testing.assert_allclose(r[0], [0, 0, 6 * 0.5 ** 3], rtol=1e-6)
+            self.assertEqual(r[1:].sum(), 0)
+            r3 = self.rows(three, shape).reshape(6, 3)
+            # the 6 orderings of the distinct triple are the only R_S > 0 entries
+            self.assertAlmostEqual(float(r3[1:].sum()), 6 * 0.5 ** 3, places=6)
+            self.assertAlmostEqual(float(r3.sum()), 27 * 0.5 ** 3 - 3 * 0.5 ** 3, places=6)   # minus (i,i,i) at R_L 0
+
+
 class Join(unittest.TestCase):
     def test_details_by_srcIdx_within_the_event(self):
         jet = ak.Array([[[{'srcIdx': 4}, {'srcIdx': 7}], [{'srcIdx': 9}]], [[{'srcIdx': 4}]]])
