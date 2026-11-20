@@ -399,6 +399,19 @@ definitions:
           table: {$ref: '#/definitions/obsTable'}
       - type: object
         additionalProperties: false
+        required: [kind, n, weight, angle, norm, output, table]
+        properties:
+          kind: {const: resolvedE3C}   # E3C in (R_L, xi, phi), arXiv:2201.07800
+          n: {$ref: '#/definitions/num'}
+          weight: {enum: [Energy, Pt]}
+          angle: {enum: [DeltaR, Angle3D]}
+          norm: {enum: [sumE, sumPt, jetE, jetPt, unity]}
+          output: {enum: [Dense, SparseMerged, SparseUnmerged, Unbinned]}
+          axes: {type: array, items: {$ref: '#/definitions/axis'}, minItems: 3, maxItems: 3}
+          collections: {$ref: '#/definitions/strList'}   # default: every jet collection
+          table: {$ref: '#/definitions/obsTable'}
+      - type: object
+        additionalProperties: false
         required: [kind, n, weight, frame, norm, output, table]
         properties:
           kind: {const: e1c}

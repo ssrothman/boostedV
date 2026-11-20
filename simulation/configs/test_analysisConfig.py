@@ -266,6 +266,22 @@ class LoaderRejects(unittest.TestCase):
             c['observables']['E2C']['table'].update(coordNames=['dR'], coordPrecision=-1)
         self.assertRejected(unbinned, 'aggregation/observables: E2C is unbinned')
 
+        def re3c(c, nAxes=3, coordNames=None):
+            o = {'kind': 'resolvedE3C', 'n': 1.0, 'weight': 'Pt', 'angle': 'DeltaR', 'norm': 'jetPt',
+                 'output': 'Dense' if coordNames is None else 'Unbinned', 'table': {'weightPrecision': -1}}
+            if coordNames is None:
+                o['axes'] = [{'type': 'regular', 'nbins': 4, 'lo': 0.0, 'hi': 1.0}] * nAxes
+            else:
+                o['table'].update(coordNames=coordNames, coordPrecision=-1)
+            c['observables']['RE3C'] = o
+        cfg = loadDefault()
+        re3c(cfg)
+        analysisConfig.load(writeTmp(cfg))
+        re3c(cfg, coordNames=['RL', 'xi', 'phi'])
+        analysisConfig.load(writeTmp(cfg))
+        self.assertRejected(lambda c: re3c(c, nAxes=2), 'observables/RE3C')
+        self.assertRejected(lambda c: re3c(c, coordNames=['RL', 'xi']), 'unbinned output needs 3 coordNames')
+
         def genJES(c):
             c['jets']['collections']['Gen']['variations'] = {'JESUp': {'type': 'jes', 'direction': 'up'}}
         self.assertRejected(genJES, 'JES/JER need reco MiniAOD jets')

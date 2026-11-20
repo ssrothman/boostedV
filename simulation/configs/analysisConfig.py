@@ -164,7 +164,7 @@ def crossCheck(cfg):
         if binned and set(o['table']) - {'weightPrecision'}:
             p.append('observables/%s/table: coordNames/coordPrecision are for unbinned outputs only' % name)
         if not binned:
-            D = 1 if o['kind'] == 'penc' else 2
+            D = {'penc': 1, 'e1c': 2, 'resolvedE3C': 3}[o['kind']]
             if len(o['table'].get('coordNames', [])) != D or 'coordPrecision' not in o['table']:
                 p.append('observables/%s/table: unbinned output needs %d coordNames and coordPrecision' % (name, D))
     for name, o in cfg['observables'].items():

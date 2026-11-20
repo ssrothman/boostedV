@@ -311,6 +311,10 @@ For each jet collection `<C>`, variation `<v>` and observable `<obs>` (name `<C>
 
 - `weight` is the product of (E_p / E_jet)ⁿ over the tuple, with E_p from `weight` (`Energy` or `Pt`).
 - `bin` is the flow-inclusive linear index over all axes: 0 is underflow, axis 0 varies fastest.
+- `kind: resolvedE3C` (N = 3; modules `RE3CProducer_<Weight>_<Angle>_<Output>`): three axes (R_L, ξ, φ), R_L the
+  largest pairwise angle and ξ = R_S/R_M, φ = arcsin √(1 − (R_L − R_M)²/R_S²) the triangle shape of arXiv:2201.07800
+  Eq. (3); a tuple with R_S = 0 (e.g. a repeated particle) has ξ = φ = 0. Summed over ξ and φ it is the pENC with
+  N = 3. Default unbinned coordinate names `RL`, `xi`, `phi`. No production config enables it yet (2026-11-19).
 - Axis 0 is θ_max (pENC) or the first frame coordinate (E1C). For E1C the coordinates are (θ, φ) in `frame`
   (`lab`, `jetAxis`, `jetHelicity`, `jetCS`, `jetProjective`; see `EECs/interface/Config.h`). The jet frames take the
   beam on the jet side (sign of the jet pz) as reference; `jetProjective` has θ = ΔR to the jet axis and φ the
