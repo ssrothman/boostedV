@@ -22,6 +22,7 @@ Plan: `SENSITIVITY_PLAN.md`. Newest entries at the end.
 - [2026-11-20 Resolved E3C: R_S = 0 triples in their own bin (Q1)](#2026-11-20-resolved-e3c-r_s--0-triples-in-their-own-bin-q1)
 - [2026-11-20 VV jets that are not the boson (Q4 follow-ups)](#2026-11-20-vv-jets-that-are-not-the-boson-q4-follow-ups)
 - [2026-11-20 Non-boson VV jets are background (VVother)](#2026-11-20-non-boson-vv-jets-are-background-vvother)
+- [2026-11-20 Jet-free tables of `20261119_jetfreefull` on EOS](#2026-11-20-jet-free-tables-of-20261119_jetfreefull-on-eos)
 
 ## 2026-11-19 Decisions and starting point
 User decisions:
@@ -344,3 +345,19 @@ of `20261119_jetfreefull`) and `vvTruthSplit_20261119c/` (`vvTruthSplit.py` on t
 - Q6 (user): the ZH jets that are not the boson are background too (group `ZHother`); `loadTables(..., split=False)`
   keeps the unsplit labels. Jet-free gen tables of DY + ZH rerun with the truth block (`work/jf_gen_a`; the earlier run
   is `work/jf_gen_a_notruth`).
+
+## 2026-11-20 Jet-free tables of `20261119_jetfreefull` on EOS
+`root://cmseos.fnal.gov//store/user/srothman/boostedV/analysis_tables/jf_<group>_20261120.coffea`: `run.py
+configs/jetfree_<group>.yaml --lumi 326030`, condor runs `work/jf_<group>_a` (DY 200-400/400-600/600+, ZH; 131 jobs) and
+`work/jf_<group>_b` (WZ 47/47 CRAB jobs, ZZ 148/149; 40 jobs), accumulated by `work/jfmerge/job.sh` (parts staged on
+EOS: the LPC input sandbox limit refuses them as condor inputs). Checksums agree with `xrdfs query checksum`.
+
+| group | bytes | adler32 |
+|---|---|---|
+| ak8obs | 5721501291 | 1496f5aa |
+| ak8const | 5617850738 | 32c4364e |
+| evt | 5729703087 | cc021c82 |
+| evtvtx | 3844194851 | 5a2e1936 |
+| gen | pending (DY + ZH rerun with the truth block) | |
+
+Scans: `scanCondor.py submit configs/scans_20261120_jetfree.yaml -n scans_20261120_jetfree --memory 24000` (70 jobs).
