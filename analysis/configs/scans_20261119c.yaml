@@ -1,0 +1,16 @@
+# sensitivity.py scans of E2C_NEXT_PLAN.md item 1 (Z-pT x dR binning, Z-pT slices), for scanCondor.py; outBase is
+# relative to this file.
+outBase: ../..
+tables:
+  ak8c: root://cmseos.fnal.gov//store/user/srothman/boostedV/analysis_tables/sens_tables_20261119c.coffea   # + Z-pT dR, truth
+anchors:
+  three: &three [VV:gpV, ZH:pnXbbVsQCD, ZH:gpV]
+scans:
+  sensitivity_20261119j_ptlldR:     # x = Z pT x dR (jet-pT x dR as the reference), jet-pT slices
+    tables: ak8c
+    args: [--scan, tagger, --nslices, 1, 5, 10]
+    split: {taggers: *three, obs: [e2cn1ptlldR, bothptlldR, e2cn1ptdR]}
+  sensitivity_20261119k_zptslices:  # the same and plain dR, in Z-pT slices
+    tables: ak8c
+    args: [--scan, tagger, --nslices, 5, 10, --slice-var, zPt]
+    split: {taggers: *three, obs: [e2cn1, both, e2cn1ptlldR, e2cn1ptdR]}
