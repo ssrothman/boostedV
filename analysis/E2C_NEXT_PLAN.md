@@ -106,7 +106,8 @@ the jet-free production (10% of DY).
      produced with this config yet); total ~180-215 GB of ~330 GB free (EOS quota 1.67 of 2.00 TB used, 2026-11-19).
      Decided: default EOS `outputBase`; a larger area is available from the user if later productions need it.
    - Decided: DY 400-600 and 600+ rerun in full (CRAB cannot skip files: `maxJobs` takes the first N), +~13 GB;
-     the 10% DY of `20261119_jetfree` is not used. Open: also rerun WZ, ZZ, ZH (~11 GB) for one layout.
+     the 10% DY of `20261119_jetfree` is not used. Decided: WZ, ZZ, ZH rerun in the same tag (~11 GB), so
+     one layout throughout; `20261119_jetfree` serves only until it is complete.
 4. When crab jobs are done: run the merging
 5. The constituent table processor, closure against the production E2C,
 6. Items 4, 3, 2 (continue to defer item 5)
