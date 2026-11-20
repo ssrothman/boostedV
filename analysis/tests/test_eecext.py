@@ -26,6 +26,28 @@ def bruteForce(jet, norm, N, n, edges):
     return out
 
 
+def dRpy(p, q):
+    return np.hypot(p[1] - q[1], np.remainder(p[2] - q[2] + np.pi, 2 * np.pi) - np.pi)
+
+
+def shapePy(a, b, c):
+    """(xi, phi) of arXiv:2201.07800 Eq. (3); (0, 0) for R_S = 0."""
+    rs, rm, rl = sorted((a, b, c))
+    if rs == 0:
+        return 0.0, 0.0
+    return rs / rm, np.arcsin(np.sqrt(np.clip(1 - ((rl - rm) / rs) ** 2, 0, 1)))
+
+
+def bruteForceResolved(jet, norm, n, eRL, eXi, ePhi):
+    out = np.zeros((len(eRL) + 1, len(eXi) + 1, len(ePhi) + 1))
+    for i, j, k in itertools.product(range(len(jet)), repeat=3):
+        a, b, c = dRpy(jet[i], jet[j]), dRpy(jet[i], jet[k]), dRpy(jet[j], jet[k])
+        xi, phi = shapePy(a, b, c)
+        idx = tuple(np.searchsorted(e, x, side='right') for e, x in ((eRL, max(a, b, c)), (eXi, xi), (ePhi, phi)))
+        out[idx] += np.prod([(jet[m][0] / norm) ** n for m in (i, j, k)])
+    return out
+
+
 class Synthetic(unittest.TestCase):
     EDGES = np.geomspace(1e-3, 3.0, 12)
 
@@ -39,6 +61,22 @@ class Synthetic(unittest.TestCase):
             for j, jet in enumerate(jets):
                 np.testing.assert_allclose(got[j], bruteForce(jet, norms[j], N, n, self.EDGES), rtol=1e-10, atol=1e-14,
                                            err_msg='N=%d n=%g jet %d' % (N, n, j))
+
+    def test_resolved_e3c(self):
+        rng = np.random.default_rng(6)
+        jets = [[(rng.uniform(1, 50), rng.normal(0, 0.4), rng.normal(0, 0.4)) for _ in range(k)] for k in (1, 4, 6)]
+        jets.append([(20.0, 0.0, 3.1), (10.0, 0.1, -3.1), (5.0, -0.2, 3.0)])   # across the phi wrap
+        norms = np.array([sum(p for p, _, _ in j) for j in jets])
+        eRL, eXi, ePhi = self.EDGES, np.linspace(0, 1, 4), np.linspace(0, np.pi / 2, 5)
+        got = eecext.resolvedE3C(particles(jets), norms, 1.0, eRL, eXi, ePhi)
+        self.assertEqual(got.shape, (len(jets), len(eRL) + 1, len(eXi) + 1, len(ePhi) + 1))
+        for j, jet in enumerate(jets):
+            np.testing.assert_allclose(got[j], bruteForceResolved(jet, norms[j], 1.0, eRL, eXi, ePhi), rtol=1e-10,
+                                       atol=1e-14, err_msg='jet %d' % j)
+        np.testing.assert_allclose(got.sum(axis=(2, 3)), eecext.projectedENC(particles(jets), norms, 3, 1.0, eRL),
+                                   rtol=1e-12)
+        with self.assertRaises(ValueError):
+            eecext.resolvedE3C(particles(jets), norms, 1.0, eRL, [0.5, 0.2], ePhi)
 
     def test_empty_jet_and_errors(self):
         got = eecext.projectedENC(particles([[], [(5.0, 0.0, 0.0)]]), [1.0, 5.0], 2, 1.0, self.EDGES)
