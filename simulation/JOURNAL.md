@@ -37,6 +37,7 @@
 - 2026-11-19 Jet-free production: zero-pT dressing photon failure, fix
 - 2026-11-19 Jet-free collections split per channel
 - 2026-11-19 `20261119_jetfree` status: three WZ jobs lost to the zero-pT photon
+- 2026-11-20 `20261119_jetfreefull` status and first merge
 
 ## 2026-11-11 A.2 setup and DataFormats
 - Plan: `stepA2_plan.md`. New local repos (remotes pending): `EECDataFormats` (pkg `SRothman/DataFormats`),
@@ -708,3 +709,9 @@ WZ jobs 2, 17 and 19 failed all three attempts with exit 8001 in `EventEECJetPro
 dressing photon whose pt packs to 0 (2.8e-12, 4.9e-13, 9.9e-11 GeV; events 1:9001:6318081, 1:19230:13499399,
 1:15698:11019348): the failure fixed above, deterministic, so resubmitting is useless. Whether to merge without them
 (as for job 17) awaits the user.
+
+## 2026-11-20 `20261119_jetfreefull` status and first merge
+CRAB status 2026-11-20 morning: DY 200-400 285/286 finished (1 failed), DY 400-600 175/180 (5 failed), DY 600+ 181/186
+(5 failed), ZH 7/7; WZ 44/47 and ZZ 148/149 finished, the rest running. User (2026-11-20): small numbers of failed
+jobs are accepted. Merged with `merge.py --allow-missing` (DY, ZH): eventsWritten DY 2013713 / 1510322 / 1476708,
+ZH 44264. Old `20261119_jetfree`: WZ 39 finished / 8 failed, ZZ 146/149, ZH 7/7; superseded, not merged yet.

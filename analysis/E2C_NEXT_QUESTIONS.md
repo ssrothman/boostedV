@@ -41,3 +41,10 @@ The ceec tables store the (R_L, xi) and (R_L, phi) projections (20 R_L x 5 bins 
 3D grid (would be ~2000 floats per jet). Status: open; the full grid is available offline from the bindings.
 
  - Fine for now, may want deeper examination later. 
+
+Follow-ups done (2026-11-20, SENSITIVITY_JOURNAL.md "VV jets that are not the boson"): (1) in those events the V is
+soft (median pT ~70-80 GeV), resolved and on the Z side; ~4% (WZ) / 1% (ZZ) would be a boosted candidate, so the
+selection can reject but not recover them (n AK4 = 0 raises the boson fraction to 0.83). (2) Closer to DY than to the
+boson jets but not identical (E2C chi2/ndf 3.5-7 vs DY, not explained by the q/g mix). Z_shape at gpV 1% DY eff:
+13.97 (all signal) vs 13.86 (non-boson as background). Status: open, decision for the user (signal definition);
+meanwhile unchanged.

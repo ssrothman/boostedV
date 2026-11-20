@@ -20,6 +20,7 @@ Plan: `SENSITIVITY_PLAN.md`. Newest entries at the end.
 - [2026-11-19 Constituent correlator tables (ceec)](#2026-11-19-constituent-correlator-tables-ceec)
 - [2026-11-19 Z-pT x dR binning and Z-pT slices](#2026-11-19-z-pt-x-dr-binning-and-z-pt-slices)
 - [2026-11-20 Resolved E3C: R_S = 0 triples in their own bin (Q1)](#2026-11-20-resolved-e3c-r_s--0-triples-in-their-own-bin-q1)
+- [2026-11-20 VV jets that are not the boson (Q4 follow-ups)](#2026-11-20-vv-jets-that-are-not-the-boson-q4-follow-ups)
 
 ## 2026-11-19 Decisions and starting point
 User decisions:
@@ -306,4 +307,28 @@ column (20 R_L x (1 + 5) = 120 columns). Repeated indices are detected by index:
 itself as a rounding-sized number, not 0 (the Angle3D plugin test found 21 of the 36 repeated-index triples at R_S
 > 0). Tests: `test_triangle_shape.cc`, `test_plugins.cc` (36 sentinel entries), `tests/test_ceec.py` ShapeRows (2- and
 3-particle jets), `tests/test_eecext.py`; mutations (old slice, old (0, 0) reference, no index check) caught.
+
+## 2026-11-20 VV jets that are not the boson (Q4 follow-ups)
+Outputs in `~/nobackup/boostedV/vvBosonLocation_20261119_jetfreefull/` (`vvBosonLocation.py`, 45 WZ and 60 ZZ NANOs
+of `20261119_jetfreefull`) and `vvTruthSplit_20261119c/` (`vvTruthSplit.py` on the `c` tables, condor
+`analysis/work/vvsplit_20261119c_v2`, code 3173b5d + the then uncommitted scripts, committed in a9bab63).
+- Where is the boson when the selected jet is another hard parton (status 3; WZ 55%, ZZ 24% of the selected events):
+  V pT 16/50/84% quantiles 36/77/148 GeV (WZ), 29/67/125 (ZZ); q-qbar Delta R median 2.1-2.3 (resolved); |dphi(Z,V)|
+  median 0.9 (WZ), 1.7 (ZZ), i.e. on the Z side; the jet recoils against the Z+V system (jet pT / Z pT median 1.14 in
+  WZ vs 1.03 for boson jets). Only 3.8% (WZ) / 1.1% (ZZ) have V pT > 200, |eta| < 2.4 and dR(qq) < 0.8 (a boosted
+  candidate). So a selection change cannot recover these bosons as AK8 jets; it can only reject the events.
+  Boson-matched jets: both quarks within 0.8 of the jet in 62% (WZ) / 53% (ZZ).
+- Cuts that raise the VV boson fraction (baseline 0.54): n AK4 = 0 -> 0.83 (VV eff 0.36, DY eff 0.61), n AK4 <= 1 ->
+  0.67; 0.9 < pt/zPt < 1.1 -> 0.66; taggers: gpV at DY eff 10/3/1% -> 0.82/0.90/0.94. Higher jet or Z pT lowers it
+  (pt > 400: 0.41).
+- Are they DY-like: much closer to DY than the boson jets, not identical. chi2/ndf (shape, MC stat of both) vs DY per
+  jet-pT slice 200-1000 GeV: E2C 3.5-7.0 (boson jets 32-536; DY half vs half 0.9-1.3), m_SD 3.3-7.3, gpV 0.9-1.6.
+  The q/g mix does not explain it (parton shares g/q/b 0.23/0.76/0.00 vs DY 0.29/0.68/0.03): light-quark-only
+  1.6-12, gluon-only 3.9-4.8 for the E2C. The cause is open. Slice > 1 TeV (203 effective VV-other jets): gpV and m_SD
+  chi2/ndf 140-185, not understood (low statistics).
+- Sensitivity impact (Z_shape with MC term, e2cn1, 5 slices): all VV as signal / VV-other as background / dropped:
+  baseline 9.19 / 8.31 / 8.35; gpV at DY eff 1%: 13.97 / 13.86 / 13.92; per-slice gpV 1%: 14.18 / 14.05 / 14.11.
+  At the working points used, the choice changes Z by <= 1%.
+- Unit tests: `tests/test_vvTruthSplit.py` (chi2: analytic two-bin case, Poisson toys with mean chi2/ndf 1),
+  `tests/test_vvBosonLocation.py`; 9 mutations caught.
 

@@ -1,0 +1,26 @@
+# sensitivity.py scans of E2C_NEXT_PLAN.md items 2-4 (constituent correlators of 20261119_jetfreefull), for
+# scanCondor.py; generated from configs/make_jetfree_tables.py GROUPS. Report only the baseline and loose (>= 3%
+# DY) points (plan, user 2026-11-19). e2cn1: the production AK8 (charged) E2C of the same tables, the reference.
+outBase: ../..
+tables:
+  ak8obs: root://cmseos.fnal.gov//store/user/srothman/boostedV/analysis_tables/jf_ak8obs_20261120.coffea
+  ak8const: root://cmseos.fnal.gov//store/user/srothman/boostedV/analysis_tables/jf_ak8const_20261120.coffea
+  evt: root://cmseos.fnal.gov//store/user/srothman/boostedV/analysis_tables/jf_evt_20261120.coffea
+  evtvtx: root://cmseos.fnal.gov//store/user/srothman/boostedV/analysis_tables/jf_evtvtx_20261120.coffea
+scans:
+  sensitivity_20261120a_ak8obs:
+    tables: ak8obs
+    args: [--scan, tagger, --nslices, 5]
+    split: {taggers: [VV:gpV, ZH:pnXbbVsQCD], obs: [e2cn1, c_e2c, c_e2cn2, c_e2cnHalf, c_e3c, c_e3cXi, c_e3cPhi]}
+  sensitivity_20261120b_ak8const:
+    tables: ak8const
+    args: [--scan, tagger, --nslices, 5]
+    split: {taggers: [VV:gpV, ZH:pnXbbVsQCD], obs: [e2cn1, c_e2c, c_e2cPt05, c_e2cPt1, c_e2cPt2, c_e2cPV, c_e2cDz, c_e2cPuppi05, c_coneCh, c_coneAll]}
+  sensitivity_20261120c_evt:
+    tables: evt
+    args: [--scan, tagger, --nslices, 5]
+    split: {taggers: [VV:gpV, ZH:pnXbbVsQCD], obs: [e2cn1, c_evtPV, c_evtPVHemi, c_evtPuppi, c_evtPuppiHemi, c_evtPVPt02, c_evtPVPt05, c_evtPVPt1, c_evtPVPt2]}
+  sensitivity_20261120d_evtvtx:
+    tables: evtvtx
+    args: [--scan, tagger, --nslices, 5]
+    split: {taggers: [VV:gpV, ZH:pnXbbVsQCD], obs: [e2cn1, c_evtDz01Dxy005, c_evtDz02Dxy01, c_evtDisp002, c_evtDisp002NoLost, c_evtDisp005, c_evtDisp005NoLost, c_evtDisp01, c_evtDisp01NoLost]}

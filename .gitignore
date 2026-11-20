@@ -45,3 +45,5 @@ __pycache__/
 # Sensitivity scan outputs (analysis/sensitivity.py -o ~/nobackup/boostedV/...)
 /sensitivity_*/
 /ptResolution_*/
+/vvTruthSplit_*/
+/vvBosonLocation_*/
