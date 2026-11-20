@@ -1,0 +1,318 @@
+%=======================================================================================================================
+\section{Sensitivity of the E2C to the diboson and $ZH$ signals}
+\label{app:sens}
+
+This appendix collects the studies of how well the jet E2C, and correlators built from the stored particles, separate
+the $WZ$ + $ZZ$ (``VV'') and $ZH(b\bar b)$ signals from the Drell--Yan background in the selection of this note. They
+are statistical studies on simulation: no systematic uncertainties, no data. The working log with all numbers and
+commands is \code{analysis/SENSITIVITY\_JOURNAL.md}; the plans are \code{analysis/SENSITIVITY\_PLAN.md} and
+\code{analysis/E2C\_NEXT\_PLAN.md}, and the decisions taken along the way are in \code{analysis/E2C\_NEXT\_QUESTIONS.md}.
+
+%-----------------------------------------------------------------------------------------------------------------------
+\subsection{Method}
+\label{app:sens:method}
+
+\paragraph{Per-jet tables.} The analysis framework writes one row per selected jet (table key \code{tables},
+\code{bvana/tables.py}): kinematics of the jet and the $Z$ candidate, substructure, tagger scores, MET, AK4 summaries and,
+for each correlator, the jet's histogram as one row. The back-to-back selection (Section~\ref{sec:b2b}) keeps one jet
+per event (checked on one Drell--Yan file: one jet in 14194 of 14194 events), so the per-jet covariance is the per-event
+one. Weights are the expected yields at $\mathcal{L} = 326.03\,\mathrm{fb}^{-1}$, a full Run~3 placeholder.
+
+\paragraph{Significance.} For a vector $v$ per jet (the concatenation of its correlator rows in slices of jet or $Z$
+$\pt$), $H = \sum_\text{jets} w\,v$, the covariance at the luminosity is $C = \sum w\,v v^\mathsf{T}$ and the Monte Carlo
+statistical covariance is $C_\mathrm{MC} = \sum w^2\,v v^\mathsf{T}$ (\code{bvana/sensitivity.py}). With signal $s$ and
+background $b$, $Z_\mathrm{tot}^2 = s^\mathsf{T} C_b^{+} s$, and $Z_\mathrm{shape}$ is the same quantity with the
+background normalisation profiled. The numbers quoted in this appendix are $Z_\mathrm{shape}$ with
+$C_b + C_{\mathrm{MC},b} + C_{\mathrm{MC},s}$, restricted to bins with background MC. Without that restriction a bin
+holding only signal MC gets the signal MC variance as its uncertainty and raises $Z$; this happened in the first version
+and was fixed (a unit test fails without the restriction), and all scans were rerun.
+
+\paragraph{Stability.} $s^\mathsf{T}\hat C^{+}s$ with an estimated covariance is biased upwards, by an amount that grows
+with the number of bins per MC jet. Each working point therefore also gets $Z_\mathrm{shape}$ (without the MC term) from
+two random halves of the MC with doubled weights. A point is called \emph{stable} if both half-sample values agree
+within 10\%. A toy with 200 bins and a known covariance shows the size of the effect: 2000 MC jets give $Z = 294$ for a
+true 277, 20000 give 278.8.
+
+\paragraph{Background distortion.} A cut that sculpts the Drell--Yan shape makes the shape fit depend on the modelling of
+that sculpting. Each cut is reported with the $\chi^2/\mathrm{ndf}$ of the Drell--Yan shape after the cut against the
+baseline shape, each $\pt$ slice normalised separately, at the luminosity, and with the largest per-bin $|$ratio$-1|$
+among bins with MC relative error below 5\%.
+
+\paragraph{Baseline and signals.} Baseline: $\ptll > 200\GeV$, $\ptj > 200\GeV$, $|\eta^\mathrm{jet}| < 2.0$, medium
+muon identification, both channels combined. VV and $ZH$ are optimised separately, each with the other in the
+background. Tagger working points are set at fixed fractions of the baseline Drell--Yan yield (``DY efficiency''),
+globally or per $\pt$ slice.
+
+\paragraph{Signal jets that are not the boson.} Since 2026-11-20, signal jets not matched to the hadronic boson
+(truth status $\neq 0$, Section~\ref{app:sens:truth}) are background (groups \code{VVother}, \code{ZHother}); before,
+every jet of a signal sample was signal. Results below say which definition they use.
+
+\paragraph{Tests.} The table code, the significance, the per-slice thresholds, the truth split and the condor tools have
+unit tests, each shown to be discriminating by mutation (a deliberately broken line makes a test fail).
+
+%-----------------------------------------------------------------------------------------------------------------------
+\subsection{Results on the existing productions}
+\label{app:sens:phaseA}
+
+Tables from the back-to-back productions of all processes (\code{20261116\_zxb2b}, \code{20261117\_zxb2bbkg},
+\code{20261117\_zh}; Drell--Yan only with $\ptll > 200\GeV$); the jet E2C uses the charged constituents
+(Section~\ref{sec:eec}). All jets of the signal samples are signal here.
+
+\begin{itemize}
+\item \textbf{Baseline.} VV: S/B 2.9\% in the boson-mass peak window, $Z_\mathrm{shape} = 9.2$ ($Z_\mathrm{tot} = 14.6$).
+  $ZH$: S/B 0.14\%, $Z_\mathrm{shape} = 0.5$.
+\item \textbf{Event-level cuts} ($\ptll$, $\ptj$, $|\eta|$, $\ptj/\ptll$, $m_{\ell\ell}$, MET, AK4 b-tag and
+  multiplicity, $|y_Z|$, $|\Delta y|$, $|\cos\theta^*|$) raise the VV $Z_\mathrm{shape}$ of the $n = 1$ E2C by at most
+  2\% (MET $< 100\GeV$: 9.4).
+\item \textbf{Taggers.} The mass-decorrelated GloParT~3 V score
+  $g_V = (X_{qq}+X_{cs}+X_{bb}+X_{cc})/(X_{qq}+X_{cs}+X_{bb}+X_{cc}+\mathrm{QCD})$ gives the only large gain:
+  11.6 / 13.5 at 10\% / 3\% DY efficiency, with a residual Drell--Yan sculpting ($\chi^2/\mathrm{ndf}$ 22 / 12, largest
+  deviation 46\% / 61\%). Mass-correlated selections (soft-drop mass window, the \code{withMass} taggers, $\tau_{21}$,
+  $N_2$, ParticleNet $X_{qq}$) sculpt strongly ($\chi^2/\mathrm{ndf}$ $10^2$--$10^3$) and lower $Z_\mathrm{shape}$. Cuts
+  on the jet's own E2C (peak-window fraction, a per-jet likelihood ratio) cut on the information the shape fit uses:
+  $Z_\mathrm{shape} \le 8.2$, $\chi^2/\mathrm{ndf}$ $10^3$--$10^4$.
+\item \textbf{Working points.} VV with $g_V$ is stable down to 1\% DY efficiency with $n = 1$ and 5 slices
+  ($Z_\mathrm{shape} \approx 14$) and down to 3\% with 10 slices or both $n$ (14.4--15.3). $ZH$ with the ParticleNet
+  $X_{bb}$-vs-QCD score reaches 1.2--2.4 at stable points, depending on the binning (Table~\ref{tab:sens:binning});
+  larger values occur only at unstable ones. The GloParT bb
+  score is worse than no cut for VV (it removes $W\to q\bar q'$); $g_V$ for $ZH$ reaches 0.8--1.9. Points at
+  $\le 1\%$ DY efficiency have $\le 40$k Drell--Yan MC jets for 400--800 bins and cannot be judged with the available MC.
+\item \textbf{Observable and binning} (best stable point, Table~\ref{tab:sens:binning}): $n = 1$ beats $n = 2$
+  (baseline 9.2 vs 6.4; both together 9.5). Fewer $\Delta R$ bins lower $Z$. Binning in $\ptj\Delta R$ with one $\pt$
+  slice equals $\Delta R$ with 5--10 slices, i.e.\ it replaces the slicing but adds nothing. $|\eta|$ slices bring no
+  consistent gain. The stat-only soft-drop-mass template fit beats the E2C (VV 19--20, $ZH$ 4.9--5.5); adding the E2C
+  to it changes VV by less than 1. The E2C was kept as the search observable by decision.
+\end{itemize}
+
+\begin{table}[htbp]
+\centering
+\caption{$Z_\mathrm{shape}$ (with MC statistics) at the best stable working point, existing productions, all signal-sample
+  jets as signal; baseline in brackets. Slices are in $\ptj$ unless stated; 40 logarithmic $\Delta R$ bins.}
+\label{tab:sens:binning}
+\begin{tabular}{lccc}
+\toprule
+configuration & VV, $g_V$ & $ZH$, PN $X_{bb}$ & $ZH$, $g_V$ \\
+\midrule
+E2C $n = 1$, 5 slices (reference) & 14.2 (9.2) & 1.2 (0.46) & 1.6 (0.46) \\
+E2C $n = 1$, 10 slices & 14.9 (9.6) & 1.6 & 1.1 \\
+both $n$, 10 slices & 15.3 (10.0) & 1.5 & 1.2 \\
+$n = 1$, 5 slices, 20 / 10 / 5 $\Delta R$ bins & 13.6 / 11.9 / 10.7 & 1.4 / 1.9 / 1.6 & 1.4 / 1.0 / 0.8 \\
+$n = 1$, 1 slice & 10.0 (7.1) & 1.2 & 1.0 \\
+$n = 1$ in $\ptj\Delta R$, 1 / 5 / 10 slices & 14.0 / 14.7 / 15.4 & 1.8 / 1.8 / 1.6 & 1.7 / 1.7 / 1.4 \\
+$n = 1$ in $\ptll\Delta R$, 1 / 5 / 10 slices & 13.4 / 14.0 / 15.2 & 2.1 / 2.4 / 2.3 & 1.9 / 1.8 / 1.5 \\
+$n = 1$ in $\Delta R$, 5 / 10 $\ptll$ slices & 13.8 / 14.3 & 2.0 / 2.2 & 1.4 / 0.9 \\
+$n = 1$ in $\ptll\Delta R$, 5 / 10 $\ptll$ slices & 14.2 / 14.4 & 2.3 / 2.3 & 1.9 / 1.2 \\
+$m_\mathrm{SD}$ (5\GeV bins), 1 / 5 / 10 slices & 18.6 / 19.1 / 19.6 & 3.4 / 4.9 / 5.5 & 2.8 / 2.0 / 2.1 \\
+E2C $n = 1$ + $m_\mathrm{SD}$, 5 / 10 slices & 19.5 / 20.2 & 5.1 / 2.0 & 2.1 / 2.2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%-----------------------------------------------------------------------------------------------------------------------
+\subsection{Truth match, boson-$\pt$ scale and resolution}
+\label{app:sens:truth}
+
+\paragraph{Truth match.} The rules of the production truth axis (Section~\ref{sec:axes}) applied offline to the stored
+generator record (\code{bvana/truth.py}) give, per jet, status 0 (a hadronic boson), 1 (a quark of a boson decay), 3
+(another hard-process parton) or 2 (no match), with $\Delta R < 0.8$. On one Drell--Yan, one $WZ$ and one $ZH$ file the
+offline match agrees with the production one for all 8329 jets. At the baseline, 54\% of the VV jets are the boson
+($WZ$ about 45\%, $ZZ$ about 76\%), most of the others a hard-process parton; $ZH$: 87\%; Drell--Yan: 100\% status 3.
+
+\paragraph{Which $\pt$ measures the boson.} With $r = (\pt^\mathrm{true} - \pt^\mathrm{reco})/\pt^\mathrm{true}$, the jet
+$\pt$ estimates the boson $\pt$ better than $\ptll$ for VV and Drell--Yan (68\% half-width 0.105 vs 0.119 at
+$\pt^\mathrm{true} = 200$--$300\GeV$ for VV, tails $|r| > 0.3$ half as frequent); for $ZH$ (b-jet response, neutrinos)
+the two are equal. The scans agree (Table~\ref{tab:sens:binning}): for VV the jet $\pt$ is the better binning and slicing
+variable (by 0.2--0.6), for $ZH$ the $Z$ $\pt$ is (2.1--2.4 vs 1.6--1.8), although the $ZH$ gain is of the size of the
+scatter between stable points (0.3--0.5). In 26\% of the boson-matched $ZH$ jets (13\% for VV) the boson has
+$\pt^\mathrm{true} < 200\GeV$ while the jet passes $200\GeV$; not studied further.
+
+\paragraph{Signal jets that are not the boson.} When the selected jet of a VV event is another hard parton (55\% of $WZ$,
+24\% of $ZZ$ events), the boson is soft (median $\pt$ 77 / 67\GeV for $WZ$ / $ZZ$), resolved (median $\Delta R(q,\bar q)$
+2.1--2.3) and on the side of the $Z$ (median $|\Delta\phi(Z,V)|$ 0.9 / 1.7); the jet recoils against the $Z+V$ system
+(median $\ptj/\ptll$ 1.14 vs 1.03 for boson jets). Only 3.8\% / 1.1\% of these events have a boson with
+$\pt > 200\GeV$, $|\eta| < 2.4$ and $\Delta R(q,\bar q) < 0.8$, so a selection change cannot recover them as boosted
+jets; it can only reject them. Cuts that raise the boson fraction from 0.54: no additional AK4 jet (0.83, at VV and
+Drell--Yan efficiencies of 0.36 and 0.61), $0.9 < \ptj/\ptll < 1.1$ (0.66), $g_V$ at 10 / 3 / 1\% DY efficiency
+(0.82 / 0.90 / 0.94). The non-boson jets are close to Drell--Yan but not identical: the $\chi^2/\mathrm{ndf}$ of the
+unit-normalised shapes against Drell--Yan, per jet-$\pt$ slice from 200 to $1000\GeV$, is 3.5--7.0 for the E2C (boson
+jets 32--536; two halves of Drell--Yan 0.9--1.3), 3.3--7.3 for $m_\mathrm{SD}$, 0.9--1.6 for $g_V$. Restricting both to
+light-quark or to gluon jets does not remove the difference, whose cause is open. Moving them into the background lowers
+the baseline VV $Z_\mathrm{shape}$ from 9.19 to 8.31 and changes it by at most 1\% at the $g_V$ working points
+(13.97 to 13.86 at 1\%). Decisions (2026-11-20): these jets, and the corresponding $ZH$ ones, are background, and future
+productions apply the extra-jet veto with $\alpha_\mathrm{max} = 0$ and the cuts of Section~\ref{sec:b2b}
+(\code{ZX\_test}, \code{ZX\_jetfree}). On 1000 Drell--Yan $\ptll$ 400--600 test events the veto reduces the reco
+\code{Zmumu} (\code{Zee}) selection from 187 to 81 (174 to 74) events, the gen one from 214 to 89 (205 to 82). The
+productions used in this appendix were made without the veto.
+
+%-----------------------------------------------------------------------------------------------------------------------
+\subsection{Particle-level production and correlators from stored particles}
+\label{app:sens:particles}
+
+\paragraph{Motivation.} Three further ideas need the particles, not the histograms: other correlators (the projected E3C,
+other energy weights, the resolved E3C), other constituent choices (thresholds, vertex association, neutrals), and
+correlators with no jet at all. The last follows Ref.~\cite{Generet:2026vto}, which proposes projected energy
+correlators of all radiation recoiling against a $Z/\gamma$, with the boson as the hard scale and no jet algorithm,
+and gives NLO+NNLL predictions for $\gamma$+X.
+
+\paragraph{Production \code{20261119\_jetfreefull}.} Configuration \code{ZX\_jetfree} (written from \code{ZX\_test} by
+\code{make\_jetfree\_config.py}): the selection of this note, histograms off, constituents written
+(\code{writeConstituents}). Per channel it stores
+\begin{itemize}
+\item the AK8 reco and gen jets with their charged constituents (PUPPI weights applied);
+\item \code{RecoEvtAllJet}: all packed PF candidates and \code{lostTracks} with $|\eta| < 2.4$, without vertex cut or
+  PUPPI weighting, with \code{fromPV}, $d_z$, $d_{xy}$, the PUPPI weights and the source collection;
+\item \code{GenEvtAllJet}: all stable generator particles except neutrinos with $|\eta| < 2.4$.
+\end{itemize}
+The selected leptons are removed from both: every PF candidate matched to a selected lepton, and for electrons also the
+lost track that is the electron's CTF track (about 7\% of the selected electrons leave one, with 30--100\% of the
+electron $\pt$). Generator dressing photons and leptons are matched to the packed generator particles within the
+MiniAOD packing precision. On 1000 Drell--Yan test events no constituent of the lepton's flavour is left within
+$\Delta R < 0.02$ of a selected lepton, the per-event weights of the unbinned correlators sum to 1 within $10^{-6}$, and
+the size is 55.7\,kB per written event. Samples: Drell--Yan $\ptll$ 200--400, 400--600 and $> 600\GeV$ (MLM, 285/286,
+175/180, 181/186 CRAB jobs), $WZ$ (47/47), $ZZ$ (148/149), $ZH(b\bar b)$ (7/7); the failed jobs are accepted and the
+normalisation uses the jobs present.
+
+\paragraph{Correlators offline.} Python bindings of the EEC library of this note (\code{simulation/EECs/pybind},
+\code{bvana/eecext.py}) compute projected E$N$C ($N$ = 2--6, any real energy weight $n$) and the resolved E3C from the
+stored particles; they reproduce the production AK8 E2C, E3C and jet-free tables within $10^{-4}$. The table key
+\code{ceec} (\code{bvana/ceec.py}) adds such rows to the per-jet tables with particle filters (charge, $\pt$,
+\code{fromPV}, $|d_z|$, $|d_{xy}|$ above or below a value, lost tracks, PUPPI weight or threshold, distance to the jet,
+recoil hemisphere $|\Delta\phi(\cdot, Z)| > \pi/2$) and a normalisation (jet $\pt$, $Z$ $\pt$, $\sum\pt$). The AK8 E2C
+rebuilt from the stored constituents equals the production row by row (relative difference $7\times10^{-8}$). Neutrals
+are not stored with the AK8 jets; an AK8 jet with neutrals is approximated by all PUPPI-weighted candidates within
+$\Delta R < 0.8$ of the jet axis, without lost tracks (summed weights within 1\% of the charged AK8 jet for the charged
+part).
+
+\paragraph{Resolved E3C.} For each triple with sides $R_S \le R_M \le R_L$ the coordinates are $R_L$,
+$\xi = R_S/R_M$ and $\phi = \arcsin\sqrt{1 - (R_L - R_M)^2/R_S^2}$~\cite[Eq.~(3)]{Komiske:2022enw}, implemented in the
+C++ library (\code{eec::triangleShape}), the bindings and a NANO producer (not enabled in any production). Triples with
+a repeated particle ($R_S = 0$, where $\xi$ and $\phi$ are undefined) get $(\xi, \phi) = (-1, -1)$, the underflow of the
+shape axes, which no other triple reaches; repeated particles are recognised by index, because the 3D angle of a particle
+to itself is a rounding-sized number rather than 0. The tables store the $(R_L, \xi)$ and $(R_L, \phi)$ projections
+(20 logarithmic $R_L$ bins $\times$ (the $R_S = 0$ column + 5 bins)).
+
+\paragraph{Tables.} One table file per group of rows, accumulated from condor jobs and stored on EOS
+(\code{/store/user/srothman/boostedV/analysis\_tables/jf\_<group>\_20261120.coffea}; sizes and checksums in the journal):
+\code{ak8obs} (other correlators of the AK8 jet), \code{ak8const} (constituent choice), \code{evt} and \code{evtvtx}
+(jet-free) and \code{gen} (jet-free at generator level). Drell--Yan starts at $\ptll = 200\GeV$ as before.
+
+%-----------------------------------------------------------------------------------------------------------------------
+\subsection{Results with stored particles}
+\label{app:sens:particleResults}
+
+Table~\ref{tab:sens:particles}: the same baseline and statistics as above, 5 jet-$\pt$ slices, the non-boson signal jets
+in the background, tagger working points at 10\% and 3\% DY efficiency. AK8 rows use 40 logarithmic $\Delta R$ bins
+between $10^{-3}$ and 1.6 and the jet $\pt$ as normalisation; jet-free rows use 40 bins between $10^{-3}$ and 6 and the
+$Z$ $\pt$. The jet E2C of this production reproduces the rebuilt one (8.77527 vs 8.77526); its value differs from
+Section~\ref{app:sens:phaseA} through the production and the signal definition.
+
+\begin{table}[htbp]
+\centering
+\caption{$Z_\mathrm{shape}$ (with MC statistics), production \code{20261119\_jetfreefull}, at the baseline (base) and at
+  10\% and 3\% DY efficiency of the tagger ($g_V$ for VV, ParticleNet $X_{bb}$ for $ZH$). $^*$: the half-sample values
+  differ by more than 10\% (unstable). ``charged PV'': charged with \code{fromPV} $\ge 2$; ``PUPPI'' and the cones:
+  candidates weighted with the PUPPI weight, without lost tracks; ``hemisphere'': recoil hemisphere; impact-parameter
+  and displaced (disp.) rows: charged, displaced ones with $|d_z| < 0.2$\,cm.}
+\label{tab:sens:particles}
+\small
+\begin{tabular}{llcccccc}
+\toprule
+ & & \multicolumn{3}{c}{VV} & \multicolumn{3}{c}{$ZH$} \\
+group & correlator & base & 10\% & 3\% & base & 10\% & 3\% \\
+\midrule
+AK8, charged & E2C $n = 1$ (reference) & 8.78 & 13.57 & 15.05 & 0.27 & 1.20 & 1.83 \\
+ & E2C $n = 2$ & 10.13 & 10.93 & 11.46$^*$ & 0.19 & 0.79 & 1.42$^*$ \\
+ & E2C $n = 1/2$ & 5.64 & 11.21 & 13.07 & 0.22 & 0.98 & 1.49 \\
+ & projected E3C & 8.27 & 12.78 & 14.07 & 0.25 & 1.15 & 1.76 \\
+ & resolved E3C, $(R_L, \xi)$ & 9.33 & 12.67 & 13.93 & 0.27$^*$ & 1.17 & 1.80 \\
+ & resolved E3C, $(R_L, \phi)$ & 8.99 & 12.49 & 13.82 & 0.25 & 1.13 & 1.91 \\
+\midrule
+AK8, constituents & $\pt > 0.5\GeV$ & 8.81 & 13.59 & 15.07 & 0.27 & 1.21 & 1.84 \\
+ & $\pt > 1\GeV$ & 8.98 & 13.69 & 15.14 & 0.27 & 1.23 & 1.86 \\
+ & $\pt > 2\GeV$ & 9.36 & 13.88 & 15.25 & 0.28 & 1.25 & 1.91 \\
+ & \code{fromPV} $\ge 2$ & 8.63 & 13.18 & 14.58 & 0.23 & 1.10 & 1.71 \\
+ & $|d_z| < 0.1$\,cm & 8.66 & 13.23 & 14.63 & 0.24 & 1.12 & 1.74 \\
+ & PUPPI weight $\ge 0.5$ & 8.78 & 13.57 & 15.05 & 0.27 & 1.20 & 1.83 \\
+ & cone $\Delta R < 0.8$, charged & 8.80 & 13.53 & 14.94 & 0.27 & 1.20 & 1.81 \\
+ & cone $\Delta R < 0.8$, all & 10.38 & 15.79 & 17.53 & 0.31 & 1.31 & 1.96 \\
+\midrule
+jet-free & PUPPI & 9.39 & 14.54 & 16.01 & 0.24 & 0.95 & 1.42 \\
+ & PUPPI, hemisphere & 9.36 & 14.54 & 15.99 & 0.24 & 0.95 & 1.43 \\
+ & charged PV & 2.66$^*$ & 7.80$^*$ & 11.15 & 0.06$^*$ & 0.30$^*$ & 0.89 \\
+ & charged PV, hemisphere & 4.21$^*$ & 8.42$^*$ & 11.76$^*$ & 0.12$^*$ & 0.51$^*$ & 1.09$^*$ \\
+ & charged PV, $\pt > 0.2\GeV$ & 2.66$^*$ & 7.81$^*$ & 11.15 & 0.06$^*$ & 0.30$^*$ & 0.89 \\
+ & charged PV, $\pt > 0.5\GeV$ & 2.66$^*$ & 7.82$^*$ & 11.16 & 0.06$^*$ & 0.29$^*$ & 0.90 \\
+ & charged PV, $\pt > 1\GeV$ & 2.69$^*$ & 7.83$^*$ & 11.14 & 0.06$^*$ & 0.30$^*$ & 0.91 \\
+ & charged PV, $\pt > 2\GeV$ & 2.71 & 7.93$^*$ & 11.19 & 0.06 & 0.30$^*$ & 0.93 \\
+ & $|d_z| < 0.1$, $|d_{xy}| < 0.05$\,cm & 3.87$^*$ & 8.79$^*$ & 11.90 & 0.09 & 0.47$^*$ & 0.94 \\
+ & $|d_z| < 0.2$, $|d_{xy}| < 0.1$\,cm & 3.83$^*$ & 8.72$^*$ & 11.61 & 0.11 & 0.53$^*$ & 1.01$^*$ \\
+ & disp.\ $|d_{xy}| > 0.02$\,cm & 1.61$^*$ & 2.78$^*$ & 4.28$^*$ & 0.39$^*$ & 0.67$^*$ & 0.81$^*$ \\
+ & \quad no lost tracks & 3.34 & 4.06$^*$ & 4.94$^*$ & 0.92 & 0.97$^*$ & 0.99$^*$ \\
+ & disp.\ $|d_{xy}| > 0.05$\,cm & 0.95$^*$ & 2.37$^*$ & 3.77$^*$ & 0.19$^*$ & 0.43$^*$ & 0.58$^*$ \\
+ & \quad no lost tracks & 1.84$^*$ & 2.89 & 3.59$^*$ & 0.43 & 0.53$^*$ & 0.61 \\
+ & disp.\ $|d_{xy}| > 0.1$\,cm & 0.56$^*$ & 1.74$^*$ & 3.19$^*$ & 0.11$^*$ & 0.32 & 0.78 \\
+ & \quad no lost tracks & 1.04$^*$ & 2.12 & 2.79$^*$ & 0.13$^*$ & 0.26 & 0.36$^*$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{itemize}
+\item \textbf{Neutrals.} The AK8 cone with all PUPPI-weighted particles is the best VV row at every working point
+  (17.5 vs 15.1 at 3\%), stable; the charged-only cone equals the charged AK8 jet, so the gain comes from the neutrals,
+  not from the cone. The jet-free PUPPI E2C, normalised to the $Z$ $\pt$, is next (16.0).
+\item \textbf{Other correlators.} No other correlator of the charged AK8 jet beats the $n = 1$ E2C once the tagger is
+  applied. $n = 2$ is the best at the baseline (10.1) but gains little from the tagger; the projected and resolved E3C
+  are 0.5--1.3 below the E2C at the tagger working points.
+\item \textbf{Constituent choice.} Particle-$\pt$ thresholds help slightly ($\pt > 2\GeV$: +0.2--0.6); vertex association
+  and $d_z$ cuts lower $Z$ slightly; the PUPPI-weight threshold removes almost no energy ($\Delta Z = 0.001$).
+\item \textbf{Jet-free charged and displaced rows} are far below the AK8 rows and mostly unstable: the Drell--Yan MC
+  does not determine their covariance. At the baseline the displaced rows without lost tracks are higher than with
+  them; at 3\% neither is consistently higher. The only stable feature for $ZH$ is the displaced row without lost tracks
+  at the baseline (0.92 vs 0.27), which the b tagger then removes.
+\item \textbf{$ZH$} stays below 2 at 3\% DY efficiency for every row; the largest gains over the E2C at the tagger
+  working points (0.13) are inside the stable-point scatter.
+\end{itemize}
+
+\paragraph{Reco versus generator level (jet-free).} Each level at its own baseline, slices in $\ptll$, non-boson signal
+jets in the background (Table~\ref{tab:sens:genreco}). At generator level the charged-only E2C keeps most of the
+sensitivity of all particles (VV 8.4 vs 9.7); at reco the charged-PV version keeps little (2.4), the PUPPI version
+loses 10\% (8.8). The weakness of the charged rows is therefore a detector and pileup effect, not the restriction to
+charged particles. The reco Drell--Yan shapes differ from the generator-level ones by up to about 50\% in well-measured
+bins in every $\ptll$ slice. The $\chi^2/\mathrm{ndf}$ of this difference treats the two levels as independent although
+they are the same events and only indicates its size. The reco PUPPI value here (8.81, $\ptll$ slices) is below the
+9.39 of Table~\ref{tab:sens:particles} ($\ptj$ slices), consistent with the slicing difference of
+Table~\ref{tab:sens:binning}; this was not checked with a scan in $\ptll$ slices.
+
+\begin{table}[htbp]
+\centering
+\caption{Jet-free E2C at reco and generator level, Drell--Yan $\ptll$ slices of 200--300, 300--400, 400--600, 600--1000
+  and $> 1000\GeV$; $Z_\mathrm{shape}$ with MC statistics at the baseline.}
+\label{tab:sens:genreco}
+\small
+\begin{tabular}{lcccc}
+\toprule
+ & VV & $ZH$ & \multicolumn{2}{c}{DY, reco vs gen, per slice} \\
+reco / gen & reco / gen & reco / gen & $\chi^2/\mathrm{ndf}$ & largest $|$ratio$-1|$ \\
+\midrule
+charged PV / gen charged & 2.38 / 8.37 & 0.08 / 0.31 & 15--160 & 0.17--0.64 \\
+same, recoil hemisphere & 3.81 / 8.38 & 0.14 / 0.30 & 13--139 & 0.16--0.63 \\
+PUPPI / gen all & 8.81 / 9.73 & 0.29 / 0.34 & 301--4347 & 0.49--0.59 \\
+same, recoil hemisphere & 8.81 / 9.74 & 0.29 / 0.34 & 276--4371 & 0.49--0.58 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%-----------------------------------------------------------------------------------------------------------------------
+\subsection{Open items}
+\label{app:sens:open}
+\begin{itemize}
+\item \textbf{Tight working points.} At $\le 1\%$ DY efficiency the MC does not determine the covariance; more
+  Drell--Yan MC, a regularised covariance or a coarser fixed binning is needed before they can be judged.
+\item \textbf{Theory shape for Drell--Yan} from Ref.~\cite{Generet:2026vto}: deferred.
+\item \textbf{Extra-jet veto}: the studies above predate it; its effect on the sensitivity is not measured.
+\item \textbf{Non-boson VV jets}: the residual difference from Drell--Yan (E2C $\chi^2/\mathrm{ndf}$ 3.5--7) and the large
+  $\chi^2/\mathrm{ndf}$ (140--185) of $g_V$ and $m_\mathrm{SD}$ above $1\TeV$ (about 200 effective MC jets) are not
+  understood.
+\item \textbf{Resolved E3C}: only the two projections were studied; the full three-dimensional distribution is
+  available offline.
+\end{itemize}

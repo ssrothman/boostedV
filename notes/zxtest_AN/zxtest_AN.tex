@@ -858,7 +858,9 @@ levels, with the jets of that level. For each channel:
   $A = |\ptj - \ptll| / (\ptj + \ptll)$ must be below 0.3 (\code{asymmetryMax});
 \item optional \emph{extra-jet veto} (\code{extraJetAlphaMax} $= \alpha_\mathrm{max}$): no additional AK4 jet may
   have $\pt \geq \alpha_\mathrm{max}\,\ptll$. A negative value disables the veto, and $\alpha_\mathrm{max} = 0$ is its
-  strictest form (no additional AK4 jet at all). It is disabled in \code{ZX\_test} ($\alpha_\mathrm{max} = -1$). The
+  strictest form (no additional AK4 jet at all). It is enabled with $\alpha_\mathrm{max} = 0$ in \code{ZX\_test} since
+  2026-11-20 (Appendix~\ref{app:sens:truth}); all productions and results in this note were made with it disabled
+  ($\alpha_\mathrm{max} = -1$). The
   AK4 jets are used because they are kept down to much lower $\pt$ than the AK8 jets. They are defined in
   \code{selection.<level>.extraJets}:
   \begin{itemize}
@@ -1603,6 +1605,7 @@ The following checks were made on the implementation; details are recorded in \c
 \appendix
 \input{appendix_truth.tex}
 \input{appendix_axes.tex}
+\input{appendix_sensitivity.tex}
 
 \printbibliography[heading=bibintoc]
 
