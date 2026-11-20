@@ -73,7 +73,7 @@ def main():
     os.makedirs(a.outdir, exist_ok=True)
     edges = np.geomspace(1e-3, 1.6, 41)
     centers = np.sqrt(edges[:-1] * edges[1:])
-    t = sensitivity.loadTables(a.tables, splitVV=False)
+    t = sensitivity.loadTables(a.tables, split=False)
     sensitivity.derive(t, centers)
     base = (t['zPt'] > 200) & (t['pt'] > 200) & (t['absEta'] < 2.0) & (t['allMediumId'] > 0)
     w = t['weight']

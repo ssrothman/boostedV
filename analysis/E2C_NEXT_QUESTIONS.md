@@ -54,4 +54,6 @@ The ceec tables store the (R_L, xi) and (R_L, phi) projections (20 R_L x 5 bins 
 farther than 1.2 from the selected jet and 0.4 from the leptons. The n AK4 = 0 numbers of Q4 used the table cuts
 (pt > 30, |eta| < 2.5, dR > 0.8), so the production veto is stricter than what was studied. Keep 20/2.4/1.2, or use
 30/2.5/0.8? Meanwhile: unchanged (20/2.4/1.2). (b) Only VV is split; the 13% of ZH jets that are not the boson stay
-ZH signal. Split ZH the same way? Meanwhile: no. Status: open.
+ZH signal. Split ZH the same way? Meanwhile: no.
+Answers (user, 2026-11-20): (a) keep 20/2.4/1.2; (b) yes: ZH jets with truthStatus != 0 are background (`ZHother`).
+Status: resolved.

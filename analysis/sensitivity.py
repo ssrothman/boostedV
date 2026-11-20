@@ -4,8 +4,8 @@
   python3 sensitivity.py TABLES.coffea -o outdir [--obs e2cn1 e2cn2 both] [--lumi-pb 326030 --table-lumi-pb 326030]
 
 TABLES.coffea: run.py output of configs/sensitivity.yaml with --lumi (the weights are expected yields). Both channels
-are combined. For each signal definition (VV = the WZ + ZZ jets matched to the boson, truthStatus 0; ZH = all ZH; everything else,
-including the other VV jets (group VVother), is background) and each cut,
+are combined. For each signal definition (VV = the WZ + ZZ jets matched to the boson, truthStatus 0; ZH = the ZH jets
+matched to the boson; everything else, including the other signal jets (groups VVother, ZHother), is background) and each cut,
 relative to the baseline (Z pT > 200, jet pT > 200, |eta| < 2.0, medium muon ID), it writes to outdir/scan.md and
 scan.json: efficiencies, the peak-window S/B, Z_tot and Z_shape (bvana/sensitivity.py; "mc": with the MC statistical
 covariance added) and the DY shape distortion against the baseline, each jet-pT slice normalised on its own (chi2/ndf
@@ -23,7 +23,8 @@ from coffea.util import load
 from bvana import sensitivity as sv
 
 GROUPS = (('DY', ('DYto2L',)), ('ttbar', ('TTto',)), ('singleTop', ('TB', 'Tbar', 'TW')), ('WW', ('WW',)),
-          ('WZ', ('WZ',)), ('ZZ', ('ZZ',)), ('ZH', ('ZH_', 'ggZH_', 'GluGluZH_')), ('VVother', ()))
+          ('WZ', ('WZ',)), ('ZZ', ('ZZ',)), ('ZH', ('ZH_', 'ggZH_', 'GluGluZH_')), ('VVother', ()),
+          ('ZHother', ()))
 SIGNALS = {'VV': (('WZ', 'ZZ'), 91.1876), 'ZH': (('ZH',), 125.0)}
 DY_EFFS = (0.5, 0.3, 0.1, 0.03)
 TAGGER_EFFS = (0.1, 0.03, 0.01, 0.003, 0.001)
@@ -40,18 +41,20 @@ def group(sample):
     raise ValueError('no group for %s' % sample)
 
 
-def groupColumn(sample, d, splitVV=True):
-    """Per-row group; with splitVV, VV jets that are not the boson (truthStatus != 0) are the background 'VVother'."""
+def groupColumn(sample, d, split=True):
+    """Per-row group; with split, signal jets that are not the boson (truthStatus != 0) are the background
+    '<signal>other' (VVother, ZHother)."""
     g = group(sample)
     n = len(d['weight'])
-    if not splitVV or g not in SIGNALS['VV'][0]:
+    sig = [s for s, (names, _) in SIGNALS.items() if g in names]
+    if not split or not sig:
         return np.full(n, g)
     if 'truthStatus' not in d:
-        raise ValueError('%s: a VV table needs truthStatus to split off VVother' % sample)
-    return np.where(d['truthStatus'] == 0, g, 'VVother')
+        raise ValueError('%s: a signal table needs truthStatus to split off %sother' % (sample, sig[0]))
+    return np.where(d['truthStatus'] == 0, g, sig[0] + 'other')
 
 
-def loadTables(path, splitVV=True):
+def loadTables(path, split=True):
     """Columns of both channels concatenated, plus 'group' (groupColumn) and 'isMumu'."""
     out = load(path)
     parts = []
@@ -60,7 +63,7 @@ def loadTables(path, splitVV=True):
             for sample, cols in samples.items():
                 d = {k: v.value for k, v in cols.items()}
                 n = len(d['weight'])
-                d['group'] = groupColumn(sample, d, splitVV)
+                d['group'] = groupColumn(sample, d, split)
                 d['isMumu'] = np.full(n, tname == 'mumu')
                 d.setdefault('allMediumId', np.ones(n))
                 parts.append(d)

@@ -341,3 +341,6 @@ of `20261119_jetfreefull`) and `vvTruthSplit_20261119c/` (`vvTruthSplit.py` on t
   (not needed: only VV is split).
 - Earlier scan results (all VV jets signal) are not directly comparable: baseline Z_shape 9.19 -> 8.31 with VVother
   in the background (vvTruthSplit_20261119c).
+- Q6 (user): the ZH jets that are not the boson are background too (group `ZHother`); `loadTables(..., split=False)`
+  keeps the unsplit labels. Jet-free gen tables of DY + ZH rerun with the truth block (`work/jf_gen_a`; the earlier run
+  is `work/jf_gen_a_notruth`).
