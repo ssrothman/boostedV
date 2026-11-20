@@ -134,6 +134,43 @@ class Thresholds(unittest.TestCase):
         self.assertGreater(np.ptp([glob[pt == p].mean() for p in (250.0, 700.0, 1200.0)]), 0.1)   # global cut is not flat
 
 
+class Groups(unittest.TestCase):
+    def test_vv_jets_that_are_not_the_boson_are_background(self):
+        import sensitivity
+        d = {'weight': np.ones(4), 'truthStatus': np.array([0.0, 1.0, 3.0, 2.0])}
+        self.assertEqual(sensitivity.groupColumn('ZZto2L2Q_powheg', d).tolist(), ['ZZ', 'VVother', 'VVother', 'VVother'])
+        self.assertEqual(sensitivity.groupColumn('WZto2L2Q_powheg', d, splitVV=False).tolist(), ['WZ'] * 4)
+        self.assertEqual(sensitivity.groupColumn('ZH_Zto2L_Hto2B', d).tolist(), ['ZH'] * 4)
+        self.assertEqual(sensitivity.groupColumn('DYto2L-2Jets_MLL-50_PTLL-400to600', d).tolist(), ['DY'] * 4)
+        with self.assertRaises(ValueError):
+            sensitivity.groupColumn('WZto2L2Q_powheg', {'weight': np.ones(2)})
+
+    def test_load_tables_splits_unless_asked_not_to(self):
+        import types
+        from unittest import mock
+        import sensitivity
+        col = lambda x: types.SimpleNamespace(value=np.asarray(x, dtype=float))
+        out = {'tables': {'mumu': {'r': {'WZto2L2Q_powheg': {'weight': col([1, 1]), 'truthStatus': col([0, 3])}}}}}
+        with mock.patch.object(sensitivity, 'load', return_value=out):
+            self.assertEqual(sensitivity.loadTables('x')['group'].tolist(), ['WZ', 'VVother'])
+            self.assertEqual(sensitivity.loadTables('x', splitVV=False)['group'].tolist(), ['WZ', 'WZ'])
+
+    def test_vvother_is_background_of_the_evaluator(self):
+        """Relabelling a WZ jet as VVother moves its yield from S to B."""
+        import sensitivity
+        rng = np.random.default_rng(5)
+        n = 400
+        g = np.where(np.arange(n) < 300, 'DY', 'WZ')
+        t = {'group': g, 'weight': np.ones(n), 'pt': rng.uniform(200, 600, n), 'msd': rng.uniform(0, 200, n), 'absEta': np.zeros(n),
+             'e2cn1': np.zeros((n, 42))}
+        base = np.ones(n, bool)
+        u = dict(t, group=np.where(np.arange(n) >= 390, 'VVother', g))
+        a = sensitivity.Evaluator(t, base, 'msd', np.ones(40), 1.0).evaluate(base, 'VV')
+        b = sensitivity.Evaluator(u, base, 'msd', np.ones(40), 1.0).evaluate(base, 'VV')
+        self.assertEqual((a['S'], a['B']), (100, 300))
+        self.assertEqual((b['S'], b['B']), (90, 310))
+
+
 class Templates(unittest.TestCase):
     """msd one-hot rows, '+'-joined observables and the (pT, |eta|) cells of the Evaluator."""
 

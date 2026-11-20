@@ -73,7 +73,7 @@ def main():
                 tables[t] = {'regions': [r.replace('Jets', 'GenJets') for r in spec['regions']],
                              'columns': {k: v for k, v in spec['columns'].items()
                                          if k in ('pt', 'eta', 'phi', 'mass', 'zPt', 'zEta', 'zPhi', 'zMass', 'nJets')},
-                             'ceec': rows}
+                             'truth': spec['truth'], 'ceec': rows}
             cfg['tables'] = tables
         else:
             for t, spec in cfg['tables'].items():

@@ -59,7 +59,9 @@ tables:
       zPhi: boson.phi
       zMass: boson.mass
       nJets: num(jets)
-    ceec: &id001
+    truth: &id001
+      dRMax: 0.8
+    ceec: &id002
       c_genCh:
         source: event
         eventTable: GenEvtAllJet
@@ -109,4 +111,5 @@ tables:
       zPhi: boson.phi
       zMass: boson.mass
       nJets: num(jets)
-    ceec: *id001
+    truth: *id001
+    ceec: *id002

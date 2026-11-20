@@ -73,7 +73,7 @@ def main():
     os.makedirs(a.outdir, exist_ok=True)
     edges = np.geomspace(1e-3, 1.6, 41)
     centers = np.sqrt(edges[:-1] * edges[1:])
-    t = sensitivity.loadTables(a.tables)
+    t = sensitivity.loadTables(a.tables, splitVV=False)
     sensitivity.derive(t, centers)
     base = (t['zPt'] > 200) & (t['pt'] > 200) & (t['absEta'] < 2.0) & (t['allMediumId'] > 0)
     w = t['weight']
@@ -150,18 +150,13 @@ def main():
               'all: every VV jet is signal; other-as-bkg: VV-other in the background; other-dropped: VV-other removed.',
               'Half-sample Z (no MC term) A, B in brackets.', '',
               '| cut | all | other-as-bkg | other-dropped |', '|---|---|---|---|']
-    groups0 = sensitivity.GROUPS
     variants = {}
     for vname in ('all', 'other-as-bkg', 'other-dropped'):
         tv = dict(t)
         if vname != 'all':
             tv['group'] = np.where(other, 'VVother' if vname == 'other-as-bkg' else 'dropped', t['group'])
-        # Evaluator takes its groups from sensitivity.GROUPS; 'dropped' is in none, so it is ignored.
-        sensitivity.GROUPS = groups0 + ((('VVother', ()),) if vname == 'other-as-bkg' else ())
-        try:
-            variants[vname] = sensitivity.Evaluator(tv, base, 'e2cn1', centers, 1.0)
-        finally:
-            sensitivity.GROUPS = groups0
+        # 'dropped' is in no sensitivity.GROUPS entry, so the Evaluator ignores it.
+        variants[vname] = sensitivity.Evaluator(tv, base, 'e2cn1', centers, 1.0)
     for label, m in cuts:
         cells = []
         for vname, ev in variants.items():

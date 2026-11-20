@@ -7,7 +7,7 @@ RECO.coffea, GEN.coffea: run.py outputs of configs/jetfree_evt.yaml and configs/
 baseline of their level (jet pT > 200, |eta| < 2.0, Z pT > 200; reco also medium muon ID), both channels, in Z-pT
 slices (bvana/sensitivity.py PT_SLICES). Per reco/gen pair (PAIRS): the DY shape difference (chi2/ndf of the
 unit-normalised shapes with the MC statistics of both, as if independent, and the largest |reco/gen - 1| over bins
-with MC relative error < 5% in both), and the stat-only Z_shape with the MC term of VV and ZH against DY at each level.
+with MC relative error < 5% in both), and the stat-only Z_shape with the MC term of VV (boson jets) and ZH against all other jets at each level.
 """
 import argparse
 import os
