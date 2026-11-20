@@ -96,6 +96,18 @@ the jet-free production (10% of DY).
   each; the sensitivity starts from coarser projections (e.g. R_L x ξ) because of the bin count.
 - Item 3 option (b): neutrals weighted with `puppiWeightRaw` (the AK8 PUPPI weight), lostTracks excluded.
 
+## Constituent tables: design (2026-11-19, implementation choice)
+- A table key `ceec: {name: spec}` (bvana/tables.py) adds per-jet correlator rows computed from the stored
+  constituents with `bvana/eecext.py`, so the same `sensitivity.py` statistics apply. Spec: `source` jet (AK8
+  constituents, charged, PUPPI-weighted) or event (the channel's all-particle collection; old layout without the
+  channel suffix), `N`, `n`, `shape` (resolved E3C), `bins`, `norm` (jetPt, zPt, sumPt), and particle filters
+  (charged, ptMin, fromPV, |dz|, |dxy| max or min, lostTracks, PUPPI weighting or threshold, dR to the jet, recoil
+  hemisphere).
+- AK8 constituents get their details (fromPV, dz, dxy) by `srcIdx` from the all-particle collection (checked on 500
+  dev events: 99.1% joined, identical eta, pt = pt x puppiWeightRaw to 6e-8; the rest are at |eta| > 2.4).
+- Resolved E3C rows: the (R_L, xi) and (R_L, phi) projections, not the full 3D grid (2058 floats per jet).
+- One table config per study (AK8 variants, jet-free variants) to keep each table file a few GB.
+
 ## Proposed order
 1. Item 1 now (existing tables).
 2. Implementation of resolved E3C in c++ and python bindings

@@ -68,12 +68,14 @@ Each expression has a level, which decides what a cut does:
   `weight: eec.ERest / eec.weight`. See `bvana/frames.py`; the closure against the C++ `E1CHelicity` is in
   `tests/test_frames.py`.
 
-- `tables:` {name: {regions, columns, eec, ak4, truth}}: per-jet tables, one row per kept jet (`bvana/tables.py`). `columns`
+- `tables:` {name: {regions, columns, eec, ak4, truth, ceec}}: per-jet tables, one row per kept jet (`bvana/tables.py`). `columns`
   are event- or jet-level expressions; `eec` gives each jet's EEC histogram as one row (flow bins included, weight ×
   symfactor, no event weight); `ak4` adds `ak4N`, `ak4HT`, `ak4MaxBtag` (AK4 jets away from the jet and the leptons);
   `truth: {dRMax}` adds the jet's GenPart truth match (`bvana/truth.py`, the rules of the production `axisTruth`:
   `truthPt`, `truthEta`, `truthPhi`, `truthMass`, `truthPdgId`, `truthStatus` 0 boson / 1 decay quark / 3 other
-  hard-process parton / 2 none). Each
+  hard-process parton / 2 none); `ceec: {name: spec}` adds correlator rows computed from the stored constituents of
+  `writeConstituents` productions (jet or all-particle event collections, particle filters, projected ENC or resolved
+  E3C projections; spec in `bvana/ceec.py`). Each
   table has the event weight `weight`. Output `tables[table][region][sample][column]` (column accumulators).
 
 ## Sensitivity scans (`sensitivity.py`, plan and results: `SENSITIVITY_PLAN.md`, `SENSITIVITY_JOURNAL.md`)

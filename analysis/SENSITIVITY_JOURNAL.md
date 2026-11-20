@@ -16,6 +16,8 @@ Plan: `SENSITIVITY_PLAN.md`. Newest entries at the end.
 - [2026-11-19 Corrected scans: binning, pT x dR, |eta|, m_SD](#2026-11-19-corrected-scans-binning-pt-x-dr-eta-m_sd)
 - [2026-11-19 E2C kept; plan for the remaining ideas](#2026-11-19-e2c-kept-plan-for-the-remaining-ideas)
 - [2026-11-19 Data products: tables and scan outputs](#2026-11-19-data-products-tables-and-scan-outputs)
+- [2026-11-19 Truth match and jet-pT vs Z-pT resolution](#2026-11-19-truth-match-and-jet-pt-vs-z-pt-resolution)
+- [2026-11-19 Constituent correlator tables (ceec)](#2026-11-19-constituent-correlator-tables-ceec)
 
 ## 2026-11-19 Decisions and starting point
 User decisions:
@@ -235,3 +237,40 @@ Scan outputs (`scan.md`, `scan.json`, `run.log`) in `~/nobackup/boostedV/` (not 
 `sensitivity_20261119b` (cut scan), `_d_tagger`, `_e_fewbins`, `_f_eta2`, `_g_eta4`, `_h_msd`, `_i_ptdR`.
 Stale (before the fix, not rerun; superseded): `sensitivity_20261119` (old distortion normalisation) and
 `sensitivity_20261119c_tagger` (no half-sample check; superseded by `_d_tagger`).
+
+## 2026-11-19 Truth match and jet-pT vs Z-pT resolution
+Plan item 1 (`E2C_NEXT_PLAN.md`). Tables `sens_tables_20261119c.coffea` (condor `work/sens_20261119c`, code 83ec19e;
+EOS copy adler32 fef6bfc0, 3604752306 B) = the `b` tables plus `e2cn{1,2}ptlldR` (x = Z pT x dR) and the truth match
+(`bvana/truth.py`). Every shared column equals the `b` tables (row counts and weighted sums, 60 samples).
+- Truth match: the rules of the production `axisTruth` applied offline to GenPart. Same status and particle as
+  `RecoJet/GenJet_axisTruth*` for all 8329 jets of one DY (dev), one WZ and one ZH file (pt, eta, phi within 0.19%,
+  the GenPart float precision). The existing productions (zxb2b, zh) predate `axisTruth`, hence the offline version.
+- Matched fractions at the sensitivity baseline (weighted): VV 54% of jets are the hadronic boson (WZ ~45%, ZZ ~76% of
+  table rows); the rest are mostly a hard-process parton (status 3). qq->ZH and gg->ZH: 87%. DY: 100% status 3.
+- Resolution r = (pT_true - pT_reco)/pT_true (`ptResolution.py`, `~/nobackup/boostedV/ptResolution_20261119c/`),
+  median / 68% half-width at pT_true 200-300 and 400-600 GeV:
+  | | jet pT | Z pT |
+  |---|---|---|
+  | VV (boson) | -0.035 / 0.105, -0.020 / 0.081 | -0.004 / 0.119, 0.029 / 0.141 |
+  | ZH (boson) | 0.017 / 0.146, 0.027 / 0.097 | -0.008 / 0.142, 0.015 / 0.109 |
+  | DY (parton) | -0.068 / 0.118, -0.040 / 0.095 | -0.015 / 0.132, 0.025 / 0.187 |
+  The jet pT is the better estimate of the boson pT for VV and DY (narrower at all pT_true, tails |r| > 0.3 half as
+  frequent); for ZH (b decays with neutrinos) the two are equal. The Z-pT residual of DY has a shoulder up to
+  r = 0.5, where the baseline Z pT > 200 GeV cuts for a parton at 400 GeV (extra radiation shares the recoil).
+- Open observation: 26% of the boson-matched ZH jets (13% for VV) have pT_true < 200 GeV with a reco jet above 200
+  (median r -0.8): the jet then contains more than the boson. Not investigated further.
+
+## 2026-11-19 Constituent correlator tables (ceec)
+Table key `ceec` (`bvana/ceec.py`, design in `E2C_NEXT_PLAN.md`): per-jet rows from the stored constituents of the
+jet-free productions, for plan items 2-4. Checked on the dev DY NANO (per-channel layout, 500 events) and one
+`20261119_jetfree` WZ file (old layout):
+- AK8 E2C recomputed from the constituents (n = 1, jetPt) equals the production E2C table row by row: max relative
+  difference 7e-8 (4.7e-4 in one table, float rounding at a bin edge).
+- AK8 approximated by the all-particle collection within dR < 0.8 of the jet (charged, PUPPI-weighted, no lost tracks;
+  plan item 3 option b) vs the real AK8 charged E2C: summed weights within 1%, single bins of single jets up to 25%
+  apart (cone vs anti-kT boundary).
+- The resolved E3C (R_L, xi) projection sums to the projected E3C; the recoil hemisphere keeps 65-80% of the
+  charged-PV jet-free E2C weight.
+- Unit tests `tests/test_ceec.py` (filters, srcIdx join, spec checks). Mutation tests rerun with bytecode caching off
+  (a stale `.pyc` had hidden a mutant): all 27 mutations of this session's Python code caught, and 4 earlier ones
+  (support mask, m_SD rows, cell index, scan merge) rechecked.
