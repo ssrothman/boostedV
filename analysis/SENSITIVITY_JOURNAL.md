@@ -18,6 +18,7 @@ Plan: `SENSITIVITY_PLAN.md`. Newest entries at the end.
 - [2026-11-19 Data products: tables and scan outputs](#2026-11-19-data-products-tables-and-scan-outputs)
 - [2026-11-19 Truth match and jet-pT vs Z-pT resolution](#2026-11-19-truth-match-and-jet-pt-vs-z-pt-resolution)
 - [2026-11-19 Constituent correlator tables (ceec)](#2026-11-19-constituent-correlator-tables-ceec)
+- [2026-11-19 Z-pT x dR binning and Z-pT slices](#2026-11-19-z-pt-x-dr-binning-and-z-pt-slices)
 
 ## 2026-11-19 Decisions and starting point
 User decisions:
@@ -274,3 +275,25 @@ jet-free productions, for plan items 2-4. Checked on the dev DY NANO (per-channe
 - Unit tests `tests/test_ceec.py` (filters, srcIdx join, spec checks). Mutation tests rerun with bytecode caching off
   (a stale `.pyc` had hidden a mutant): all 27 mutations of this session's Python code caught, and 4 earlier ones
   (support mask, m_SD rows, cell index, scan merge) rechecked.
+
+## 2026-11-19 Z-pT x dR binning and Z-pT slices
+Plan item 1. Scans `configs/scans_20261119c.yaml` (condor `work/scans_20261119c`, code 25cbf0e; 7 jobs needed 20 GB
+for the larger tables) on `sens_tables_20261119c`; outputs `~/nobackup/boostedV/sensitivity_20261119{j_ptlldR,
+k_zptslices}/`. Its jet-pT x dR rows reproduce `sensitivity_20261119i_ptdR` exactly. Z_shape with MC statistics at the
+best stable point (both half-sample Z within 10%), "a / b / c" = 1 / 5 / 10 slices; baselines in brackets:
+| configuration | VV gpV | ZH pnXbb | ZH gpV |
+|---|---|---|---|
+| E2C n=1 in dR, jet-pT slices (reference) | 10.0 / 14.2 / 14.9 | 1.2 / 1.2 / 1.6 | 1.0 / 1.6 / 1.1 |
+| in jet-pT x dR, jet-pT slices | 14.0 / 14.7 / 15.4 (9.0-9.6) | 1.8 / 1.8 / 1.6 (0.45-0.47) | 1.7 / 1.7 / 1.4 |
+| in Z-pT x dR, jet-pT slices | 13.4 / 14.0 / 15.2 (8.4-9.0) | 2.1 / 2.4 / 2.3 (0.52-0.53) | 1.9 / 1.8 / 1.5 |
+| both n in Z-pT x dR, jet-pT slices | 13.5 / 14.0 / 14.6 | 2.4 / 2.3 / 2.3 | 2.0 / 1.7 / 1.4 |
+| E2C n=1 in dR, Z-pT slices (5 / 10) | 13.8 / 14.3 | 2.0 / 2.2 | 1.4 / 0.9 |
+| in Z-pT x dR, Z-pT slices (5 / 10) | 14.2 / 14.4 | 2.3 / 2.3 | 1.9 / 1.2 |
+| in jet-pT x dR, Z-pT slices (5 / 10) | 14.9 / 15.1 | 2.1 / 1.7 | 1.4 / 1.0 |
+- VV: the jet pT is the better scale, as binning variable (Z-pT x dR 0.2-0.6 below jet-pT x dR) and as slicing
+  variable (Z-pT slices 0.4-0.6 below jet-pT slices for dR). This matches the resolution study: the jet pT measures
+  the W/Z pT better than the Z pT.
+- ZH (pnXbb): the Z pT is the better scale: 2.1-2.4 with Z-pT x dR vs 1.6-1.8 with jet-pT x dR, and 2.0-2.2 for dR in
+  Z-pT slices vs 1.2-1.6 in jet-pT slices; baselines 0.52-0.56 vs 0.45-0.51. Consistent with the equal resolutions for
+  ZH (b-jet response, neutrinos), while the Z pT does not depend on the jet. The ZH best points sit at 0.3-1% DY
+  efficiency, where stability is marginal; the gain is of the size of the stable-point scatter (~0.3-0.5).

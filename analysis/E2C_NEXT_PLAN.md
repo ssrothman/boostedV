@@ -124,6 +124,10 @@ the jet-free production (10% of DY).
 5. The constituent table processor, closure against the production E2C,
 6. Items 4, 3, 2 (continue to defer item 5)
 
+Status (2026-11-19, journal for details): 1 tables, resolution study done, scans on condor; 2 done (library,
+bindings, NANO producer, not enabled); 3 submitted as `20261119_jetfreefull` (all six samples); 5 done
+(`bvana/ceec.py`, closure 7e-8; table configs `configs/jetfree_*.yaml`); 4 and 6 wait for the production.
+
 ## Questions
 - Order and priorities above? Checked and updated
 - Item 3, charged + neutral: option (a), (b) or (c)? Inline
