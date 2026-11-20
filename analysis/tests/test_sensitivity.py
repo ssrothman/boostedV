@@ -146,12 +146,16 @@ class Templates(unittest.TestCase):
     def test_vectors_join_and_rebin_only_e2c(self):
         import sensitivity
         rng = np.random.default_rng(2)
-        t = {'e2cn1': rng.random((3, 10)), 'e2cn2': rng.random((3, 10)), 'msd': np.array([7.0, 90.0, 400.0])}
+        t = {'e2cn1': rng.random((3, 42)), 'e2cn2': rng.random((3, 42)), 'msd': np.array([7.0, 90.0, 400.0]),
+             'shape': rng.random((3, 100))}
         v = sensitivity.vectors(t, 'both+msd', rebin=2)
-        self.assertEqual(v.shape, (3, 4 + 4 + 61))
-        np.testing.assert_allclose(v[:, :4], t['e2cn1'][:, 1:-1].reshape(3, 4, 2).sum(axis=2))
-        np.testing.assert_allclose(v[:, 4:8], t['e2cn2'][:, 1:-1].reshape(3, 4, 2).sum(axis=2))
-        np.testing.assert_array_equal(v[:, 8:], sensitivity.msdRows(t['msd']))
+        self.assertEqual(v.shape, (3, 20 + 20 + 61))
+        np.testing.assert_allclose(v[:, :20], t['e2cn1'][:, 1:-1].reshape(3, 20, 2).sum(axis=2))
+        np.testing.assert_allclose(v[:, 20:40], t['e2cn2'][:, 1:-1].reshape(3, 20, 2).sum(axis=2))
+        np.testing.assert_array_equal(v[:, 40:], sensitivity.msdRows(t['msd']))
+        np.testing.assert_array_equal(sensitivity.vectors(t, 'shape'), t['shape'])   # no flow bins to strip
+        with self.assertRaises(ValueError):
+            sensitivity.vectors(t, 'shape', rebin=2)
         with self.assertRaises(ValueError):
             sensitivity.vectors(dict(t, e2cn1ptdR=t['e2cn1']), 'e2cn1ptdR', dRMin=0.01, centers=np.ones(8))
         with self.assertRaises(ValueError):

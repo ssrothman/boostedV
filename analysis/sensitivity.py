@@ -101,6 +101,7 @@ def lrScore(t, base, sig, binCenters):
 
 
 MSD_EDGES = np.arange(0.0, 301.0, 5.0)
+FLOW_WIDTH = 42   # 40 bins and the two flow bins of every 1D correlator row
 
 
 def msdRows(msd):
@@ -113,10 +114,15 @@ def msdRows(msd):
 
 def vectors(t, obs, rebin=1, dRMin=0.0, centers=None):
     """Per-jet rows of obs, '+'-joined parts concatenated: an E2C column without the flow bins ('both' = e2cn1+e2cn2,
-    'bothptdR' = e2cn1ptdR+e2cn2ptdR, 'bothptlldR' likewise) or 'msd' (msdRows). rebin merges groups of adjacent E2C
-    bins (the number of bins must divide by it), dRMin drops the bins whose centre is below it (before merging; plain
-    Delta R columns only)."""
+    'bothptdR' = e2cn1ptdR+e2cn2ptdR, 'bothptlldR' likewise) or 'msd' (msdRows). Rows of FLOW_WIDTH columns are 1D with
+    flow bins; other widths (the ceec resolved-E3C projections) are used as they are and cannot be rebinned. rebin
+    merges groups of adjacent E2C bins (the number of bins must divide by it), dRMin drops the bins whose centre is
+    below it (before merging; plain Delta R columns only)."""
     def one(x):
+        if x.shape[1] != FLOW_WIDTH:
+            if rebin > 1:
+                raise ValueError('only %d-column rows can be rebinned' % FLOW_WIDTH)
+            return x
         x = x[:, 1:-1]
         if dRMin > 0:
             x = x[:, centers >= dRMin]

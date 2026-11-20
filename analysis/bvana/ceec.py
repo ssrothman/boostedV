@@ -9,8 +9,8 @@ Spec {name: {source, N, n, bins, norm, select, eventTable, shape}}:
   bins        binning name (R_L for shape)
   norm        jetPt, zPt or sumPt (of the selected particles)
   shape       optional: xi or phi, the resolved E3C (N = 3) projected on (R_L, xi) or (R_L, phi), with
-              binnings shapeBins (default xi: 5 bins in [0, 1], phi: 5 in [0, pi/2]); rows of
-              (len(bins edges) + 1) x (shape bins + 2), R_L fastest
+              binnings shapeBins (default xi: 5 bins in [0, 1], phi: 5 in [0, pi/2]); rows of R_L bins x shape
+              bins without any flow bin (unlike the 1D rows), R_L fastest
   select      particle filters, all optional:
               charged (true: charge != 0), ptMin, lostTracks (false: packed PF candidates only, `source == 0`),
               minFromPV, maxAbsDz, maxAbsDxy, minAbsDxy (charged particles only; neutral ones pass),
@@ -160,5 +160,5 @@ def rows(view, spec, edges, shapeEdges=None):
     se = SHAPE_EDGES[spec['shape']] if shapeEdges is None else shapeEdges
     xi, phi = (se, np.array([0.0, 1.0])) if spec['shape'] == 'xi' else (np.array([0.0, 1.0]), se)
     full = eecext.resolvedE3C(cols, norm, spec['n'], edges, xi, phi)          # (jets, RL, xi, phi), flow bins
-    proj = full.sum(axis=3) if spec['shape'] == 'xi' else full.sum(axis=2)
+    proj = (full.sum(axis=3) if spec['shape'] == 'xi' else full.sum(axis=2))[:, 1:-1, 1:-1]
     return proj.transpose(0, 2, 1).reshape(len(proj), -1).astype(np.float32)   # R_L fastest
