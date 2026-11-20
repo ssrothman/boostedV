@@ -21,6 +21,7 @@ Plan: `SENSITIVITY_PLAN.md`. Newest entries at the end.
 - [2026-11-19 Z-pT x dR binning and Z-pT slices](#2026-11-19-z-pt-x-dr-binning-and-z-pt-slices)
 - [2026-11-20 Resolved E3C: R_S = 0 triples in their own bin (Q1)](#2026-11-20-resolved-e3c-r_s--0-triples-in-their-own-bin-q1)
 - [2026-11-20 VV jets that are not the boson (Q4 follow-ups)](#2026-11-20-vv-jets-that-are-not-the-boson-q4-follow-ups)
+- [2026-11-20 Non-boson VV jets are background (VVother)](#2026-11-20-non-boson-vv-jets-are-background-vvother)
 
 ## 2026-11-19 Decisions and starting point
 User decisions:
@@ -332,3 +333,11 @@ of `20261119_jetfreefull`) and `vvTruthSplit_20261119c/` (`vvTruthSplit.py` on t
 - Unit tests: `tests/test_vvTruthSplit.py` (chi2: analytic two-bin case, Poisson toys with mean chi2/ndf 1),
   `tests/test_vvBosonLocation.py`; 9 mutations caught.
 
+## 2026-11-20 Non-boson VV jets are background (VVother)
+- User decision (Q4): `sensitivity.loadTables` labels WZ/ZZ jets with truthStatus != 0 as group `VVother`, part of
+  every background sum; VV signal = boson-matched jets only. `loadTables(..., splitVV=False)` keeps the old labels
+  (vvTruthSplit.py). A VV table without truthStatus raises. Tests: 5 mutations of the split and its wiring caught.
+- Jet-free gen tables (`configs/jetfree_gen.yaml`) now have the truth block; the DY+ZH gen run `jf_gen_a` predates it
+  (not needed: only VV is split).
+- Earlier scan results (all VV jets signal) are not directly comparable: baseline Z_shape 9.19 -> 8.31 with VVother
+  in the background (vvTruthSplit_20261119c).
