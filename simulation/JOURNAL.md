@@ -38,6 +38,7 @@
 - 2026-11-19 Jet-free collections split per channel
 - 2026-11-19 `20261119_jetfree` status: three WZ jobs lost to the zero-pT photon
 - 2026-11-20 `20261119_jetfreefull` status and first merge
+- 2026-11-20 Extra-jet veto on for future productions
 
 ## 2026-11-11 A.2 setup and DataFormats
 - Plan: `stepA2_plan.md`. New local repos (remotes pending): `EECDataFormats` (pkg `SRothman/DataFormats`),
@@ -715,3 +716,11 @@ CRAB status 2026-11-20 morning: DY 200-400 285/286 finished (1 failed), DY 400-6
 (5 failed), ZH 7/7; WZ 44/47 and ZZ 148/149 finished, the rest running. User (2026-11-20): small numbers of failed
 jobs are accepted. Merged with `merge.py --allow-missing` (DY, ZH): eventsWritten DY 2013713 / 1510322 / 1476708,
 ZH 44264. Old `20261119_jetfree`: WZ 39 finished / 8 failed, ZZ 146/149, ZH 7/7; superseded, not merged yet.
+
+## 2026-11-20 Extra-jet veto on for future productions
+- User decision (Q4 of `analysis/E2C_NEXT_QUESTIONS.md`): `backToBack.extraJetAlphaMax: 0` (any extra AK4 jet vetoes)
+  for the four enabled channels of `ZX_test.yaml`; `ZX_jetfree.yaml` regenerated. `ZX_cutflow.yaml` and `default.yaml`
+  unchanged (-1). Extra-jet cuts unchanged: pt > 20, |eta| < 2.4, dR > 1.2 from the jet, 0.4 from the leptons (Q6).
+- Check (cmsRun, 1000 dev DY PTLL-400to600 events, writeConstituents=1, old vs new ZX_jetfree): Selection_Zmumu
+  187 -> 81, Selection_Zee 174 -> 74, GenSelection_Zmumu 214 -> 89, GenSelection_Zee 205 -> 82.
+- `20261119_jetfreefull` was produced without the veto.
