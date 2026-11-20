@@ -2,7 +2,7 @@
 # (make_jetfree_config.py: constituents only, RecoEvtAll with lostTracks, GenEvtAll) with writeConstituents. Measured on
 # 1000 DY PTLL-400to600 dev events: 55.7 kB per written event; written fractions from the earlier productions: DY 400-600
 # 43%, DY 600 48%, WZ 0.41%, ZZ 0.23%, qq->ZH(bb) 1.7%. Signals in full; DY 18 and 19 one-file jobs (~10%); ~28 GB.
-# PREPARED, NOT SUBMITTED.
+# Submitted 2026-11-19 as 20261119_jetfree (simulation/JOURNAL.md).
 outputBase: /store/user/srothman/boostedV
 storageSite: T3_US_FNALLPC
 eosRedirector: root://cmseos.fnal.gov

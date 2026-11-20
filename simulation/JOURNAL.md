@@ -34,6 +34,7 @@
 - 2026-11-18 Cutflow final rows from the full productions; LHE and full-production manifests
 - 2026-11-19 Jet-free EEC collections (mode event)
 - 2026-11-19 Jet-free test production `20261119_jetfree` submitted
+- 2026-11-19 Jet-free production: zero-pT dressing photon failure, fix
 
 ## 2026-11-11 A.2 setup and DataFormats
 - Plan: `stepA2_plan.md`. New local repos (remotes pending): `EECDataFormats` (pkg `SRothman/DataFormats`),
@@ -665,3 +666,18 @@ writeConstituents), CRAB, from a clean tree (boostedV 4c06175; JetSetup cbc4715,
 <= 1.9 GB, longest job 802 min (ZH); the `cling::AutoLoadingVisitor` messages also appear in all earlier productions.
 Expected output ~28 GB (55.7 kB per written event).
 
+## 2026-11-19 Jet-free production: zero-pT dressing photon failure, fix
+- `20261119_jetfree` status at 18:30: DY tasks complete (18/18, 19/19); WZ, ZZ, ZH running. WZ job 17 failed
+  deterministically (exit 8001, both attempts) on event 1:9001:6318081: `EventEECJetProducer/jetsGenEvtAllRaw` found no
+  packed match for a dressing photon with pt 2.8e-12 GeV, y 1.95.
+- Cause (CMSSW_15_0_22 `PackedGenParticle::pack/unpack`): pt is stored with `MiniFloatConverter::float32to16`, which
+  gives 0 below the smallest 16-bit subnormal (2^-24; subnormals are truncated, not rounded), and a zero pt unpacks
+  with eta = 0, hence y = 0. The producer already drops src particles with pt <= 0, so such a daughter has no keepable
+  counterpart.
+- Fix (JetSetup): `jetsetup::packedPtIsZero` (the same converter round trip); such daughters are skipped instead of
+  matched. Tests: boundary values (0, 2.8e-12, 0.99 x 2^-24 true; 2^-24, 1.7e-5, 40 false); threshold mutants
+  `pt < 5e-8`, `pt < 6e-8`, `pt < 1e-9` each fail it. The failed event reprocessed locally with the fix: exit 0, one
+  GenEvtAll jet of 449 particles, its only electrons a collinear soft pair (pt 0.20 and 0.08 GeV, dphi 0.01), not the Z
+  leptons.
+- Decision (user): keep the running tasks (old code) and merge without the failed job(s) (`merge.py --allow-missing`);
+  the fix applies from the next production.
