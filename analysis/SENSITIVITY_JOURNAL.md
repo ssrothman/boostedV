@@ -426,9 +426,9 @@ Z pT > 200; reco also medium muon ID), 5 Z-pT slices. VVother/ZHother are backgr
 
 | reco / gen | Z_shape VV, reco / gen | ZH, reco / gen | DY chi2/ndf (reco vs gen), per slice | DY max abs(reco/gen - 1) |
 |---|---|---|---|---|
-| charged PV / gen charged | 2.38 / 8.37 | 0.08 / 0.31 | 13-160 | 0.17-0.64 |
+| charged PV / gen charged | 2.38 / 8.37 | 0.08 / 0.31 | 15-160 | 0.17-0.64 |
 | same, hemisphere | 3.81 / 8.38 | 0.14 / 0.30 | 13-139 | 0.16-0.63 |
-| PUPPI / gen all | 8.81 / 9.73 | 0.29 / 0.34 | 300-4400 | 0.49-0.59 |
+| PUPPI / gen all | 8.81 / 9.73 | 0.29 / 0.34 | 301-4347 | 0.49-0.59 |
 | same, hemisphere | 8.81 / 9.74 | 0.29 / 0.34 | 276-4371 | 0.49-0.58 |
 
 - At gen level the charged-only E2C keeps most of the sensitivity (VV 8.4 vs 9.7 for all particles). At reco the

@@ -127,6 +127,8 @@ the jet-free production (10% of DY).
 Status (2026-11-19, journal for details): 1 tables, resolution study done, scans on condor; 2 done (library,
 bindings, NANO producer, not enabled); 3 submitted as `20261119_jetfreefull` (all six samples); 5 done
 (`bvana/ceec.py`, closure 7e-8; table configs `configs/jetfree_*.yaml`); 4 and 6 wait for the production.
+Status (2026-11-20): 3 and 4 done (production merged with --allow-missing; tables `jf_*_20261120` on EOS); 6 done:
+items 2-3 scans and item 4 reco vs gen in SENSITIVITY_JOURNAL.md (2026-11-20 entries). Item 5 deferred.
 
 ## Questions
 - Order and priorities above? Checked and updated
