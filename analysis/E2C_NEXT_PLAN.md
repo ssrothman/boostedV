@@ -90,6 +90,12 @@ Points at ≤ 1% DY efficiency are unstable: ≤ 40k DY MC jets for 400-800 bins
 a regularised covariance (shrinkage, or an eigenvalue cut-off), or a fixed coarse binning at tight points. Worse in
 the jet-free production (10% of DY).
 
+## Decisions on the production and implementation details (2026-11-19)
+- `20261119_jetfree` WZ (and later failures of the same kind): merge with `--allow-missing`.
+- Resolved E3C binning, a starting point: R_L in the 40 log ΔR bins, ξ in [0, 1] and φ in [0, π/2] in 5 bins
+  each; the sensitivity starts from coarser projections (e.g. R_L x ξ) because of the bin count.
+- Item 3 option (b): neutrals weighted with `puppiWeightRaw` (the AK8 PUPPI weight), lostTracks excluded.
+
 ## Proposed order
 1. Item 1 now (existing tables).
 2. Implementation of resolved E3C in c++ and python bindings
@@ -99,6 +105,8 @@ the jet-free production (10% of DY).
      Estimate from the `20261119_jetfree` sizes per DY file: 400-600 ~46 GB, 600+ ~73 GB, 200-400 ~60-95 GB (not
      produced with this config yet); total ~180-215 GB of ~330 GB free (EOS quota 1.67 of 2.00 TB used, 2026-11-19).
      Decided: default EOS `outputBase`; a larger area is available from the user if later productions need it.
+   - Decided: DY 400-600 and 600+ rerun in full (CRAB cannot skip files: `maxJobs` takes the first N), +~13 GB;
+     the 10% DY of `20261119_jetfree` is not used. Open: also rerun WZ, ZZ, ZH (~11 GB) for one layout.
 4. When crab jobs are done: run the merging
 5. The constituent table processor, closure against the production E2C,
 6. Items 4, 3, 2 (continue to defer item 5)
